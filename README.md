@@ -7,7 +7,7 @@
 [![Flutter](https://img.shields.io/badge/Frontend-Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev/)
 [![Node.js](https://img.shields.io/badge/Backend-Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
 [![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg?style=for-the-badge)](https://opensource.org/licenses/MIT)
+
 
 </div>
 
@@ -42,7 +42,7 @@
 ---
 
 ## 🛠️ Arquitectura y Tecnologías
-'''
+
 | Componente | Tecnología | Descripción |
 | :--- | :--- | :--- |
 | **Frontend** | Flutter / Dart | Aplicación móvil multiplataforma fluida y reactiva. |
@@ -59,7 +59,7 @@ Asegúrate de contar con las siguientes herramientas instaladas localmente:
 - [Node.js](https://nodejs.org/) (`>=18.x`)
 - [MongoDB](https://www.mongodb.com/) local o cuenta en **MongoDB Atlas**
 - Git
-'''
+
 ---
 
 ## ⚙️ Instalación y Configuración
