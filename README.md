@@ -85,18 +85,18 @@ Luego ingresa a la carpeta del proyecto:
 
 Bash
 cd santv-app
-2️⃣ Instalar Node.js y npm
+##2️⃣ Instalar Node.js y npm
 Descarga e instala Node.js, que incluye npm. Puedes verificar que la instalación sea correcta ejecutando:
 
 Bash
 node -v
 npm -v
-3️⃣ Instalar las dependencias
+##3️⃣ Instalar las dependencias
 Desde la carpeta del backend ejecuta:
 
 Bash
 npm install
-4️⃣ Dependencias principales
+##4️⃣ Dependencias principales
 El backend utiliza:
 
 Bash
@@ -107,7 +107,7 @@ Para instalar Nodemon como dependencia de desarrollo:
 
 Bash
 npm install --save-dev nodemon
-5️⃣ Configurar MongoDB
+##5️⃣ Configurar MongoDB
 Para ejecutar el proyecto es necesario contar con una base de datos en MongoDB.
 
 Crear un archivo .env dentro de la carpeta backend:
@@ -117,7 +117,7 @@ PORT=3000
 MONGODB_URI=mongodb+srv://santv:tu_password@santv.ibteu0d.mongodb.net/?appName=SanTV
 ⚠️ No subir el archivo .env a GitHub. Se recomienda agregarlo al archivo .gitignore.
 
-▶️ Ejecutar el servidor
+##▶️ Ejecutar el servidor
 Para iniciar el servidor en modo desarrollo:
 
 Bash
@@ -126,7 +126,7 @@ Si todo está correctamente configurado, el servidor estará disponible en:
 
 Plaintext
 http://localhost:3000
-📁 Estructura del Proyecto
+###📁 Estructura del Proyecto
 La estructura general del proyecto será:
 
 Plaintext
@@ -153,7 +153,7 @@ santv-app/
 │
 └── README.md
 
-👥 Autores
+##👥 Autores
 Aprendices SENA:
 
 Carlos Stiven Leon Huelgos
@@ -164,15 +164,15 @@ Hanna Jeylin Vargas Fierro
 
 Jhohan Stiven Gomez Criollo
 
-🎓 Formación
+##🎓 Formación
 Servicio Nacional de Aprendizaje — SENA
 
 Proyecto desarrollado como parte del proceso de formación de los aprendices.
 
-📌 Estado del Proyecto
-🚧 En desarrollo
+##📌 Estado del Proyecto
+##🚧 En desarrollo
 
 El proyecto se encuentra actualmente en proceso de desarrollo. Se irán agregando nuevas funcionalidades y mejoras durante las diferentes etapas del proyecto.
 
-📄 Licencia
+##📄 Licencia
 Este proyecto fue desarrollado con fines educativos como parte del proceso de formación del SENA.
