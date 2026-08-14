@@ -14,7 +14,7 @@
 
 ---
 
-## 📖 Tabla de Contenidos
+# 📖 Tabla de Contenidos
 - [Descripción](#-descripción)
 - [Stack Tecnológico](#-stack-tecnológico)
 - [Características del Proyecto](#-características-del-proyecto)
@@ -27,7 +27,7 @@
 
 ---
 
-## 📖 Descripción
+# 📖 Descripción
 
 **SAN.tv** es una app pensada para que cualquier persona pueda ver el contenido del canal de televisión, sin necesidad de tener el servicio de Asonet Colombia. Desde noticias, farándula, deportes hasta contenido local y nacional, todo estará disponible en el celular.
 
@@ -37,7 +37,7 @@ Será fácil de usar, rápida, segura, accesible para personas con discapacidad,
 
 ---
 
-## 🚀 Stack Tecnológico
+# 🚀 Stack Tecnológico
 
 Para el desarrollo de **SAN.tv** trabajaremos con las siguientes tecnologías:
 
