@@ -83,13 +83,15 @@ Primero, clona el repositorio desde GitHub:
 git clone [https://github.com/santv/santv-app.git](https://github.com/santv/santv-app.git)
 Luego ingresa a la carpeta del proyecto:
 
-```Bash
+```
+Bash
 cd santv-app
 ```
 ##2️⃣ Instalar Node.js y npm
 Descarga e instala Node.js, que incluye npm. Puedes verificar que la instalación sea correcta ejecutando:
 
-```Bash
+```
+Bash
 node -v
 npm -v
 ```
@@ -101,20 +103,24 @@ npm install
 ##4️⃣ Dependencias principales
 El backend utiliza:
 
+```
 Bash
 npm install express
 npm install mongodb
 npm install dotenv
+```
 Para instalar Nodemon como dependencia de desarrollo:
 
+```
 Bash
 npm install --save-dev nodemon
+```
 ##5️⃣ Configurar MongoDB
 Para ejecutar el proyecto es necesario contar con una base de datos en MongoDB.
 
 Crear un archivo .env dentro de la carpeta backend:
 
-Code snippet
+``` env
 PORT=3000
 MONGODB_URI=mongodb+srv://santv:tu_password@santv.ibteu0d.mongodb.net/?appName=SanTV
 ⚠️ No subir el archivo .env a GitHub. Se recomienda agregarlo al archivo .gitignore.
@@ -122,17 +128,21 @@ MONGODB_URI=mongodb+srv://santv:tu_password@santv.ibteu0d.mongodb.net/?appName=S
 ##▶️ Ejecutar el servidor
 Para iniciar el servidor en modo desarrollo:
 
+```
 Bash
 npm run dev
+```
 Si todo está correctamente configurado, el servidor estará disponible en:
 
-Plaintext
+
+```text
 http://localhost:3000
+```
 ###📁 Estructura del Proyecto
 La estructura general del proyecto será:
 
 
-text
+```text
 santv-app/
 │
 ├── backend/
@@ -156,15 +166,14 @@ santv-app/
 │
 └── README.md
 
+```
+
 ##👥 Autores
+
 Aprendices SENA:
-
 Carlos Stiven Leon Huelgos
-
 Juan David Angarita Rojas
-
 Hanna Jeylin Vargas Fierro
-
 Jhohan Stiven Gomez Criollo
 
 ##🎓 Formación
