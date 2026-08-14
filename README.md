@@ -93,8 +93,8 @@ Descarga e instala Node.js, que incluye npm. Puedes verificar que la instalació
 
 Bash
 ```
-node -v
-npm -v
+npm init -y 
+npm install --save-dev nodemon
 ```
 # 3️⃣ Instalar las dependencias
 Desde la carpeta del backend ejecuta:
