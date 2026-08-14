@@ -57,7 +57,7 @@ Asegúrate de contar con las siguientes herramientas instaladas localmente:
 
 - [Flutter SDK](https://docs.flutter.dev/get-started/install) (`>=3.0.0`)
 - [Node.js](https://nodejs.org/) (`>=18.x`)
-- [MongoDB](https://www.mongodb.com/) local o cuenta en **MongoDB Atlas**
+- [MongoDB](https://www.mongodb.com/) cuenta en **MongoDB Atlas**
 - Git
 
 ---
