@@ -83,14 +83,16 @@ Primero, clona el repositorio desde GitHub:
 git clone [https://github.com/santv/santv-app.git](https://github.com/santv/santv-app.git)
 Luego ingresa a la carpeta del proyecto:
 
-Bash
+```Bash
 cd santv-app
+```
 ##2️⃣ Instalar Node.js y npm
 Descarga e instala Node.js, que incluye npm. Puedes verificar que la instalación sea correcta ejecutando:
 
-Bash
+```Bash
 node -v
 npm -v
+```
 ##3️⃣ Instalar las dependencias
 Desde la carpeta del backend ejecuta:
 
