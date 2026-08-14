@@ -173,11 +173,12 @@ santv-app/
 # 👥 Autores
 
 Aprendices SENA:
+```
 Carlos Stiven Leon Huelgos
 Juan David Angarita Rojas
 Hanna Jeylin Vargas Fierro
 Jhohan Stiven Gomez Criollo
-
+```
 # 🎓 Formación
 Servicio Nacional de Aprendizaje — SENA
 
