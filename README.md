@@ -50,7 +50,7 @@ Para el desarrollo de **SAN.tv** trabajaremos con las siguientes tecnologías:
 
 ---
 
-## ✨ Características del Proyecto
+# ✨ Características del Proyecto
 
 Entre las principales funcionalidades de **SAN.tv** se encuentran:
 
@@ -70,9 +70,9 @@ Entre las principales funcionalidades de **SAN.tv** se encuentran:
 
 ---
 
-## ⚙️ Instalación y Configuración
+# ⚙️ Instalación y Configuración
 
-### 1️⃣ Clonar el repositorio
+# 1️⃣ Clonar el repositorio
 
 Primero, clona el repositorio desde GitHub:
 
@@ -87,7 +87,7 @@ Bash
 ```
 cd santv-app
 ```
-##2️⃣ Instalar Node.js y npm
+#2️⃣ Instalar Node.js y npm
 Descarga e instala Node.js, que incluye npm. Puedes verificar que la instalación sea correcta ejecutando:
 
 
@@ -96,14 +96,14 @@ Bash
 node -v
 npm -v
 ```
-##3️⃣ Instalar las dependencias
+#3️⃣ Instalar las dependencias
 Desde la carpeta del backend ejecuta:
 
 Bash
 ```
 npm install
 ```
-##4️⃣ Dependencias principales
+#4️⃣ Dependencias principales
 El backend utiliza:
 
 
@@ -120,13 +120,13 @@ Bash
 ```
 npm install --save-dev nodemon
 ```
-##5️⃣ Configurar MongoDB
+#5️⃣ Configurar MongoDB
 Para ejecutar el proyecto es necesario contar con una base de datos en MongoDB.
 
 Crear un archivo .env dentro de la carpeta backend:
 
 
-##▶️ Ejecutar el servidor
+#▶️ Ejecutar el servidor
 Para iniciar el servidor en modo desarrollo:
 
 
@@ -140,7 +140,7 @@ Si todo está correctamente configurado, el servidor estará disponible en:
 ```text
 http://localhost:3000
 ```
-###📁 Estructura del Proyecto
+#📁 Estructura del Proyecto
 La estructura general del proyecto será:
 
 
@@ -170,7 +170,7 @@ santv-app/
 
 ```
 
-##👥 Autores
+#👥 Autores
 
 Aprendices SENA:
 Carlos Stiven Leon Huelgos
@@ -178,15 +178,15 @@ Juan David Angarita Rojas
 Hanna Jeylin Vargas Fierro
 Jhohan Stiven Gomez Criollo
 
-##🎓 Formación
+#🎓 Formación
 Servicio Nacional de Aprendizaje — SENA
 
 Proyecto desarrollado como parte del proceso de formación de los aprendices.
 
-##📌 Estado del Proyecto
-##🚧 En desarrollo
+#📌 Estado del Proyecto
+#🚧 En desarrollo
 
 El proyecto se encuentra actualmente en proceso de desarrollo. Se irán agregando nuevas funcionalidades y mejoras durante las diferentes etapas del proyecto.
 
-##📄 Licencia
+#📄 Licencia
 Este proyecto fue desarrollado con fines educativos como parte del proceso de formación del SENA.
