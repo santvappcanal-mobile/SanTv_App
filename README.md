@@ -79,6 +79,7 @@ Primero, clona el repositorio desde GitHub:
 bash
 ```
 git clone [https://github.com/santv/santv-app.git](https://github.com/santv/santv-app.git)
+```
 Luego ingresa a la carpeta del proyecto:
 
 
@@ -101,6 +102,7 @@ Desde la carpeta del backend ejecuta:
 Bash
 ```
 npm install
+```
 ##4️⃣ Dependencias principales
 El backend utiliza:
 
