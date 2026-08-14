@@ -134,7 +134,7 @@ http://localhost:3000
 ##📁 Estructura del proyecto
 La estructura general del proyecto será:
 
-'''
+´´´
 test
 santv-app/
 │
@@ -158,7 +158,8 @@ santv-app/
 │   └── index.html
 │
 └── README.md
-'''
+
+´´´
 
 ---
 👥 Autores
