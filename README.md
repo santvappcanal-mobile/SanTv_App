@@ -134,8 +134,8 @@ http://localhost:3000
 ##📁 Estructura del proyecto
 La estructura general del proyecto será:
 
-
-'''test
+'''
+test
 santv-app/
 │
 ├── backend/
