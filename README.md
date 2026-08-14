@@ -29,11 +29,9 @@
 
 ## 📖 Descripción
 
-**SAN.tv** es una app pensada para que cualquier persona pueda ver en vivo el canal de televisión, sin necesidad de tener el servicio de Asonet Colombia. Desde noticias, farándula, deportes hasta contenido local y nacional, todo estará disponible en el celular.
+**SAN.tv** es una app pensada para que cualquier persona pueda ver el contenido del canal de televisión, sin necesidad de tener el servicio de Asonet Colombia. Desde noticias, farándula, deportes hasta contenido local y nacional, todo estará disponible en el celular.
 
-Los usuarios podrán pagar por tiempo de uso mediante recargas, usando métodos simples como códigos QR. Además, las empresas podrán ver tarifas y pautar fácilmente dentro de la app.
-
-La aplicación usará inteligencia artificial para hacerla más útil: recomendará contenido según tus gustos, resumirá noticias, tendrá control por voz y mostrará subtítulos en vivo para que todos puedan entender el contenido.
+La aplicación usará inteligencia artificial para hacerla más útil: recomendará contenido según tus gustos, resumirá noticias y mostrará subtítulos en vivo para que todos puedan entender el contenido.
 
 Será fácil de usar, rápida, segura, accesible para personas con discapacidad, compatible con varios dispositivos y siempre disponible. También cuidará tus datos personales, cumpliendo con la ley.
 
@@ -48,7 +46,7 @@ Para el desarrollo de **SAN.tv** trabajaremos con las siguientes tecnologías:
 | **Frontend** | HTML5, CSS3, JavaScript, Flutter |
 | **Backend** | Node.js, Express.js, Nodemon |
 | **Base de Datos** | MongoDB |
-| **Herramientas** | Git, GitHub, Visual Studio Code, npm |
+| **Herramientas** | Git, GitHub, Visual Studio Code|
 
 ---
 
@@ -63,7 +61,6 @@ Entre las principales funcionalidades de **SAN.tv** se encuentran:
 * 🤖 **Funciones de Inteligencia Artificial:**
   * Recomendación de contenido según tus gustos.
   * Resumen automático de noticias.
-  * Control por voz.
   * Subtítulos en vivo para que todos puedan entender el contenido.
 * ♿ Aplicación fácil de usar, rápida, segura y accesible para personas con discapacidad.
 * 📱 Diseño compatible con varios dispositivos y siempre disponible.
@@ -79,19 +76,22 @@ Entre las principales funcionalidades de **SAN.tv** se encuentran:
 
 Primero, clona el repositorio desde GitHub:
 
-```bash
+bash
+```
 git clone [https://github.com/santv/santv-app.git](https://github.com/santv/santv-app.git)
 Luego ingresa a la carpeta del proyecto:
 
-```
+
 Bash
+```
 cd santv-app
 ```
 ##2️⃣ Instalar Node.js y npm
 Descarga e instala Node.js, que incluye npm. Puedes verificar que la instalación sea correcta ejecutando:
 
-```
+
 Bash
+```
 node -v
 npm -v
 ```
@@ -99,20 +99,23 @@ npm -v
 Desde la carpeta del backend ejecuta:
 
 Bash
+```
 npm install
 ##4️⃣ Dependencias principales
 El backend utiliza:
 
-```
+
 Bash
+```
 npm install express
 npm install mongodb
 npm install dotenv
 ```
 Para instalar Nodemon como dependencia de desarrollo:
 
-```
+
 Bash
+```
 npm install --save-dev nodemon
 ```
 ##5️⃣ Configurar MongoDB
@@ -120,16 +123,13 @@ Para ejecutar el proyecto es necesario contar con una base de datos en MongoDB.
 
 Crear un archivo .env dentro de la carpeta backend:
 
-``` env
-PORT=3000
-MONGODB_URI=mongodb+srv://santv:tu_password@santv.ibteu0d.mongodb.net/?appName=SanTV
-⚠️ No subir el archivo .env a GitHub. Se recomienda agregarlo al archivo .gitignore.
 
 ##▶️ Ejecutar el servidor
 Para iniciar el servidor en modo desarrollo:
 
-```
+
 Bash
+```
 npm run dev
 ```
 Si todo está correctamente configurado, el servidor estará disponible en:
@@ -151,7 +151,7 @@ santv-app/
 │   │   ├── models/
 │   │   ├── routes/
 │   │   ├── config/
-│   │   └── app.js
+│   │   └── server.js
 │   │
 │   ├── .env
 │   ├── .gitignore
@@ -162,7 +162,7 @@ santv-app/
 │   ├── css/
 │   ├── js/
 │   ├── img/
-│   └── index.html
+│   └── server.html
 │
 └── README.md
 
