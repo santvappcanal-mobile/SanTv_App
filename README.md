@@ -1,6 +1,31 @@
-Plaintext
-# SanTv_App
+<div align="center">
 
+# 📺 SanTv_App
+
+**Plataforma de streaming accesible, inteligente y en vivo.**
+
+[![Flutter](https://img.shields.io/badge/Frontend-Flutter-02569B?style=for-the-badge&logo=flutter&logoColor=white)](https://flutter.dev/)
+[![Node.js](https://img.shields.io/badge/Backend-Node.js-339933?style=for-the-badge&logo=nodedotjs&logoColor=white)](https://nodejs.org/)
+[![Express.js](https://img.shields.io/badge/Framework-Express.js-000000?style=for-the-badge&logo=express&logoColor=white)](https://expressjs.org/)
+[![MongoDB](https://img.shields.io/badge/Database-MongoDB-47A248?style=for-the-badge&logo=mongodb&logoColor=white)](https://www.mongodb.com/)
+[![Status](https://img.shields.io/badge/Estado-En_Desarrollo-orange?style=for-the-badge)](#-estado-del-proyecto)
+
+</div>
+
+---
+
+## 📖 Tabla de Contenidos
+- [Descripción](#-descripción)
+- [Stack Tecnológico](#-stack-tecnológico)
+- [Características del Proyecto](#-características-del-proyecto)
+- [Instalación y Configuración](#-instalación-y-configuración)
+- [Estructura del Proyecto](#-estructura-del-proyecto)
+- [Autores](#-autores)
+- [Formación](#-formación)
+- [Estado del Proyecto](#-estado-del-proyecto)
+- [Licencia](#-licencia)
+
+---
 
 ## 📖 Descripción
 
@@ -14,37 +39,20 @@ Será fácil de usar, rápida, segura, accesible para personas con discapacidad,
 
 ---
 
-## 🚀 Stack tecnológico
+## 🚀 Stack Tecnológico
 
 Para el desarrollo de **SAN.tv** trabajaremos con las siguientes tecnologías:
 
-### Frontend
-
-* HTML5
-* CSS3
-* JavaScript
-* Flutter
-
-### Backend
-
-* Node.js
-* Express.js
-* Nodemon
-
-### Base de datos
-
-* MongoDB
-
-### Herramientas
-
-* Git
-* GitHub
-* Visual Studio Code
-* npm
+| Área | Tecnologías / Herramientas |
+| :--- | :--- |
+| **Frontend** | HTML5, CSS3, JavaScript, Flutter |
+| **Backend** | Node.js, Express.js, Nodemon |
+| **Base de Datos** | MongoDB |
+| **Herramientas** | Git, GitHub, Visual Studio Code, npm |
 
 ---
 
-## ✨ Características del proyecto
+## ✨ Características del Proyecto
 
 Entre las principales funcionalidades de **SAN.tv** se encuentran:
 
@@ -61,81 +69,67 @@ Entre las principales funcionalidades de **SAN.tv** se encuentran:
 * 📱 Diseño compatible con varios dispositivos y siempre disponible.
 * 🔐 Cuidado y protección de datos personales cumpliendo con la ley.
 
-> Las funcionalidades pueden ampliarse durante el desarrollo del proyecto.
+> 💡 *Las funcionalidades pueden ampliarse durante el desarrollo del proyecto.*
 
 ---
 
-## ⚙️ Instalación y configuración
+## ⚙️ Instalación y Configuración
 
-### 1. Clonar el repositorio
+### 1️⃣ Clonar el repositorio
 
 Primero, clona el repositorio desde GitHub:
 
-bash
+```bash
 git clone [https://github.com/santv/santv-app.git](https://github.com/santv/santv-app.git)
 Luego ingresa a la carpeta del proyecto:
 
-'''Bash
+Bash
 cd santv-app
-'''
-###2. Instalar Node.js y npm
-Descarga e instala Node.js, que incluye npm.
-
-Puedes verificar que la instalación sea correcta ejecutando:
+2️⃣ Instalar Node.js y npm
+Descarga e instala Node.js, que incluye npm. Puedes verificar que la instalación sea correcta ejecutando:
 
 Bash
 node -v
 npm -v
-3. Instalar las dependencias
+3️⃣ Instalar las dependencias
 Desde la carpeta del backend ejecuta:
 
-'''Bash
+Bash
 npm install
-4. Dependencias principales
+4️⃣ Dependencias principales
 El backend utiliza:
-'''
 
-'''Bash
+Bash
 npm install express
 npm install mongodb
 npm install dotenv
-'''
 Para instalar Nodemon como dependencia de desarrollo:
 
-'''Bash
+Bash
 npm install --save-dev nodemon
-'''
-###5. Configurar MongoDB
-
+5️⃣ Configurar MongoDB
 Para ejecutar el proyecto es necesario contar con una base de datos en MongoDB.
 
 Crear un archivo .env dentro de la carpeta backend:
 
-'''env
+Code snippet
 PORT=3000
 MONGODB_URI=mongodb+srv://santv:tu_password@santv.ibteu0d.mongodb.net/?appName=SanTV
-'''
->No subir el archivo .env a GitHub. Se recomienda agregarlo al archivo .gitignore.
+⚠️ No subir el archivo .env a GitHub. Se recomienda agregarlo al archivo .gitignore.
 
----
-
-###▶️ Ejecutar el servidor
+▶️ Ejecutar el servidor
 Para iniciar el servidor en modo desarrollo:
 
-'''Bash
+Bash
 npm run dev
-'''
 Si todo está correctamente configurado, el servidor estará disponible en:
 
-'''text
+Plaintext
 http://localhost:3000
-'''
-
-##📁 Estructura del proyecto
+📁 Estructura del Proyecto
 La estructura general del proyecto será:
 
-´´´
-test
+Plaintext
 santv-app/
 │
 ├── backend/
@@ -159,34 +153,26 @@ santv-app/
 │
 └── README.md
 
-´´´
-
----
 👥 Autores
-Aprendices SENA
-Carlos stiven  Leon Huelgos
+Aprendices SENA:
+
+Carlos Stiven Leon Huelgos
+
 Juan David Angarita Rojas
+
 Hanna Jeylin Vargas Fierro
+
 Jhohan Stiven Gomez Criollo
 
-
-
-##🎓 Formación
-
-**Servicio Nacional de Aprendizaje — SENA**
+🎓 Formación
+Servicio Nacional de Aprendizaje — SENA
 
 Proyecto desarrollado como parte del proceso de formación de los aprendices.
 
----
-
-##📌 Estado del proyecto
-🚧 *En desarrollo*
+📌 Estado del Proyecto
+🚧 En desarrollo
 
 El proyecto se encuentra actualmente en proceso de desarrollo. Se irán agregando nuevas funcionalidades y mejoras durante las diferentes etapas del proyecto.
 
----
-
-##📄 Licencia
+📄 Licencia
 Este proyecto fue desarrollado con fines educativos como parte del proceso de formación del SENA.
-
-
