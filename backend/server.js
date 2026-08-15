@@ -12,6 +12,7 @@ app.get('/', (req, res) => {
     res.send('¡Servidor del backend funcionando correctamente!');
 });
 
+//QUIERO CORREGUIR EL RPOYECTO PERO NO DEJAAAA
 // 5. Encender el servidor y escuchar peticiones
 app.listen(PORT, () => {
     console.log(`Servidor corriendo en http://localhost:${PORT}`);
