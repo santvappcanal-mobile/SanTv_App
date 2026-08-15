@@ -1,23 +1,23 @@
 {
-  "name": "backend",
+  "name": "santv-backend",
   "version": "1.0.0",
-  "description": "",
-  "main": "server.js",
+  "description": "API REST para SanTv App",
+  "main": "src/server.js",
+  "type": "commonjs",
   "scripts": {
-    "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node server.js",
-    "dev": "nodemon index.js"
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js"
   },
-  "keywords": [],
+  "keywords": ["node", "express", "mongodb", "santv"],
   "author": "",
   "license": "ISC",
-  "type": "commonjs",
-  "devDependencies": {
-    "nodemon": "^3.1.14"
-  },
   "dependencies": {
-    "dotenv": "^17.4.2",
-    "express": "^5.2.1",
-    "mongodb": "^7.5.0"
+    "cors": "^2.8.5",
+    "dotenv": "^16.4.5",
+    "express": "^4.19.2",
+    "mongoose": "^8.3.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.1.0"
   }
 }
