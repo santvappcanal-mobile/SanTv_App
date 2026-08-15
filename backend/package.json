@@ -2,19 +2,25 @@
   "name": "santv-backend",
   "version": "1.0.0",
   "description": "API REST para SanTv App",
-  "main": "src/server.js",
+  "main": "src/index.js",
   "type": "commonjs",
   "scripts": {
-    "start": "node src/server.js",
-    "dev": "nodemon src/server.js"
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
   },
-  "keywords": ["node", "express", "mongodb", "santv"],
+  "keywords": [
+    "node",
+    "express",
+    "mongodb",
+    "santv"
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
     "cors": "^2.8.5",
     "dotenv": "^16.4.5",
     "express": "^4.19.2",
+    "mongodb": "^7.5.0",
     "mongoose": "^8.3.0"
   },
   "devDependencies": {
