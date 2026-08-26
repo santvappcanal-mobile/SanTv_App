@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../widgets/top_bar.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -16,26 +17,9 @@ class _HomeState extends State<Home> {
 
     return Scaffold(
       backgroundColor: const Color(0xFF0B0B0B),
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: Text(
-          'SAN TV',
-          style: TextStyle(
-            color: neonColor,
-            fontWeight: FontWeight.bold,
-            letterSpacing: 1.5,
-          ),
-        ),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.logout, color: Colors.white70),
-            onPressed: () {
-              // Regresa a la pantalla de Login y limpia el historial de navegación
-              Navigator.pushReplacementNamed(context, '/login');
-            },
-          ),
-        ],
-      ),
+      // Antes: AppBar propio con Text('SAN TV', ...). Ahora se reutiliza
+      // TopBar, que ya muestra el logo en vez del texto.
+      appBar: const TopBar(),
       body: IndexedStack(
         index: _currentIndex,
         children: [
@@ -88,7 +72,7 @@ class _HomeState extends State<Home> {
                   Icon(Icons.play_circle_fill, size: 60, color: neonColor),
                   const SizedBox(height: 10),
                   const Text(
-                    'Transmisión Destacada SAN TV',
+                    'Canal en vivo',
                     style: TextStyle(color: Colors.white, fontSize: 18, fontWeight: FontWeight.bold),
                   ),
                 ],
@@ -97,7 +81,7 @@ class _HomeState extends State<Home> {
           ),
           const SizedBox(height: 24),
           const Text(
-            'Canales Populares',
+            'Videos destacados',
             style: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
           ),
           const SizedBox(height: 12),
@@ -111,14 +95,14 @@ class _HomeState extends State<Home> {
                   width: 140,
                   margin: const EdgeInsets.only(right: 12),
                   decoration: BoxDecoration(
-                    color: Colors.white.withOpacity(0.05),
+                    color: Colors.white.withValues(alpha: 0.05),
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: Colors.white10),
                   ),
-                  child: Center(
+                  child: const Center(
                     child: Text(
-                      'Canal ${index + 1}',
-                      style: const TextStyle(color: Colors.white),
+                      'Agregar Video',
+                      style: TextStyle(color: Colors.white),
                     ),
                   ),
                 );
