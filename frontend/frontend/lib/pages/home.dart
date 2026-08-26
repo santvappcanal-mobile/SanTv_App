@@ -75,11 +75,11 @@ class _HomeState extends State<Home> {
             decoration: BoxDecoration(
               borderRadius: BorderRadius.circular(16),
               gradient: LinearGradient(
-                colors: [neonColor.withOpacity(0.3), Colors.black],
+                colors: [neonColor.withValues(alpha: 0.3), Colors.black],
                 begin: Alignment.topCenter,
                 end: Alignment.bottomCenter,
               ),
-              border: Border.all(color: neonColor.withOpacity(0.5)),
+              border: Border.all(color: neonColor.withValues(alpha: 0.5)),
             ),
             child: Center(
               child: Column(
