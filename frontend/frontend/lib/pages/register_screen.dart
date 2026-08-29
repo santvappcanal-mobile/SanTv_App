@@ -1,9 +1,7 @@
+// lib/pages/register_screen.dart
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 
-/// Formulario de registro. Se usa embebido dentro de [AuthScreen]
-/// (pages/auth_screen.dart), dentro de la pestaña "Registrarse".
-/// Toda la lógica de registro vive aquí, separada del login.
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({
     super.key,
@@ -13,13 +11,7 @@ class RegisterScreen extends StatefulWidget {
   });
 
   final AuthService authService;
-
-  /// Se llama con el correo cuando el registro exitoso queda
-  /// pendiente de verificación por código.
   final void Function(String email)? onRegistered;
-
-  /// Se llama cuando el registro con Google entra directo (sin
-  /// pasar por código, porque el correo ya viene verificado).
   final void Function()? onLoggedIn;
 
   @override
@@ -109,8 +101,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // Nota: no lleva Scaffold propio porque se embebe dentro de
-    // AuthScreen, que ya provee el fondo y el contenedor.
     return Form(
       key: _formKey,
       child: Column(
