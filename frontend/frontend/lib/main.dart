@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'pages/home.dart';
 import 'pages/auth_screen.dart';
+import 'pages/verify_code_screen.dart';
 import 'services/auth_service.dart';
 
 void main() async {
@@ -18,10 +19,12 @@ class SanTvApp extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    // Instancia única del servicio de autenticación. Cambia baseUrl
-    // por la URL real de tu backend "SanTv-App" cuando conectes el
-    // AuthService real (por ahora usa la versión simulada).
-    final authService = AuthService(baseUrl: 'https://tu-api.com');
+    // Instancia única del servicio de autenticación real, conectada
+    // al backend de Node/Express.
+    // - Emulador Android: usa 10.0.2.2 (así el emulador ve tu PC)
+    // - Simulador iOS: usa localhost
+    // - Dispositivo físico: usa la IP local de tu PC (ej: 192.168.x.x)
+    final authService = AuthService(baseUrl: 'http://10.0.2.2:3000');
 
     return MaterialApp(
       title: 'SAN TV',
@@ -43,9 +46,28 @@ class SanTvApp extends StatelessWidget {
                 Navigator.pushReplacementNamed(context, '/home');
               },
               onRegistered: (email) {
-                // TODO: cuando tengas la pantalla de verificación de
-                // código, navega aquí pasando el email, ej:
-                // Navigator.pushNamed(context, '/verify', arguments: email);
+                // Registro exitoso -> pantalla de verificación de código
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (_) => VerifyCodeScreen(
+                      authService: authService,
+                      email: email,
+                      onVerified: () {
+                        // Código correcto -> entra al Home, sin poder
+                        // volver atrás a la pantalla de login/registro
+                        Navigator.pushNamedAndRemoveUntil(
+                          context,
+                          '/home',
+                          (route) => false,
+                        );
+                      },
+                      onCancel: () {
+                        Navigator.pop(context);
+                      },
+                    ),
+                  ),
+                );
               },
             ),
         '/home': (context) => const Home(),

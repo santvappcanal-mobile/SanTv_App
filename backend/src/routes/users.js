@@ -3,6 +3,8 @@ const router = express.Router();
 const {
   registerUser,
   loginUser,
+  verifyCode,
+  resendCode,
   getUserProfile,
   updateUserProfile,
   getUsers,
@@ -15,6 +17,8 @@ const { protect, authorize } = require('../middleware/auth');
 // Rutas públicas
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/verify-code', verifyCode);
+router.post('/resend-code', resendCode);
 
 // Rutas privadas (usuario autenticado)
 router.get('/profile', protect, getUserProfile);

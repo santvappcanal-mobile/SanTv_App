@@ -1,6 +1,12 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { enviarCodigoVerificacion } = require('../utils/mailer');
+
+// Genera un código numérico de 6 dígitos, ej: "042819"
+const generarCodigo = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 // @desc    Registrar nuevo usuario
 // @route   POST /api/users/register
@@ -19,9 +25,81 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('Ya existe un usuario con ese email');
   }
 
-  const user = await User.create({ name, email, password });
+  const codigo = generarCodigo();
+  const expiracion = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+  const user = await User.create({
+    name,
+    email,
+    password,
+    isVerified: false,
+    codigoVerificacion: codigo,
+    codigoVerificacionExpiracion: expiracion,
+  });
+
+  // Si el envío de correo falla, igual dejamos el usuario creado,
+  // pero avisamos en la respuesta para que el frontend pueda reintentar
+  // con /resend-code.
+  try {
+    await enviarCodigoVerificacion(user.email, user.name, codigo);
+  } catch (error) {
+    console.error('❌ Error al enviar correo de verificación:', error.message);
+  }
 
   res.status(201).json({
+    success: true,
+    pendingVerification: true,
+    data: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    },
+  });
+});
+
+// @desc    Verificar código de correo
+// @route   POST /api/users/verify-code
+// @access  Public
+const verifyCode = asyncHandler(async (req, res) => {
+  const { email, code } = req.body;
+
+  if (!email || !code) {
+    res.status(400);
+    throw new Error('Email y código son obligatorios');
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    res.status(404);
+    throw new Error('Usuario no encontrado');
+  }
+
+  if (user.isVerified) {
+    res.status(400);
+    throw new Error('Esta cuenta ya está verificada');
+  }
+
+  if (
+    !user.codigoVerificacion ||
+    !user.codigoVerificacionExpiracion ||
+    user.codigoVerificacionExpiracion < new Date()
+  ) {
+    res.status(400);
+    throw new Error('El código expiró, solicita uno nuevo');
+  }
+
+  if (user.codigoVerificacion !== code.trim()) {
+    res.status(400);
+    throw new Error('Código incorrecto');
+  }
+
+  user.isVerified = true;
+  user.codigoVerificacion = undefined;
+  user.codigoVerificacionExpiracion = undefined;
+  await user.save();
+
+  res.json({
     success: true,
     data: {
       _id: user._id,
@@ -31,6 +109,39 @@ const registerUser = asyncHandler(async (req, res) => {
       token: generateToken(user._id),
     },
   });
+});
+
+// @desc    Reenviar código de verificación
+// @route   POST /api/users/resend-code
+// @access  Public
+const resendCode = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400);
+    throw new Error('El email es obligatorio');
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    res.status(404);
+    throw new Error('Usuario no encontrado');
+  }
+
+  if (user.isVerified) {
+    res.status(400);
+    throw new Error('Esta cuenta ya está verificada');
+  }
+
+  const codigo = generarCodigo();
+  user.codigoVerificacion = codigo;
+  user.codigoVerificacionExpiracion = new Date(Date.now() + 15 * 60 * 1000);
+  await user.save();
+
+  await enviarCodigoVerificacion(user.email, user.name, codigo);
+
+  res.json({ success: true, message: 'Código reenviado correctamente' });
 });
 
 // @desc    Login de usuario
@@ -54,6 +165,18 @@ const loginUser = asyncHandler(async (req, res) => {
   if (!user.isActive) {
     res.status(403);
     throw new Error('Esta cuenta ha sido desactivada');
+  }
+
+  if (!user.isVerified) {
+    res.status(403);
+    // El frontend detecta este mensaje/código para mandar al usuario
+    // a la pantalla de verificación en vez de mostrar un error genérico.
+    return res.status(403).json({
+      success: false,
+      pendingVerification: true,
+      message: 'Debes verificar tu correo antes de iniciar sesión',
+      email: user.email,
+    });
   }
 
   res.json({
@@ -188,6 +311,8 @@ const deleteUser = asyncHandler(async (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
+  verifyCode,
+  resendCode,
   getUserProfile,
   updateUserProfile,
   getUsers,
