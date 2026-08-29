@@ -2,6 +2,8 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../widgets/top_bar.dart';
 import 'explore_screen.dart';
+// Importa el archivo de tu pestaña en vivo (ajusta la ruta según tu estructura de carpetas)
+import 'live_tab_screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -38,11 +40,12 @@ class _HomeState extends State<Home> {
                 children: [
                   _buildHomeTab(neonColor),
                   const ExploreScreen(),
-                  const Center(
-                    child: Text(
-                      'Transmisiones en Vivo',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                  // Aquí integramos tu LiveTabScreen pasando el callback para cuando toquen un live
+                  LiveTabScreen(
+                    onOpenLive: (liveId) {
+                      // Aquí manejas la navegación al detalle del live (ej: Navigator.push)
+                      debugPrint('Abriendo transmisión: $liveId');
+                    },
                   ),
                   const Center(
                     child: Text(
