@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
@@ -6,6 +7,12 @@ import '../services/auth_service.dart';
 /// dentro de [AuthScreen] (pages/auth_screen.dart), dentro de la
 /// pestaña "Registrarse". Toda la lógica de registro vive aquí,
 /// separada del login.
+=======
+// lib/pages/register_screen.dart
+import 'package:flutter/material.dart';
+import '../services/auth_service.dart';
+
+>>>>>>> 8da150922caf37941ec32d10bcf0ec02e6c6c754
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({
     super.key,
@@ -15,13 +22,7 @@ class RegisterScreen extends StatefulWidget {
   });
 
   final AuthService authService;
-
-  /// Se llama con el correo cuando el registro exitoso queda
-  /// pendiente de verificación por código.
   final void Function(String email)? onRegistered;
-
-  /// Se llama cuando el registro con Google entra directo (sin
-  /// pasar por código, porque el correo ya viene verificado).
   final void Function()? onLoggedIn;
 
   @override
@@ -118,6 +119,7 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
+<<<<<<< HEAD
     // Nota: no lleva Scaffold propio porque se embebe dentro de
     // AuthScreen, que ya provee el fondo (idealmente con gradiente
     // o imagen) sobre el que flota esta tarjeta de vidrio.
@@ -136,6 +138,47 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Colors.white.withOpacity(0.10),
                 Colors.white.withOpacity(0.04),
               ],
+=======
+    return Form(
+      key: _formKey,
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.stretch,
+        children: [
+          TextFormField(
+            controller: _nameCtrl,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputDecoration('Nombre completo', Icons.person_outline),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Ingresa tu nombre';
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _emailCtrl,
+            keyboardType: TextInputType.emailAddress,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputDecoration('Correo electrónico', Icons.email_outlined),
+            validator: (v) {
+              if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
+              if (!v.contains('@')) return 'Correo no válido';
+              return null;
+            },
+          ),
+          const SizedBox(height: 16),
+          TextFormField(
+            controller: _passwordCtrl,
+            obscureText: _obscurePass,
+            style: const TextStyle(color: Colors.white),
+            decoration: _inputDecoration('Contraseña', Icons.lock_outline).copyWith(
+              suffixIcon: IconButton(
+                icon: Icon(
+                  _obscurePass ? Icons.visibility_off : Icons.visibility,
+                  color: Colors.white54,
+                ),
+                onPressed: () => setState(() => _obscurePass = !_obscurePass),
+              ),
+>>>>>>> 8da150922caf37941ec32d10bcf0ec02e6c6c754
             ),
             border: Border.all(
               color: Colors.white.withOpacity(0.18),
