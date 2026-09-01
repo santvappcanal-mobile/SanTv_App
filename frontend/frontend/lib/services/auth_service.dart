@@ -168,6 +168,70 @@ class AuthService {
     }
   }
 
+  /// Solicita el envío del código de recuperación al correo del usuario.
+  Future<AuthResult> forgotPassword({required String email}) async {
+    try {
+      final response = await http.post(
+        _endpoint('/forgot-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'email': email}),
+      );
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && body['success'] == true) {
+        return const AuthResult(success: true);
+      }
+
+      return AuthResult(
+        success: false,
+        errorMessage:
+            body['message']?.toString() ?? 'No se pudo enviar el código de recuperación',
+      );
+    } catch (e) {
+      return AuthResult(
+        success: false,
+        errorMessage: 'No se pudo conectar con el servidor: $e',
+      );
+    }
+  }
+
+  /// Confirma el código recibido por correo y establece la nueva contraseña.
+  Future<AuthResult> resetPassword({
+    required String email,
+    required String code,
+    required String newPassword,
+  }) async {
+    try {
+      final response = await http.post(
+        _endpoint('/reset-password'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({
+          'email': email,
+          'code': code,
+          'newPassword': newPassword,
+        }),
+      );
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && body['success'] == true) {
+        return const AuthResult(success: true);
+      }
+
+      return AuthResult(
+        success: false,
+        errorMessage:
+            body['message']?.toString() ?? 'No se pudo restablecer la contraseña',
+      );
+    } catch (e) {
+      return AuthResult(
+        success: false,
+        errorMessage: 'No se pudo conectar con el servidor: $e',
+      );
+    }
+  }
+
   /// Aún no configurado (requiere setup nativo de Google Sign-In).
   Future<AuthResult> loginWithGoogle() async {
     return const AuthResult(

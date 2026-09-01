@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
-const { enviarCodigoVerificacion } = require('../utils/mailer');
+const { enviarCodigoVerificacion, enviarCodigoRecuperacion } = require('../utils/mailer');
 
 // Genera un código numérico de 6 dígitos, ej: "042819"
 const generarCodigo = () => {
@@ -37,9 +37,6 @@ const registerUser = asyncHandler(async (req, res) => {
     codigoVerificacionExpiracion: expiracion,
   });
 
-  // Si el envío de correo falla, igual dejamos el usuario creado,
-  // pero avisamos en la respuesta para que el frontend pueda reintentar
-  // con /resend-code.
   try {
     await enviarCodigoVerificacion(user.email, user.name, codigo);
   } catch (error) {
@@ -169,8 +166,6 @@ const loginUser = asyncHandler(async (req, res) => {
 
   if (!user.isVerified) {
     res.status(403);
-    // El frontend detecta este mensaje/código para mandar al usuario
-    // a la pantalla de verificación en vez de mostrar un error genérico.
     return res.status(403).json({
       success: false,
       pendingVerification: true,
@@ -188,6 +183,93 @@ const loginUser = asyncHandler(async (req, res) => {
       role: user.role,
       token: generateToken(user._id),
     },
+  });
+});
+
+// @desc    Solicitar recuperación de contraseña (envía código por correo)
+// @route   POST /api/users/forgot-password
+// @access  Public
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400);
+    throw new Error('El email es obligatorio');
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.json({
+      success: true,
+      message: 'Si el correo existe, se enviará un código de recuperación',
+    });
+  }
+
+  const codigo = generarCodigo();
+  user.codigoRecuperacion = codigo;
+  user.codigoRecuperacionExpiracion = new Date(Date.now() + 15 * 60 * 1000);
+  await user.save();
+
+  try {
+    await enviarCodigoRecuperacion(user.email, user.name, codigo);
+  } catch (error) {
+    console.error('❌ Error al enviar correo de recuperación:', error.message);
+    res.status(500);
+    throw new Error('No se pudo enviar el correo de recuperación');
+  }
+
+  res.json({
+    success: true,
+    message: 'Si el correo existe, se enviará un código de recuperación',
+  });
+});
+
+// @desc    Restablecer contraseña usando el código enviado por correo
+// @route   POST /api/users/reset-password
+// @access  Public
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, code, newPassword } = req.body;
+
+  if (!email || !code || !newPassword) {
+    res.status(400);
+    throw new Error('Email, código y nueva contraseña son obligatorios');
+  }
+
+  if (newPassword.length < 6) {
+    res.status(400);
+    throw new Error('La nueva contraseña debe tener al menos 6 caracteres');
+  }
+
+  const user = await User.findOne({ email }).select('+password');
+
+  if (!user) {
+    res.status(404);
+    throw new Error('Usuario no encontrado');
+  }
+
+  if (
+    !user.codigoRecuperacion ||
+    !user.codigoRecuperacionExpiracion ||
+    user.codigoRecuperacionExpiracion < new Date()
+  ) {
+    res.status(400);
+    throw new Error('El código expiró, solicita uno nuevo');
+  }
+
+  if (user.codigoRecuperacion !== code.trim()) {
+    res.status(400);
+    throw new Error('Código incorrecto');
+  }
+
+  user.password = newPassword; // el pre('save') del modelo la hashea sola
+  user.codigoRecuperacion = undefined;
+  user.codigoRecuperacionExpiracion = undefined;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: 'Contraseña actualizada correctamente',
   });
 });
 
@@ -313,6 +395,8 @@ module.exports = {
   loginUser,
   verifyCode,
   resendCode,
+  forgotPassword,
+  resetPassword,
   getUserProfile,
   updateUserProfile,
   getUsers,

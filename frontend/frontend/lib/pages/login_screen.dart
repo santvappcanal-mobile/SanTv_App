@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import 'forgot_password_screen.dart';
 
 /// Formulario de inicio de sesión con estilo glassmorfismo. Se usa
 /// embebido dentro de [AuthScreen] (pages/auth_screen.dart), dentro
@@ -80,6 +81,14 @@ class _LoginScreenState extends State<LoginScreen> {
     } finally {
       if (mounted) setState(() => _loading = false);
     }
+  }
+
+  void _goToForgotPassword() {
+    Navigator.of(context).push(
+      MaterialPageRoute(
+        builder: (_) => ForgotPasswordScreen(authService: widget.authService),
+      ),
+    );
   }
 
   InputDecoration _inputDecoration(String label, IconData icon) {
@@ -198,7 +207,27 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-                const SizedBox(height: 24),
+                const SizedBox(height: 8),
+                Align(
+                  alignment: Alignment.centerRight,
+                  child: TextButton(
+                    onPressed: _loading ? null : _goToForgotPassword,
+                    style: TextButton.styleFrom(
+                      padding: EdgeInsets.zero,
+                      minimumSize: const Size(0, 0),
+                      tapTargetSize: MaterialTapTargetSize.shrinkWrap,
+                    ),
+                    child: const Text(
+                      '¿Olvidaste tu contraseña?',
+                      style: TextStyle(
+                        color: _neonGreen,
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 16),
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: BackdropFilter(

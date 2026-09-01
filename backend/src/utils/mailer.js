@@ -30,4 +30,26 @@ const enviarCodigoVerificacion = async (correo, nombre, codigo) => {
   await transporter.sendMail(mailOptions);
 };
 
-module.exports = { enviarCodigoVerificacion };
+const enviarCodigoRecuperacion = async (correo, nombre, codigo) => {
+  const mailOptions = {
+    from: `"Mi App de streaming" <${process.env.EMAIL_USER}>`,
+    to: correo,
+    subject: 'Recupera tu contraseña 🔑',
+    html: `
+      <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+        <h2>¡Hola, ${nombre}!</h2>
+        <p>Recibimos una solicitud para restablecer tu contraseña.</p>
+        <p>Ingresa el siguiente código de 6 dígitos para continuar:</p>
+        <div style="background-color: #d41010; color: #ffffff; padding: 15px; font-size: 24px; font-weight: bold; letter-spacing: 5px; text-align: center; border-radius: 8px; margin: 20px 0;">
+          ${codigo}
+        </div>
+        <p>Este código vencerá en <strong>15 minutos</strong>.</p>
+        <p>Si no solicitaste este cambio, puedes ignorar este mensaje y tu contraseña seguirá siendo la misma.</p>
+      </div>
+    `,
+  };
+
+  await transporter.sendMail(mailOptions);
+};
+
+module.exports = { enviarCodigoVerificacion, enviarCodigoRecuperacion };

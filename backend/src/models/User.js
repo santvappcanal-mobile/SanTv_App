@@ -53,6 +53,14 @@ const userSchema = new mongoose.Schema(
     codigoVerificacionExpiracion: {
       type: Date,
     },
+
+    // --- RECUPERACIÓN DE CONTRASEÑA ---
+    codigoRecuperacion: {
+      type: String,
+    },
+    codigoRecuperacionExpiracion: {
+      type: Date,
+    },
   },
   {
     timestamps: true,

@@ -5,6 +5,8 @@ const {
   loginUser,
   verifyCode,
   resendCode,
+  forgotPassword,
+  resetPassword,
   getUserProfile,
   updateUserProfile,
   getUsers,
@@ -19,6 +21,8 @@ router.post('/register', registerUser);
 router.post('/login', loginUser);
 router.post('/verify-code', verifyCode);
 router.post('/resend-code', resendCode);
+router.post('/forgot-password', forgotPassword);
+router.post('/reset-password', resetPassword);
 
 // Rutas privadas (usuario autenticado)
 router.get('/profile', protect, getUserProfile);
