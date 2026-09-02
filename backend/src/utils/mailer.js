@@ -19,15 +19,15 @@ const enviarCodigoVerificacion = async (correo, nombre, codigo) => {
         }
       ],
       htmlContent: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-          <h2 style="color: #d41010; text-align: center;">¡Hola, ${nombre}!</h2>
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #e0e0e0; max-width: 500px; margin: auto; padding: 20px; background-color: #0B0B0B; border: 1px solid #2a2a2a; border-radius: 8px;">
+          <h2 style="color: #39FF14; text-align: center;">¡Hola, ${nombre}!</h2>
           <p>Gracias por registrarte en nuestra plataforma.</p>
           <p>Para completar tu registro y activar tu cuenta, ingresa el siguiente código de 6 dígitos:</p>
-          <div style="background-color: #d41010; color: #ffffff; padding: 15px; font-size: 26px; font-weight: bold; letter-spacing: 6px; text-align: center; border-radius: 6px; margin: 20px 0;">
+          <div style="background-color: #141414; color: #39FF14; padding: 15px; font-size: 26px; font-weight: bold; letter-spacing: 6px; text-align: center; border-radius: 6px; margin: 20px 0; border: 1px solid #39FF14;">
             ${codigo}
           </div>
-          <p style="font-size: 13px; color: #777;">Este código vencerá en <strong>15 minutos</strong>.</p>
-          <p style="font-size: 12px; color: #999; margin-top: 20px;">Si no creaste esta cuenta, puedes ignorar este mensaje.</p>
+          <p style="font-size: 13px; color: #999;">Este código vencerá en <strong style="color: #e0e0e0;">15 minutos</strong>.</p>
+          <p style="font-size: 12px; color: #666; margin-top: 20px;">Si no creaste esta cuenta, puedes ignorar este mensaje.</p>
         </div>
       `
     });
@@ -54,15 +54,15 @@ const enviarCodigoRecuperacion = async (correo, nombre, codigo) => {
         }
       ],
       htmlContent: `
-        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #333; max-width: 500px; margin: auto; padding: 20px; border: 1px solid #e0e0e0; border-radius: 8px;">
-          <h2 style="color: #d41010; text-align: center;">¡Hola, ${nombre}!</h2>
+        <div style="font-family: Arial, sans-serif; line-height: 1.6; color: #e0e0e0; max-width: 500px; margin: auto; padding: 20px; background-color: #0B0B0B; border: 1px solid #2a2a2a; border-radius: 8px;">
+          <h2 style="color: #39FF14; text-align: center;">¡Hola, ${nombre}!</h2>
           <p>Recibimos una solicitud para restablecer tu contraseña.</p>
           <p>Ingresa el siguiente código de 6 dígitos para continuar:</p>
-          <div style="background-color: #d41010; color: #ffffff; padding: 15px; font-size: 26px; font-weight: bold; letter-spacing: 6px; text-align: center; border-radius: 6px; margin: 20px 0;">
+          <div style="background-color: #141414; color: #39FF14; padding: 15px; font-size: 26px; font-weight: bold; letter-spacing: 6px; text-align: center; border-radius: 6px; margin: 20px 0; border: 1px solid #39FF14;">
             ${codigo}
           </div>
-          <p style="font-size: 13px; color: #777;">Este código vencerá en <strong>15 minutos</strong>.</p>
-          <p style="font-size: 12px; color: #999; margin-top: 20px;">Si no solicitaste este cambio, puedes ignorar este mensaje y tu contraseña seguirá siendo la misma.</p>
+          <p style="font-size: 13px; color: #999;">Este código vencerá en <strong style="color: #e0e0e0;">15 minutos</strong>.</p>
+          <p style="font-size: 12px; color: #666; margin-top: 20px;">Si no solicitaste este cambio, puedes ignorar este mensaje y tu contraseña seguirá siendo la misma.</p>
         </div>
       `
     });

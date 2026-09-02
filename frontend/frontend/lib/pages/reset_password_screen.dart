@@ -27,6 +27,9 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
 
   static const Color _neonGreen = Color(0xFF39FF14);
 
+  static final RegExp _passwordSpecialRegex =
+      RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]');
+
   @override
   void dispose() {
     _codeController.dispose();
@@ -39,6 +42,17 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
     );
+  }
+
+  String? _validatePassword(String? value) {
+    if (value == null || value.isEmpty) return 'Ingresa una contraseña';
+    if (value.length < 6) return 'Mínimo 6 caracteres';
+    if (!RegExp(r'[A-Za-z]').hasMatch(value)) return 'Debe incluir letras';
+    if (!RegExp(r'[0-9]').hasMatch(value)) return 'Debe incluir números';
+    if (!_passwordSpecialRegex.hasMatch(value)) {
+      return 'Debe incluir un carácter especial (ej: !@#\$%)';
+    }
+    return null;
   }
 
   Future<void> _handleSubmit() async {
@@ -173,6 +187,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               'Nueva contraseña',
                               Icons.lock_outline,
                             ).copyWith(
+                              helperText:
+                                  'Mín. 6 caracteres, con letras, números y un símbolo',
+                              helperStyle: const TextStyle(
+                                color: Colors.white54,
+                                fontSize: 11,
+                              ),
                               suffixIcon: IconButton(
                                 icon: Icon(
                                   _obscurePassword
@@ -185,12 +205,7 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 ),
                               ),
                             ),
-                            validator: (value) {
-                              if (value == null || value.length < 6) {
-                                return 'Mínimo 6 caracteres';
-                              }
-                              return null;
-                            },
+                            validator: _validatePassword,
                           ),
                           const SizedBox(height: 16),
                           TextFormField(

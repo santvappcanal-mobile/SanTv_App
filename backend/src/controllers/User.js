@@ -8,6 +8,26 @@ const generarCodigo = () => {
   return Math.floor(100000 + Math.random() * 900000).toString();
 };
 
+// Reglas de validación de nombre y contraseña
+const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
+
+// Devuelve la lista de requisitos de la contraseña, marcando
+// cuáles cumple y cuáles no, para mostrarlos como checklist.
+const checkPasswordRequirements = (password = '') => {
+  const requirements = [
+    { key: 'length', label: 'Mínimo 6 caracteres', valid: password.length >= 6 },
+    { key: 'letter', label: 'Al menos una letra', valid: /[A-Za-z]/.test(password) },
+    { key: 'number', label: 'Al menos un número', valid: /[0-9]/.test(password) },
+    {
+      key: 'special',
+      label: 'Al menos un carácter especial (!@#$%^&*.,_-)',
+      valid: /[!@#$%^&*(),.?":{}|<>_\-]/.test(password),
+    },
+  ];
+  const isValid = requirements.every((r) => r.valid);
+  return { isValid, requirements };
+};
+
 // @desc    Registrar nuevo usuario
 // @route   POST /api/users/register
 // @access  Public
@@ -17,6 +37,20 @@ const registerUser = asyncHandler(async (req, res) => {
   if (!name || !email || !password) {
     res.status(400);
     throw new Error('Nombre, email y contraseña son obligatorios');
+  }
+
+  if (!nameRegex.test(name.trim())) {
+    res.status(400);
+    throw new Error('El nombre solo puede contener letras');
+  }
+
+  const { isValid, requirements } = checkPasswordRequirements(password);
+  if (!isValid) {
+    return res.status(400).json({
+      success: false,
+      message: 'La contraseña no cumple los requisitos de seguridad',
+      requirements,
+    });
   }
 
   const userExists = await User.findOne({ email });
@@ -236,9 +270,13 @@ const resetPassword = asyncHandler(async (req, res) => {
     throw new Error('Email, código y nueva contraseña son obligatorios');
   }
 
-  if (newPassword.length < 6) {
-    res.status(400);
-    throw new Error('La nueva contraseña debe tener al menos 6 caracteres');
+  const { isValid, requirements } = checkPasswordRequirements(newPassword);
+  if (!isValid) {
+    return res.status(400).json({
+      success: false,
+      message: 'La contraseña no cumple los requisitos de seguridad',
+      requirements,
+    });
   }
 
   const user = await User.findOne({ email }).select('+password');
@@ -296,6 +334,22 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   if (!user) {
     res.status(404);
     throw new Error('Usuario no encontrado');
+  }
+
+  if (req.body.name && !nameRegex.test(req.body.name.trim())) {
+    res.status(400);
+    throw new Error('El nombre solo puede contener letras');
+  }
+
+  if (req.body.password) {
+    const { isValid, requirements } = checkPasswordRequirements(req.body.password);
+    if (!isValid) {
+      return res.status(400).json({
+        success: false,
+        message: 'La contraseña no cumple los requisitos de seguridad',
+        requirements,
+      });
+    }
   }
 
   user.name = req.body.name || user.name;
@@ -363,6 +417,11 @@ const updateUser = asyncHandler(async (req, res) => {
   if (!user) {
     res.status(404);
     throw new Error('Usuario no encontrado');
+  }
+
+  if (req.body.name && !nameRegex.test(req.body.name.trim())) {
+    res.status(400);
+    throw new Error('El nombre solo puede contener letras');
   }
 
   user.name = req.body.name ?? user.name;

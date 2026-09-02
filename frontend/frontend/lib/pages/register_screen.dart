@@ -1,5 +1,6 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 
 /// Formulario de registro con estilo glassmorfismo. Se usa embebido
@@ -39,7 +40,31 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _obscureConfirm = true;
   bool _loading = false;
 
+  // Controla si se muestra la checklist de la contraseña (aparece
+  // al enfocar el campo, ya que antes no aporta nada).
+  bool _showPasswordChecklist = false;
+
   static const Color _neonGreen = Color(0xFF39FF14);
+
+  static final RegExp _nameRegex = RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$');
+
+  // Requisitos de la contraseña: label + función que evalúa si se cumple.
+  static final List<_PasswordRule> _passwordRules = [
+    _PasswordRule('Mínimo 6 caracteres', (v) => v.length >= 6),
+    _PasswordRule('Al menos una letra', (v) => RegExp(r'[A-Za-z]').hasMatch(v)),
+    _PasswordRule('Al menos un número', (v) => RegExp(r'[0-9]').hasMatch(v)),
+    _PasswordRule(
+      'Al menos un carácter especial (!@#\$%^&*.,_-)',
+      (v) => RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]').hasMatch(v),
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Repinta la checklist en tiempo real mientras el usuario escribe.
+    _passwordCtrl.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -55,6 +80,25 @@ class _RegisterScreenState extends State<RegisterScreen> {
       SnackBar(content: Text(message), backgroundColor: Colors.redAccent),
     );
   }
+
+  String? _validateName(String? v) {
+    if (v == null || v.trim().isEmpty) return 'Ingresa tu nombre';
+    if (!_nameRegex.hasMatch(v.trim())) {
+      return 'El nombre solo puede contener letras';
+    }
+    return null;
+  }
+
+  String? _validatePassword(String? v) {
+    final value = v ?? '';
+    for (final rule in _passwordRules) {
+      if (!rule.isValid(value)) return rule.label;
+    }
+    return null;
+  }
+
+  bool get _passwordFullyValid =>
+      _passwordRules.every((r) => r.isValid(_passwordCtrl.text));
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -116,6 +160,52 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 
+  Widget _buildPasswordChecklist() {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      child: !_showPasswordChecklist
+          ? const SizedBox.shrink()
+          : Container(
+              margin: const EdgeInsets.only(top: 8, bottom: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.12)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: _passwordRules.map((rule) {
+                  final ok = rule.isValid(_passwordCtrl.text);
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Icon(
+                          ok ? Icons.check_circle : Icons.cancel_outlined,
+                          size: 16,
+                          color: ok ? _neonGreen : Colors.white38,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            rule.label,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: ok ? Colors.white : Colors.white54,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     // Nota: no lleva Scaffold propio porque se embebe dentro de
@@ -166,11 +256,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Nombre completo',
                     Icons.person_outline,
                   ),
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty)
-                      return 'Ingresa tu nombre';
-                    return null;
-                  },
+                  inputFormatters: [
+                    FilteringTextInputFormatter.allow(
+                      RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]'),
+                    ),
+                  ],
+                  validator: _validateName,
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -189,31 +280,39 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-                TextFormField(
-                  controller: _passwordCtrl,
-                  obscureText: _obscurePass,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _inputDecoration('Contraseña', Icons.lock_outline)
-                      .copyWith(
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePass
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.white54,
-                          ),
-                          onPressed: () =>
-                              setState(() => _obscurePass = !_obscurePass),
-                        ),
-                      ),
-                  validator: (v) {
-                    if (v == null || v.length < 6) {
-                      return 'Mínimo 6 caracteres';
-                    }
-                    return null;
+                Focus(
+                  onFocusChange: (hasFocus) {
+                    setState(() {
+                      // Se mantiene visible si tiene foco, o si ya
+                      // escribió algo pero aún falta cumplir reglas.
+                      _showPasswordChecklist = hasFocus ||
+                          (_passwordCtrl.text.isNotEmpty &&
+                              !_passwordFullyValid);
+                    });
                   },
+                  child: TextFormField(
+                    controller: _passwordCtrl,
+                    obscureText: _obscurePass,
+                    style: const TextStyle(color: Colors.white),
+                    decoration:
+                        _inputDecoration('Contraseña', Icons.lock_outline)
+                            .copyWith(
+                      suffixIcon: IconButton(
+                        icon: Icon(
+                          _obscurePass
+                              ? Icons.visibility_off
+                              : Icons.visibility,
+                          color: Colors.white54,
+                        ),
+                        onPressed: () =>
+                            setState(() => _obscurePass = !_obscurePass),
+                      ),
+                    ),
+                    validator: _validatePassword,
+                  ),
                 ),
-                const SizedBox(height: 16),
+                _buildPasswordChecklist(),
+                const SizedBox(height: 8),
                 TextFormField(
                   controller: _confirmCtrl,
                   obscureText: _obscureConfirm,
@@ -371,4 +470,11 @@ class _RegisterScreenState extends State<RegisterScreen> {
       ),
     );
   }
+}
+
+/// Un requisito de la contraseña: texto a mostrar + regla de validación.
+class _PasswordRule {
+  const _PasswordRule(this.label, this.isValid);
+  final String label;
+  final bool Function(String value) isValid;
 }
