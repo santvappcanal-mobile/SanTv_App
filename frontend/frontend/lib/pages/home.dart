@@ -4,6 +4,7 @@ import '../widgets/top_bar.dart';
 import 'explore_screen.dart';
 // Importa el archivo de tu pestaña en vivo (ajusta la ruta según tu estructura de carpetas)
 import 'live_tab_screen.dart';
+import 'profile_screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key});
@@ -47,11 +48,27 @@ class _HomeState extends State<Home> {
                       debugPrint('Abriendo transmisión: $liveId');
                     },
                   ),
-                  const Center(
-                    child: Text(
-                      'Mi Perfil',
-                      style: TextStyle(color: Colors.white),
-                    ),
+                  // Aquí integramos ProfileScreen con los datos del usuario y sus acciones
+                  ProfileScreen(
+                    userName:
+                        'Nombre del usuario', // TODO: trae del authService/backend
+                    userEmail:
+                        'correo@ejemplo.com', // TODO: trae del authService/backend
+                    onEditProfile: () {
+                      // TODO: navega a la pantalla de edición de perfil
+                    },
+                    onMyList: () {
+                      // TODO: navega a "Mi Lista"
+                    },
+                    onSettings: () {
+                      // TODO: navega a configuración
+                    },
+                    onHelp: () {
+                      // TODO: navega a ayuda y soporte
+                    },
+                    onLogout: () {
+                      // TODO: llama a tu authService.logout() y navega de vuelta a AuthScreen
+                    },
                   ),
                 ],
               ),
