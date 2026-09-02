@@ -1,6 +1,12 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const generateToken = require('../utils/generateToken');
+const { enviarCodigoVerificacion, enviarCodigoRecuperacion } = require('../utils/mailer');
+
+// Genera un código numérico de 6 dígitos, ej: "042819"
+const generarCodigo = () => {
+  return Math.floor(100000 + Math.random() * 900000).toString();
+};
 
 // @desc    Registrar nuevo usuario
 // @route   POST /api/users/register
@@ -19,9 +25,78 @@ const registerUser = asyncHandler(async (req, res) => {
     throw new Error('Ya existe un usuario con ese email');
   }
 
-  const user = await User.create({ name, email, password });
+  const codigo = generarCodigo();
+  const expiracion = new Date(Date.now() + 15 * 60 * 1000); // 15 minutos
+
+  const user = await User.create({
+    name,
+    email,
+    password,
+    isVerified: false,
+    codigoVerificacion: codigo,
+    codigoVerificacionExpiracion: expiracion,
+  });
+
+  try {
+    await enviarCodigoVerificacion(user.email, user.name, codigo);
+  } catch (error) {
+    console.error('❌ Error al enviar correo de verificación:', error.message);
+  }
 
   res.status(201).json({
+    success: true,
+    pendingVerification: true,
+    data: {
+      _id: user._id,
+      name: user.name,
+      email: user.email,
+    },
+  });
+});
+
+// @desc    Verificar código de correo
+// @route   POST /api/users/verify-code
+// @access  Public
+const verifyCode = asyncHandler(async (req, res) => {
+  const { email, code } = req.body;
+
+  if (!email || !code) {
+    res.status(400);
+    throw new Error('Email y código son obligatorios');
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    res.status(404);
+    throw new Error('Usuario no encontrado');
+  }
+
+  if (user.isVerified) {
+    res.status(400);
+    throw new Error('Esta cuenta ya está verificada');
+  }
+
+  if (
+    !user.codigoVerificacion ||
+    !user.codigoVerificacionExpiracion ||
+    user.codigoVerificacionExpiracion < new Date()
+  ) {
+    res.status(400);
+    throw new Error('El código expiró, solicita uno nuevo');
+  }
+
+  if (user.codigoVerificacion !== code.trim()) {
+    res.status(400);
+    throw new Error('Código incorrecto');
+  }
+
+  user.isVerified = true;
+  user.codigoVerificacion = undefined;
+  user.codigoVerificacionExpiracion = undefined;
+  await user.save();
+
+  res.json({
     success: true,
     data: {
       _id: user._id,
@@ -31,6 +106,39 @@ const registerUser = asyncHandler(async (req, res) => {
       token: generateToken(user._id),
     },
   });
+});
+
+// @desc    Reenviar código de verificación
+// @route   POST /api/users/resend-code
+// @access  Public
+const resendCode = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400);
+    throw new Error('El email es obligatorio');
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    res.status(404);
+    throw new Error('Usuario no encontrado');
+  }
+
+  if (user.isVerified) {
+    res.status(400);
+    throw new Error('Esta cuenta ya está verificada');
+  }
+
+  const codigo = generarCodigo();
+  user.codigoVerificacion = codigo;
+  user.codigoVerificacionExpiracion = new Date(Date.now() + 15 * 60 * 1000);
+  await user.save();
+
+  await enviarCodigoVerificacion(user.email, user.name, codigo);
+
+  res.json({ success: true, message: 'Código reenviado correctamente' });
 });
 
 // @desc    Login de usuario
@@ -56,6 +164,16 @@ const loginUser = asyncHandler(async (req, res) => {
     throw new Error('Esta cuenta ha sido desactivada');
   }
 
+  if (!user.isVerified) {
+    res.status(403);
+    return res.status(403).json({
+      success: false,
+      pendingVerification: true,
+      message: 'Debes verificar tu correo antes de iniciar sesión',
+      email: user.email,
+    });
+  }
+
   res.json({
     success: true,
     data: {
@@ -65,6 +183,93 @@ const loginUser = asyncHandler(async (req, res) => {
       role: user.role,
       token: generateToken(user._id),
     },
+  });
+});
+
+// @desc    Solicitar recuperación de contraseña (envía código por correo)
+// @route   POST /api/users/forgot-password
+// @access  Public
+const forgotPassword = asyncHandler(async (req, res) => {
+  const { email } = req.body;
+
+  if (!email) {
+    res.status(400);
+    throw new Error('El email es obligatorio');
+  }
+
+  const user = await User.findOne({ email });
+
+  if (!user) {
+    return res.json({
+      success: true,
+      message: 'Si el correo existe, se enviará un código de recuperación',
+    });
+  }
+
+  const codigo = generarCodigo();
+  user.codigoRecuperacion = codigo;
+  user.codigoRecuperacionExpiracion = new Date(Date.now() + 15 * 60 * 1000);
+  await user.save();
+
+  try {
+    await enviarCodigoRecuperacion(user.email, user.name, codigo);
+  } catch (error) {
+    console.error('❌ Error al enviar correo de recuperación:', error.message);
+    res.status(500);
+    throw new Error('No se pudo enviar el correo de recuperación');
+  }
+
+  res.json({
+    success: true,
+    message: 'Si el correo existe, se enviará un código de recuperación',
+  });
+});
+
+// @desc    Restablecer contraseña usando el código enviado por correo
+// @route   POST /api/users/reset-password
+// @access  Public
+const resetPassword = asyncHandler(async (req, res) => {
+  const { email, code, newPassword } = req.body;
+
+  if (!email || !code || !newPassword) {
+    res.status(400);
+    throw new Error('Email, código y nueva contraseña son obligatorios');
+  }
+
+  if (newPassword.length < 6) {
+    res.status(400);
+    throw new Error('La nueva contraseña debe tener al menos 6 caracteres');
+  }
+
+  const user = await User.findOne({ email }).select('+password');
+
+  if (!user) {
+    res.status(404);
+    throw new Error('Usuario no encontrado');
+  }
+
+  if (
+    !user.codigoRecuperacion ||
+    !user.codigoRecuperacionExpiracion ||
+    user.codigoRecuperacionExpiracion < new Date()
+  ) {
+    res.status(400);
+    throw new Error('El código expiró, solicita uno nuevo');
+  }
+
+  if (user.codigoRecuperacion !== code.trim()) {
+    res.status(400);
+    throw new Error('Código incorrecto');
+  }
+
+  user.password = newPassword; // el pre('save') del modelo la hashea sola
+  user.codigoRecuperacion = undefined;
+  user.codigoRecuperacionExpiracion = undefined;
+  await user.save();
+
+  res.json({
+    success: true,
+    message: 'Contraseña actualizada correctamente',
   });
 });
 
@@ -188,6 +393,10 @@ const deleteUser = asyncHandler(async (req, res) => {
 module.exports = {
   registerUser,
   loginUser,
+  verifyCode,
+  resendCode,
+  forgotPassword,
+  resetPassword,
   getUserProfile,
   updateUserProfile,
   getUsers,
