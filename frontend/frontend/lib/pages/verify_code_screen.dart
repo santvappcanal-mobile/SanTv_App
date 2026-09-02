@@ -159,8 +159,11 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 20),
-                const Icon(Icons.mark_email_read_outlined,
-                    color: _neonGreen, size: 64),
+                const Icon(
+                  Icons.mark_email_read_outlined,
+                  color: _neonGreen,
+                  size: 64,
+                ),
                 const SizedBox(height: 20),
                 const Text(
                   'Confirma tu correo',
@@ -207,7 +210,8 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                     foregroundColor: Colors.black,
                     padding: const EdgeInsets.symmetric(vertical: 16),
                     shape: RoundedRectangleBorder(
-                        borderRadius: BorderRadius.circular(12)),
+                      borderRadius: BorderRadius.circular(12),
+                    ),
                     elevation: 5,
                   ),
                   child: _loading
@@ -215,25 +219,30 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
                           height: 20,
                           width: 20,
                           child: CircularProgressIndicator(
-                              strokeWidth: 2, color: Colors.black),
+                            strokeWidth: 2,
+                            color: Colors.black,
+                          ),
                         )
                       : const Text(
                           'CONFIRMAR CÓDIGO',
                           style: TextStyle(
-                              fontSize: 16,
-                              fontWeight: FontWeight.bold,
-                              letterSpacing: 1.2),
+                            fontSize: 16,
+                            fontWeight: FontWeight.bold,
+                            letterSpacing: 1.2,
+                          ),
                         ),
                 ),
                 const SizedBox(height: 20),
                 TextButton(
-                  onPressed: (_resending || _cooldown > 0) ? null : _handleResend,
+                  onPressed: (_resending || _cooldown > 0)
+                      ? null
+                      : _handleResend,
                   child: Text(
                     _resending
                         ? 'Reenviando...'
                         : _cooldown > 0
-                            ? 'Reenviar código (${_cooldown}s)'
-                            : '¿No recibiste el código? Reenviar',
+                        ? 'Reenviar código (${_cooldown}s)'
+                        : '¿No recibiste el código? Reenviar',
                     style: const TextStyle(color: Colors.white70),
                   ),
                 ),

@@ -20,6 +20,7 @@ app.use('/api/live-events', require('./routes/liveEventRoutes'));
 app.use('/api/ads', require('./routes/adRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/watchlist', require('./routes/watchlistRoutes'));
+app.use('/api/uploads', require('./routes/upload.routes'));
 
 // Manejo de errores (siempre al final, después de las rutas)
 app.use(notFound);
