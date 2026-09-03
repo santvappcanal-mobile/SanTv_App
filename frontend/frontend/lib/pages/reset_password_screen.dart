@@ -25,10 +25,29 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
   bool _loading = false;
   bool _obscurePassword = true;
 
+  // Controla si se muestra la checklist de la contraseña (aparece
+  // al enfocar el campo, igual que en register_screen.dart).
+  bool _showPasswordChecklist = false;
+
   static const Color _neonGreen = Color(0xFF39FF14);
 
-  static final RegExp _passwordSpecialRegex =
-      RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]');
+  // Requisitos de la contraseña: label + función que evalúa si se cumple.
+  static final List<_PasswordRule> _passwordRules = [
+    _PasswordRule('Mínimo 6 caracteres', (v) => v.length >= 6),
+    _PasswordRule('Al menos una letra', (v) => RegExp(r'[A-Za-z]').hasMatch(v)),
+    _PasswordRule('Al menos un número', (v) => RegExp(r'[0-9]').hasMatch(v)),
+    _PasswordRule(
+      'Al menos un carácter especial (!@#\$%^&*.,_-)',
+      (v) => RegExp(r'[!@#\$%^&*(),.?":{}|<>_\-]').hasMatch(v),
+    ),
+  ];
+
+  @override
+  void initState() {
+    super.initState();
+    // Repinta la checklist en tiempo real mientras el usuario escribe.
+    _passwordController.addListener(() => setState(() {}));
+  }
 
   @override
   void dispose() {
@@ -44,16 +63,16 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 
-  String? _validatePassword(String? value) {
-    if (value == null || value.isEmpty) return 'Ingresa una contraseña';
-    if (value.length < 6) return 'Mínimo 6 caracteres';
-    if (!RegExp(r'[A-Za-z]').hasMatch(value)) return 'Debe incluir letras';
-    if (!RegExp(r'[0-9]').hasMatch(value)) return 'Debe incluir números';
-    if (!_passwordSpecialRegex.hasMatch(value)) {
-      return 'Debe incluir un carácter especial (ej: !@#\$%)';
+  String? _validatePassword(String? v) {
+    final value = v ?? '';
+    for (final rule in _passwordRules) {
+      if (!rule.isValid(value)) return rule.label;
     }
     return null;
   }
+
+  bool get _passwordFullyValid =>
+      _passwordRules.every((r) => r.isValid(_passwordController.text));
 
   Future<void> _handleSubmit() async {
     if (!_formKey.currentState!.validate()) return;
@@ -112,6 +131,52 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
     );
   }
 
+  Widget _buildPasswordChecklist() {
+    return AnimatedSize(
+      duration: const Duration(milliseconds: 200),
+      child: !_showPasswordChecklist
+          ? const SizedBox.shrink()
+          : Container(
+              margin: const EdgeInsets.only(top: 8, bottom: 4),
+              padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 10),
+              decoration: BoxDecoration(
+                color: Colors.white.withOpacity(0.05),
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white.withOpacity(0.12)),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                mainAxisSize: MainAxisSize.min,
+                children: _passwordRules.map((rule) {
+                  final ok = rule.isValid(_passwordController.text);
+                  return Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 3),
+                    child: Row(
+                      children: [
+                        Icon(
+                          ok ? Icons.check_circle : Icons.cancel_outlined,
+                          size: 16,
+                          color: ok ? _neonGreen : Colors.white38,
+                        ),
+                        const SizedBox(width: 8),
+                        Expanded(
+                          child: Text(
+                            rule.label,
+                            style: TextStyle(
+                              fontSize: 12.5,
+                              color: ok ? Colors.white : Colors.white54,
+                            ),
+                          ),
+                        ),
+                      ],
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -143,12 +208,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                         begin: Alignment.topLeft,
                         end: Alignment.bottomRight,
                         colors: [
-                          Colors.white.withOpacity(0.10),
-                          Colors.white.withOpacity(0.04),
+                          Colors.white.withValues(alpha: 0.10),
+                          Colors.white.withValues(alpha: 0.04),
                         ],
                       ),
                       border: Border.all(
-                        color: Colors.white.withOpacity(0.18),
+                        color: Colors.white.withValues(alpha: 0.18),
                         width: 1.2,
                       ),
                     ),
@@ -179,35 +244,42 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                               return null;
                             },
                           ),
-                          TextFormField(
-                            controller: _passwordController,
-                            obscureText: _obscurePassword,
-                            style: const TextStyle(color: Colors.white),
-                            decoration: _inputDecoration(
-                              'Nueva contraseña',
-                              Icons.lock_outline,
-                            ).copyWith(
-                              helperText:
-                                  'Mín. 6 caracteres, con letras, números y un símbolo',
-                              helperStyle: const TextStyle(
-                                color: Colors.white54,
-                                fontSize: 11,
-                              ),
-                              suffixIcon: IconButton(
-                                icon: Icon(
-                                  _obscurePassword
-                                      ? Icons.visibility_off
-                                      : Icons.visibility,
-                                  color: Colors.white54,
-                                ),
-                                onPressed: () => setState(
-                                  () => _obscurePassword = !_obscurePassword,
-                                ),
-                              ),
-                            ),
-                            validator: _validatePassword,
-                          ),
                           const SizedBox(height: 16),
+                          Focus(
+                            onFocusChange: (hasFocus) {
+                              setState(() {
+                                // Se mantiene visible si tiene foco, o si ya
+                                // escribió algo pero aún falta cumplir reglas.
+                                _showPasswordChecklist = hasFocus ||
+                                    (_passwordController.text.isNotEmpty &&
+                                        !_passwordFullyValid);
+                              });
+                            },
+                            child: TextFormField(
+                              controller: _passwordController,
+                              obscureText: _obscurePassword,
+                              style: const TextStyle(color: Colors.white),
+                              decoration: _inputDecoration(
+                                'Nueva contraseña',
+                                Icons.lock_outline,
+                              ).copyWith(
+                                suffixIcon: IconButton(
+                                  icon: Icon(
+                                    _obscurePassword
+                                        ? Icons.visibility_off
+                                        : Icons.visibility,
+                                    color: Colors.white54,
+                                  ),
+                                  onPressed: () => setState(
+                                    () => _obscurePassword = !_obscurePassword,
+                                  ),
+                                ),
+                              ),
+                              validator: _validatePassword,
+                            ),
+                          ),
+                          _buildPasswordChecklist(),
+                          const SizedBox(height: 8),
                           TextFormField(
                             controller: _confirmPasswordController,
                             obscureText: _obscurePassword,
@@ -231,12 +303,12 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
                                 borderRadius: BorderRadius.circular(16),
                                 gradient: LinearGradient(
                                   colors: [
-                                    _neonGreen.withOpacity(0.85),
-                                    _neonGreen.withOpacity(0.55),
+                                    _neonGreen.withValues(alpha: 0.85),
+                                    _neonGreen.withValues(alpha: 0.55),
                                   ],
                                 ),
                                 border: Border.all(
-                                  color: Colors.white.withOpacity(0.3),
+                                  color: Colors.white.withValues(alpha: 0.3),
                                 ),
                               ),
                               child: Material(
@@ -285,4 +357,11 @@ class _ResetPasswordScreenState extends State<ResetPasswordScreen> {
       ),
     );
   }
+}
+
+/// Un requisito de la contraseña: texto a mostrar + regla de validación.
+class _PasswordRule {
+  const _PasswordRule(this.label, this.isValid);
+  final String label;
+  final bool Function(String value) isValid;
 }
