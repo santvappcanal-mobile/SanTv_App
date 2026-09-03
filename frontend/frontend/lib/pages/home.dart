@@ -1,13 +1,17 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../widgets/top_bar.dart';
+import '../models/app_user.dart';
+import '../services/auth_service.dart';
 import 'explore_screen.dart';
-// Importa el archivo de tu pestaña en vivo (ajusta la ruta según tu estructura de carpetas)
 import 'live_tab_screen.dart';
 import 'profile_screen.dart';
+import 'edit_profile_screen.dart';
 
 class Home extends StatefulWidget {
-  const Home({super.key});
+  const Home({super.key, required this.authService});
+
+  final AuthService authService;
 
   @override
   State<Home> createState() => _HomeState();
@@ -15,6 +19,51 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   int _currentIndex = 0;
+  static const int _profileTabIndex = 3;
+
+  AppUser? _currentUser;
+  bool _loadingUser = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadUser();
+  }
+
+  Future<void> _loadUser() async {
+    final user = await widget.authService.getProfile();
+    if (!mounted) return;
+    setState(() {
+      _currentUser = user;
+      _loadingUser = false;
+    });
+  }
+
+  Future<void> _handleLogout() async {
+    await widget.authService.logout();
+    if (!mounted) return;
+    Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
+  }
+
+  void _goToProfileTab() {
+    setState(() => _currentIndex = _profileTabIndex);
+  }
+
+  Future<void> _openEditProfile() async {
+    if (_currentUser == null) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => EditProfileScreen(
+          authService: widget.authService,
+          user: _currentUser!,
+          onSaved: (updatedUser) {
+            setState(() => _currentUser = updatedUser);
+          },
+        ),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,8 +71,6 @@ class _HomeState extends State<Home> {
 
     return Scaffold(
       extendBody: true,
-      // Fondo con gradiente para que el BackdropFilter tenga algo
-      // que difuminar; sin esto el efecto de vidrio no se aprecia.
       body: Container(
         decoration: const BoxDecoration(
           gradient: LinearGradient(
@@ -34,42 +81,41 @@ class _HomeState extends State<Home> {
         ),
         child: Column(
           children: [
-            const TopBar(),
+            TopBar(
+              onProfileTap: _goToProfileTab,
+              onLogoutTap: _handleLogout,
+            ),
             Expanded(
               child: IndexedStack(
                 index: _currentIndex,
                 children: [
                   _buildHomeTab(neonColor),
                   const ExploreScreen(),
-                  // Aquí integramos tu LiveTabScreen pasando el callback para cuando toquen un live
                   LiveTabScreen(
                     onOpenLive: (liveId) {
-                      // Aquí manejas la navegación al detalle del live (ej: Navigator.push)
                       debugPrint('Abriendo transmisión: $liveId');
                     },
                   ),
-                  // Aquí integramos ProfileScreen con los datos del usuario y sus acciones
-                  ProfileScreen(
-                    userName:
-                        'Nombre del usuario', // TODO: trae del authService/backend
-                    userEmail:
-                        'correo@ejemplo.com', // TODO: trae del authService/backend
-                    onEditProfile: () {
-                      // TODO: navega a la pantalla de edición de perfil
-                    },
-                    onMyList: () {
-                      // TODO: navega a "Mi Lista"
-                    },
-                    onSettings: () {
-                      // TODO: navega a configuración
-                    },
-                    onHelp: () {
-                      // TODO: navega a ayuda y soporte
-                    },
-                    onLogout: () {
-                      // TODO: llama a tu authService.logout() y navega de vuelta a AuthScreen
-                    },
-                  ),
+                  _loadingUser
+                      ? const Center(
+                          child: CircularProgressIndicator(color: Color(0xFF39FF14)),
+                        )
+                      : ProfileScreen(
+                          userName: _currentUser?.name ?? 'Usuario',
+                          userEmail: _currentUser?.email ?? '',
+                          avatarUrl: _currentUser?.avatarUrl,
+                          onEditProfile: _openEditProfile,
+                          onMyList: () {
+                            // TODO: navega a "Mi Lista"
+                          },
+                          onSettings: () {
+                            // TODO: navega a configuración
+                          },
+                          onHelp: () {
+                            // TODO: navega a ayuda y soporte
+                          },
+                          onLogout: _handleLogout,
+                        ),
                 ],
               ),
             ),
@@ -112,18 +158,9 @@ class _HomeState extends State<Home> {
             type: BottomNavigationBarType.fixed,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.explore),
-                label: 'Explorar',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.live_tv),
-                label: 'En Vivo',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                label: 'Perfil',
-              ),
+              BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explorar'),
+              BottomNavigationBarItem(icon: Icon(Icons.live_tv), label: 'En Vivo'),
+              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
             ],
           ),
         ),
@@ -137,7 +174,6 @@ class _HomeState extends State<Home> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          // Banner de transmisión en vivo principal, en vidrio.
           ClipRRect(
             borderRadius: BorderRadius.circular(20),
             child: BackdropFilter(
@@ -218,9 +254,7 @@ class _HomeState extends State<Home> {
                               Colors.white.withOpacity(0.03),
                             ],
                           ),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.15),
-                          ),
+                          border: Border.all(color: Colors.white.withOpacity(0.15)),
                         ),
                         child: const Center(
                           child: Text(

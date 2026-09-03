@@ -5,27 +5,27 @@ import 'pages/verify_code_screen.dart';
 import 'services/auth_service.dart';
 
 void main() async {
-  // Asegura la inicialización de widgets antes de llamar servicios asíncronos
   WidgetsFlutterBinding.ensureInitialized();
-
-  // Si utilizas Firebase u otro SDK backend, se inicializa aquí:
-  // await Firebase.initializeApp();
-
   runApp(const SanTvApp());
 }
 
-class SanTvApp extends StatelessWidget {
+class SanTvApp extends StatefulWidget {
   const SanTvApp({super.key});
 
   @override
-  Widget build(BuildContext context) {
-    // Instancia única del servicio de autenticación real, conectada
-    // al backend de Node/Express.
-    // - Emulador Android: usa 10.0.2.2 (así el emulador ve tu PC)
-    // - Simulador iOS: usa localhost
-    // - Dispositivo físico: usa la IP local de tu PC (ej: 192.168.x.x)
-    final authService = AuthService(baseUrl: 'http://10.0.2.2:3000');
+  State<SanTvApp> createState() => _SanTvAppState();
+}
 
+class _SanTvAppState extends State<SanTvApp> {
+  // OJO: se movió aquí (fuera de build) para que sea UNA sola instancia
+  // durante toda la vida de la app, en vez de crear un AuthService nuevo
+  // en cada rebuild del widget.
+  late final AuthService authService = AuthService(
+    baseUrl: 'http://10.0.2.2:3000',
+  );
+
+  @override
+  Widget build(BuildContext context) {
     return MaterialApp(
       title: 'SAN TV',
       debugShowCheckedModeBanner: false,
@@ -33,11 +33,10 @@ class SanTvApp extends StatelessWidget {
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Colors.black,
         colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF39FF14), // Verde neón
+          primary: Color(0xFF39FF14),
         ),
         useMaterial3: true,
       ),
-      // Definición del flujo de inicio por rutas
       initialRoute: '/login',
       routes: {
         '/login': (context) => AuthScreen(
@@ -46,7 +45,6 @@ class SanTvApp extends StatelessWidget {
                 Navigator.pushReplacementNamed(context, '/home');
               },
               onRegistered: (email) {
-                // Registro exitoso -> pantalla de verificación de código
                 Navigator.push(
                   context,
                   MaterialPageRoute(
@@ -54,8 +52,6 @@ class SanTvApp extends StatelessWidget {
                       authService: authService,
                       email: email,
                       onVerified: () {
-                        // Código correcto -> entra al Home, sin poder
-                        // volver atrás a la pantalla de login/registro
                         Navigator.pushNamedAndRemoveUntil(
                           context,
                           '/home',
@@ -70,7 +66,8 @@ class SanTvApp extends StatelessWidget {
                 );
               },
             ),
-        '/home': (context) => const Home(),
+        // AHORA le pasamos el authService a Home
+        '/home': (context) => Home(authService: authService),
       },
     );
   }

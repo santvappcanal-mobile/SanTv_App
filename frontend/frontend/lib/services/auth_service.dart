@@ -1,12 +1,14 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import '../models/app_user.dart';
 
 /// Resultado de una operación de autenticación.
 class AuthResult {
   final bool success;
   final String? errorMessage;
   final String? token;
+  final AppUser? user;
 
   /// true cuando el registro (o intento de login) queda pendiente de
   /// verificar el código enviado al correo.
@@ -16,14 +18,13 @@ class AuthResult {
     required this.success,
     this.errorMessage,
     this.token,
+    this.user,
     this.pendingVerification = false,
   });
 }
 
 /// Servicio real de autenticación: habla con el backend de SanTv
-/// (Node/Express) vía HTTP. Misma interfaz pública que la versión
-/// simulada anterior, así que LoginScreen/RegisterScreen/AuthScreen
-/// no necesitan cambios.
+/// (Node/Express) vía HTTP.
 class AuthService {
   AuthService({required this.baseUrl});
 
@@ -79,11 +80,16 @@ class AuthService {
       final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && body['success'] == true) {
-        final token = body['data']?['token']?.toString();
+        final data = body['data'] as Map<String, dynamic>?;
+        final token = data?['token']?.toString();
         if (token != null) {
           await _storage.write(key: _tokenKey, value: token);
         }
-        return AuthResult(success: true, token: token);
+        return AuthResult(
+          success: true,
+          token: token,
+          user: data != null ? AppUser.fromJson(data) : null,
+        );
       }
 
       return AuthResult(
@@ -149,11 +155,16 @@ class AuthService {
       }
 
       if (response.statusCode == 200 && body['success'] == true) {
-        final token = body['data']?['token']?.toString();
+        final data = body['data'] as Map<String, dynamic>?;
+        final token = data?['token']?.toString();
         if (token != null) {
           await _storage.write(key: _tokenKey, value: token);
         }
-        return AuthResult(success: true, token: token);
+        return AuthResult(
+          success: true,
+          token: token,
+          user: data != null ? AppUser.fromJson(data) : null,
+        );
       }
 
       return AuthResult(
@@ -238,6 +249,85 @@ class AuthService {
       success: false,
       errorMessage: 'El inicio de sesión con Google todavía no está disponible.',
     );
+  }
+
+  /// Pide los datos del usuario logueado usando el token guardado.
+  /// Úsalo al iniciar Home (o tras el login) para llenar el perfil
+  /// con datos siempre frescos desde el backend.
+  Future<AppUser?> getProfile() async {
+    try {
+      final token = await getToken();
+      if (token == null) return null;
+
+      final response = await http.get(
+        _endpoint('/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      if (response.statusCode == 200 && body['success'] == true) {
+        return AppUser.fromJson(body['data'] as Map<String, dynamic>);
+      }
+      return null;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// Actualiza nombre/email/avatar/password del usuario logueado.
+  /// Usa el endpoint PUT /api/users/profile (protegido con el token).
+  Future<AuthResult> updateProfile({
+    String? name,
+    String? email,
+    String? avatarUrl,
+    String? password,
+  }) async {
+    try {
+      final token = await getToken();
+      if (token == null) {
+        return const AuthResult(
+          success: false,
+          errorMessage: 'No has iniciado sesión',
+        );
+      }
+
+      final response = await http.put(
+        _endpoint('/profile'),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          if (name != null) 'name': name,
+          if (email != null) 'email': email,
+          if (avatarUrl != null) 'avatar': avatarUrl,
+          if (password != null) 'password': password,
+        }),
+      );
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && body['success'] == true) {
+        final data = body['data'] as Map<String, dynamic>?;
+        return AuthResult(
+          success: true,
+          user: data != null ? AppUser.fromJson(data) : null,
+        );
+      }
+
+      return AuthResult(
+        success: false,
+        errorMessage: body['message']?.toString() ?? 'No se pudo actualizar el perfil',
+      );
+    } catch (e) {
+      return AuthResult(
+        success: false,
+        errorMessage: 'No se pudo conectar con el servidor: $e',
+      );
+    }
   }
 
   Future<String?> getToken() async => _storage.read(key: _tokenKey);
