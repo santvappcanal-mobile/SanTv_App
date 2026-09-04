@@ -1,5 +1,5 @@
 const express = require('express');
-const { chatearConAsistente } = require('../controllers/chatController');
+const { chatearConAsistente } = require('../controllers/chatController.js');
 
 const router = express.Router();
 

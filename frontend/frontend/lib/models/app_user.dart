@@ -1,4 +1,4 @@
-v/// Modelo del usuario autenticado de SAN TV.
+/// Modelo del usuario autenticado de SAN TV.
 class AppUser {
   final String id;
   final String name;

@@ -16,6 +16,9 @@ class AssistantChatSheet extends StatefulWidget {
 class _AssistantChatSheetState extends State<AssistantChatSheet> {
   final TextEditingController _controller = TextEditingController();
   final ScrollController _scrollController = ScrollController();
+  
+  late final ChatService _chatService;
+
   final List<Map<String, String>> _mensajes = [
     {
       'role': 'bot',
@@ -28,6 +31,7 @@ class _AssistantChatSheetState extends State<AssistantChatSheet> {
   @override
   void initState() {
     super.initState();
+    _chatService = ChatService(authService: widget.authService);
     _personalizarSaludo();
   }
 
@@ -55,7 +59,7 @@ class _AssistantChatSheetState extends State<AssistantChatSheet> {
 
     _scrollHaciaAbajo();
 
-    final respuesta = await ChatService.enviarMensaje(texto);
+    final respuesta = await _chatService.enviarMensaje(texto);
 
     if (mounted) {
       setState(() {

@@ -13,7 +13,9 @@ class ChatService {
     try {
       final response = await http.post(
         _chatUrl,
-        headers: {'Content-Type': 'application/json'},
+        headers: {
+          'Content-Type': 'application/json',
+        },
         body: jsonEncode({'mensaje': mensaje}),
       );
 
@@ -21,10 +23,10 @@ class ChatService {
         final data = jsonDecode(response.body);
         return data['respuesta'] ?? 'No se recibió respuesta del asistente.';
       } else {
-        return 'El asistente virtual no está disponible ahora mismo.';
+        return 'El asistente virtual no está disponible ahora mismo (Error ${response.statusCode}).';
       }
     } catch (e) {
-      return 'Error de conexión con el servidor. Verifica tu red.';
+      return 'Error de conexión con el servidor. Verifica tu red o la URL base.';
     }
   }
 }
