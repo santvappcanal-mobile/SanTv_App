@@ -13,6 +13,7 @@ class ProfileScreen extends StatelessWidget {
     this.avatarUrl,
     this.onEditProfile,
     this.onMyList,
+    this.onAdvertising,
     this.onSettings,
     this.onHelp,
     this.onLogout,
@@ -24,6 +25,7 @@ class ProfileScreen extends StatelessWidget {
 
   final VoidCallback? onEditProfile;
   final VoidCallback? onMyList;
+  final VoidCallback? onAdvertising;
   final VoidCallback? onSettings;
   final VoidCallback? onHelp;
   final VoidCallback? onLogout;
@@ -55,6 +57,11 @@ class ProfileScreen extends StatelessWidget {
               icon: Icons.bookmark_outline,
               label: 'Mi Lista',
               onTap: onMyList,
+            ),
+            _ProfileOption(
+              icon: Icons.campaign_outlined,
+              label: 'Publicidad',
+              onTap: onAdvertising,
             ),
             _ProfileOption(
               icon: Icons.settings_outlined,
