@@ -209,13 +209,15 @@ class ProfileScreen extends StatelessWidget {
   }
 
   // ---------------------------------------------------------------
-  // Fila de estadísticas (ejemplo: seguidos, favoritos, vistos)
+  // Fila de estadísticas (Favoritos y Vistos)
+  // Nota: "Siguiendo" fue eliminado por decisión del proyecto.
+  // Favoritos y Vistos quedan fijos en 0 hasta que se implemente
+  // el conteo real en tiempo real.
   // ---------------------------------------------------------------
   Widget _buildStatsRow() {
     final stats = const [
-      {'label': 'Siguiendo', 'value': '12'},
-      {'label': 'Favoritos', 'value': '34'},
-      {'label': 'Vistos', 'value': '128'},
+      {'label': 'Favoritos', 'value': '0'},
+      {'label': 'Vistos', 'value': '0'},
     ];
 
     return Row(
