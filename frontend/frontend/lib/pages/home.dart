@@ -1,12 +1,15 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../widgets/top_bar.dart';
+import '../widgets/assistant_chat_sheet.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
+import '../services/notification_service.dart';
 import 'explore_screen.dart';
 import 'live_tab_screen.dart';
 import 'profile_screen.dart';
 import 'edit_profile_screen.dart';
+import 'notifications_screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key, required this.authService});
@@ -24,10 +27,15 @@ class _HomeState extends State<Home> {
   AppUser? _currentUser;
   bool _loadingUser = true;
 
+  late final NotificationService _notificationService =
+      NotificationService(authService: widget.authService);
+  int _unreadCount = 0;
+
   @override
   void initState() {
     super.initState();
     _loadUser();
+    _loadUnreadCount();
   }
 
   Future<void> _loadUser() async {
@@ -37,6 +45,33 @@ class _HomeState extends State<Home> {
       _currentUser = user;
       _loadingUser = false;
     });
+  }
+
+  Future<void> _loadUnreadCount() async {
+    final result = await _notificationService.getNotifications();
+    if (!mounted || !result.success) return;
+    setState(() => _unreadCount = result.unreadCount);
+  }
+
+  Future<void> _openNotifications() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => NotificationsScreen(
+          notificationService: _notificationService,
+        ),
+      ),
+    );
+    _loadUnreadCount(); // refresca el contador al volver
+  }
+
+  void _openAssistantChat() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AssistantChatSheet(authService: widget.authService),
+    );
   }
 
   Future<void> _handleLogout() async {
@@ -84,6 +119,8 @@ class _HomeState extends State<Home> {
             TopBar(
               onProfileTap: _goToProfileTab,
               onLogoutTap: _handleLogout,
+              onNotificationsTap: _openNotifications,
+              unreadCount: _unreadCount,
             ),
             Expanded(
               child: IndexedStack(
@@ -121,6 +158,11 @@ class _HomeState extends State<Home> {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAssistantChat,
+        backgroundColor: neonColor,
+        child: const Icon(Icons.smart_toy_outlined, color: Colors.black),
       ),
       bottomNavigationBar: _buildGlassNavBar(neonColor),
     );

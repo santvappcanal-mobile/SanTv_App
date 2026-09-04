@@ -5,6 +5,8 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
     super.key,
     required this.onProfileTap,
     required this.onLogoutTap,
+    required this.onNotificationsTap,
+    this.unreadCount = 0,
   });
 
   /// Se llama cuando el usuario toca "Perfil" en el menú.
@@ -12,6 +14,12 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
 
   /// Se llama cuando el usuario toca "Cerrar sesión" en el menú.
   final VoidCallback onLogoutTap;
+
+  /// Se llama cuando el usuario toca "Notificaciones" en el menú.
+  final VoidCallback onNotificationsTap;
+
+  /// Cantidad de notificaciones sin leer (para el badge rojo).
+  final int unreadCount;
 
   @override
   Widget build(BuildContext context) {
@@ -42,7 +50,7 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                   onLogoutTap();
                   break;
                 case 'notifications':
-                  // TODO: lógica de notificaciones a futuro
+                  onNotificationsTap();
                   break;
               }
             },
@@ -60,19 +68,25 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                 child: ListTile(
                   leading: const Icon(Icons.notifications_none, color: Colors.white),
                   title: const Text('Notificaciones', style: TextStyle(color: Colors.white)),
-                  trailing: Container(
-                    padding: const EdgeInsets.all(4),
-                    decoration: BoxDecoration(
-                      color: Colors.red,
-                      borderRadius: BorderRadius.circular(10),
-                    ),
-                    constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
-                    child: const Text(
-                      '2',
-                      style: TextStyle(color: Colors.white, fontSize: 10, fontWeight: FontWeight.bold),
-                      textAlign: TextAlign.center,
-                    ),
-                  ),
+                  trailing: unreadCount > 0
+                      ? Container(
+                          padding: const EdgeInsets.all(4),
+                          decoration: BoxDecoration(
+                            color: Colors.red,
+                            borderRadius: BorderRadius.circular(10),
+                          ),
+                          constraints: const BoxConstraints(minWidth: 20, minHeight: 20),
+                          child: Text(
+                            '$unreadCount',
+                            style: const TextStyle(
+                              color: Colors.white,
+                              fontSize: 10,
+                              fontWeight: FontWeight.bold,
+                            ),
+                            textAlign: TextAlign.center,
+                          ),
+                        )
+                      : null,
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
