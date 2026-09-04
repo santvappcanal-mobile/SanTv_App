@@ -1,6 +1,7 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../widgets/top_bar.dart';
+import '../widgets/assistant_chat_sheet.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
@@ -62,6 +63,15 @@ class _HomeState extends State<Home> {
       ),
     );
     _loadUnreadCount(); // refresca el contador al volver
+  }
+
+  void _openAssistantChat() {
+    showModalBottomSheet(
+      context: context,
+      isScrollControlled: true,
+      backgroundColor: Colors.transparent,
+      builder: (_) => AssistantChatSheet(authService: widget.authService),
+    );
   }
 
   Future<void> _handleLogout() async {
@@ -148,6 +158,11 @@ class _HomeState extends State<Home> {
             ),
           ],
         ),
+      ),
+      floatingActionButton: FloatingActionButton(
+        onPressed: _openAssistantChat,
+        backgroundColor: neonColor,
+        child: const Icon(Icons.smart_toy_outlined, color: Colors.black),
       ),
       bottomNavigationBar: _buildGlassNavBar(neonColor),
     );
