@@ -10,6 +10,7 @@ import 'live_tab_screen.dart';
 import 'profile_screen.dart';
 import 'edit_profile_screen.dart';
 import 'notifications_screen.dart';
+import 'publicidad_screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key, required this.authService});
@@ -71,6 +72,20 @@ class _HomeState extends State<Home> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AssistantChatSheet(authService: widget.authService),
+    );
+  }
+
+  Future<void> _openAdvertising() async {
+    final token = await widget.authService.getToken();
+    if (!mounted) return;
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PublicidadScreen(
+          esAdmin: _currentUser?.isAdmin ?? false,
+          adminToken: token,
+        ),
+      ),
     );
   }
 
@@ -145,6 +160,7 @@ class _HomeState extends State<Home> {
                           onMyList: () {
                             // TODO: navega a "Mi Lista"
                           },
+                          onAdvertising: _openAdvertising,
                           onSettings: () {
                             // TODO: navega a configuración
                           },
