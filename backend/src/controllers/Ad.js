@@ -5,14 +5,23 @@ const Ad = require('../models/Ad');
 // @route   POST /api/ads
 // @access  Private/Admin
 const createAd = asyncHandler(async (req, res) => {
-  const { title, advertiser, mediaUrl, placement, durationSeconds, startDate, endDate } = req.body;
+  const { title, type, mediaUrl, targetUrl, duration, startDate, endDate } = req.body;
 
-  if (!title || !advertiser || !mediaUrl || !startDate || !endDate) {
+  if (!title || !type || !mediaUrl || !startDate) {
     res.status(400);
-    throw new Error('Título, anunciante, mediaUrl, startDate y endDate son obligatorios');
+    throw new Error('Título, type, mediaUrl y startDate son obligatorios');
   }
 
-  const ad = await Ad.create(req.body);
+  const ad = await Ad.create({
+    title,
+    type,
+    mediaUrl,
+    targetUrl,
+    duration,
+    startDate,
+    endDate,
+  });
+
   res.status(201).json({ success: true, data: ad });
 });
 
@@ -22,26 +31,37 @@ const createAd = asyncHandler(async (req, res) => {
 const getAds = asyncHandler(async (req, res) => {
   const filter = {};
   if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true';
-  if (req.query.placement) filter.placement = req.query.placement;
+  if (req.query.type) filter.type = req.query.type;
 
   const ads = await Ad.find(filter).sort({ createdAt: -1 });
   res.json({ success: true, count: ads.length, data: ads });
 });
 
-// @desc    Obtener anuncios activos aptos para un contenido/placement específico
-// @route   GET /api/ads/for-content/:contentId
+// @desc    Obtener anuncios activos vigentes, opcionalmente filtrados por tipo
+// @route   GET /api/ads/for-content
 // @access  Public
 const getAdsForContent = asyncHandler(async (req, res) => {
   const now = new Date();
   const filter = {
     isActive: true,
     startDate: { $lte: now },
-    endDate: { $gte: now },
-    $or: [{ targetContent: { $size: 0 } }, { targetContent: req.params.contentId }],
+    // endDate no es obligatorio: un anuncio sin endDate se considera vigente indefinidamente
+    $or: [{ endDate: { $exists: false } }, { endDate: null }, { endDate: { $gte: now } }],
   };
-  if (req.query.placement) filter.placement = req.query.placement;
+  if (req.query.type) filter.type = req.query.type;
 
   const ads = await Ad.find(filter);
+  res.json({ success: true, count: ads.length, data: ads });
+});
+
+// @desc    Portafolio público de anuncios de video ya realizados (para la sección de Publicidad)
+// @route   GET /api/ads/portfolio
+// @access  Public
+const getAdPortfolio = asyncHandler(async (req, res) => {
+  const ads = await Ad.find({ isActive: true, type: 'video' })
+    .select('title mediaUrl duration createdAt')
+    .sort({ createdAt: -1 });
+
   res.json({ success: true, count: ads.length, data: ads });
 });
 
@@ -123,6 +143,7 @@ module.exports = {
   createAd,
   getAds,
   getAdsForContent,
+  getAdPortfolio,
   getAdById,
   registerImpression,
   registerClick,

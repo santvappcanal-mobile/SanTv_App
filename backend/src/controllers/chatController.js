@@ -17,7 +17,7 @@ const chatearConAsistente = asyncHandler(async (req, res) => {
   }
 
   // 1. Catálogo de contenido publicado (para ayudar a encontrar noticias, deportes, videos)
-  const contenidos = await Content.find({ isPublished: true }, 'title type category description views')
+  const contenidos = await Content.find({ isActive: true }, 'title type genres description views')
     .sort({ createdAt: -1 })
     .limit(30)
     .lean();
@@ -26,7 +26,7 @@ const chatearConAsistente = asyncHandler(async (req, res) => {
     ? contenidos
         .map(
           (c) =>
-            `- [${c.type}${c.category ? ' / ' + c.category : ''}] ${c.title}${
+            `- [${c.type}${c.genres && c.genres.length ? ' / ' + c.genres.join(', ') : ''}] ${c.title}${
               c.description ? ': ' + c.description : ''
             }`
         )
@@ -40,17 +40,17 @@ const chatearConAsistente = asyncHandler(async (req, res) => {
   haceUnaSemana.setDate(haceUnaSemana.getDate() - 7);
 
   let masVistoSemana = await Content.findOne({
-    isPublished: true,
+    isActive: true,
     createdAt: { $gte: haceUnaSemana },
   })
     .sort({ views: -1 })
-    .select('title type category views')
+    .select('title type genres views')
     .lean();
 
   if (!masVistoSemana) {
-    masVistoSemana = await Content.findOne({ isPublished: true })
+    masVistoSemana = await Content.findOne({ isActive: true })
       .sort({ views: -1 })
-      .select('title type category views')
+      .select('title type genres views')
       .lean();
   }
 
@@ -58,19 +58,20 @@ const chatearConAsistente = asyncHandler(async (req, res) => {
     ? `"${masVistoSemana.title}" (${masVistoSemana.type}) con ${masVistoSemana.views || 0} vistas`
     : 'Aún no hay datos de vistas disponibles.';
 
-  // 3. Publicidad: espacios (placements) activos en este momento
+  // 3. Publicidad: tipos de anuncio activos y vigentes en este momento
   const ahora = new Date();
   const anunciosActivos = await Ad.find({
     isActive: true,
     startDate: { $lte: ahora },
-    endDate: { $gte: ahora },
+    // endDate no es obligatorio: un anuncio sin endDate se considera vigente indefinidamente
+    $or: [{ endDate: { $exists: false } }, { endDate: null }, { endDate: { $gte: ahora } }],
   })
-    .select('placement')
+    .select('type')
     .lean();
 
-  const placementsDisponibles = [...new Set(anunciosActivos.map((a) => a.placement))];
-  const publicidadTexto = placementsDisponibles.length
-    ? `Espacios publicitarios actualmente en uso: ${placementsDisponibles.join(', ')}.`
+  const tiposDisponibles = [...new Set(anunciosActivos.map((a) => a.type))];
+  const publicidadTexto = tiposDisponibles.length
+    ? `Espacios publicitarios actualmente en uso: ${tiposDisponibles.join(', ')}.`
     : 'Actualmente no hay anuncios activos; los espacios publicitarios están disponibles.';
 
   // 4. Prompt de comportamiento del asistente
@@ -85,7 +86,7 @@ ${masVistoTexto}
 
 INFORMACIÓN DE PUBLICIDAD:
 ${publicidadTexto}
-Nota: SAN TV maneja espacios publicitarios en distintos lugares de la app (pre-video, banners, en vivo, etc). NUNCA inventes precios ni cifras exactas de costos: para cotizaciones, indica amablemente que un asesor comercial del canal debe confirmar la tarifa vigente.
+Nota: SAN TV maneja espacios publicitarios en distintos formatos (video, banner, popup). NUNCA inventes precios ni cifras exactas de costos: para cotizaciones, indica amablemente que un asesor comercial del canal debe confirmar la tarifa vigente.
 
 SERVICIOS DEL CANAL:
 SAN TV ofrece: transmisión de noticias, cobertura deportiva, transmisiones en vivo de eventos, contenido de video bajo demanda, y espacios publicitarios para marcas y anunciantes.
