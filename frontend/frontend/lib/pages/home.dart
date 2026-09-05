@@ -27,8 +27,9 @@ class _HomeState extends State<Home> {
   AppUser? _currentUser;
   bool _loadingUser = true;
 
-  late final NotificationService _notificationService =
-      NotificationService(authService: widget.authService);
+  late final NotificationService _notificationService = NotificationService(
+    authService: widget.authService,
+  );
   int _unreadCount = 0;
 
   @override
@@ -57,9 +58,8 @@ class _HomeState extends State<Home> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => NotificationsScreen(
-          notificationService: _notificationService,
-        ),
+        builder: (_) =>
+            NotificationsScreen(notificationService: _notificationService),
       ),
     );
     _loadUnreadCount(); // refresca el contador al volver
@@ -135,7 +135,9 @@ class _HomeState extends State<Home> {
                   ),
                   _loadingUser
                       ? const Center(
-                          child: CircularProgressIndicator(color: Color(0xFF39FF14)),
+                          child: CircularProgressIndicator(
+                            color: Color(0xFF39FF14),
+                          ),
                         )
                       : ProfileScreen(
                           userName: _currentUser?.name ?? 'Usuario',
@@ -200,9 +202,18 @@ class _HomeState extends State<Home> {
             type: BottomNavigationBarType.fixed,
             items: const [
               BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
-              BottomNavigationBarItem(icon: Icon(Icons.explore), label: 'Explorar'),
-              BottomNavigationBarItem(icon: Icon(Icons.live_tv), label: 'En Vivo'),
-              BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Perfil'),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.explore),
+                label: 'Explorar',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.live_tv),
+                label: 'En Vivo',
+              ),
+              BottomNavigationBarItem(
+                icon: Icon(Icons.person),
+                label: 'Perfil',
+              ),
             ],
           ),
         ),
@@ -296,7 +307,9 @@ class _HomeState extends State<Home> {
                               Colors.white.withOpacity(0.03),
                             ],
                           ),
-                          border: Border.all(color: Colors.white.withOpacity(0.15)),
+                          border: Border.all(
+                            color: Colors.white.withOpacity(0.15),
+                          ),
                         ),
                         child: const Center(
                           child: Text(
