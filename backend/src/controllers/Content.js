@@ -1,27 +1,40 @@
 const asyncHandler = require('express-async-handler');
 const Content = require('../models/Content');
 
-// @desc    Crear nuevo contenido
+// @desc    Crear nuevo contenido (sube el video directamente a Cloudinary)
 // @route   POST /api/content
 // @access  Private/Editor+
+// @body    multipart/form-data: title, description, type, genres (coma-separado),
+//          thumbnailUrl, duration, releaseYear, isPremium + archivo 'video'
 const createContent = asyncHandler(async (req, res) => {
-  const { title, description, type, category, thumbnailUrl, videoUrl, duration, releaseDate } = req.body;
+  const { title, description, type, genres, thumbnailUrl, duration, releaseYear, isPremium } =
+    req.body;
 
-  if (!title || !type || !videoUrl) {
+  if (!title || !type) {
     res.status(400);
-    throw new Error('Título, tipo y videoUrl son obligatorios');
+    throw new Error('Título y tipo son obligatorios');
   }
+
+  if (!req.file) {
+    res.status(400);
+    throw new Error('Debes subir un archivo de video');
+  }
+
+  // multer-storage-cloudinary deja la URL segura del archivo subido en req.file.path
+  const videoUrl = req.file.path;
 
   const content = await Content.create({
     title,
     description,
     type,
-    category,
-    thumbnailUrl,
+    genres: genres
+      ? genres.split(',').map((g) => g.trim()).filter(Boolean)
+      : [],
     videoUrl,
+    thumbnailUrl,
     duration,
-    releaseDate,
-    createdBy: req.user._id,
+    releaseYear,
+    isPremium: isPremium === 'true' || isPremium === true,
   });
 
   res.status(201).json({ success: true, data: content });
@@ -35,9 +48,9 @@ const getContents = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const skip = (page - 1) * limit;
 
-  const filter = { isPublished: true };
+  const filter = { isActive: true };
   if (req.query.type) filter.type = req.query.type;
-  if (req.query.category) filter.category = req.query.category;
+  if (req.query.genre) filter.genres = req.query.genre;
   if (req.query.search) filter.$text = { $search: req.query.search };
 
   const contents = await Content.find(filter)
