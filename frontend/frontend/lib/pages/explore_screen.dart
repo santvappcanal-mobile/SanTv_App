@@ -1,12 +1,19 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../widgets/publicidad_section.dart';
 
 /// Pestaña "Explorar". Se usa embebida dentro de [Home]
 /// (pages/home.dart), como uno de los ítems del IndexedStack.
 /// Toda la lógica de búsqueda y categorías vive aquí, separada
 /// del resto de las pestañas.
+///
+/// La navegación a Publicidad se resuelve arriba, en Home
+/// (necesita el token/rol del usuario), por eso llega acá como
+/// callback en lugar de resolverse dentro de este widget.
 class ExploreScreen extends StatefulWidget {
-  const ExploreScreen({super.key});
+  const ExploreScreen({super.key, required this.onOpenAdvertising});
+
+  final VoidCallback onOpenAdvertising;
 
   @override
   State<ExploreScreen> createState() => _ExploreScreenState();
@@ -116,6 +123,10 @@ class _ExploreScreenState extends State<ExploreScreen> {
               },
             ),
           ),
+          const SizedBox(height: 20),
+
+          // Sección de Publicidad (tarjeta clicable, no FAB)
+          PublicidadSection(onTap: widget.onOpenAdvertising),
           const SizedBox(height: 24),
 
           const Text(
