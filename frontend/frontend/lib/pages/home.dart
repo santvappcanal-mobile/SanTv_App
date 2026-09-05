@@ -2,6 +2,7 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/assistant_chat_sheet.dart';
+import '../widgets/publicidad_section.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
@@ -28,8 +29,9 @@ class _HomeState extends State<Home> {
   AppUser? _currentUser;
   bool _loadingUser = true;
 
-  late final NotificationService _notificationService =
-      NotificationService(authService: widget.authService);
+  late final NotificationService _notificationService = NotificationService(
+    authService: widget.authService,
+  );
   int _unreadCount = 0;
 
   @override
@@ -58,9 +60,8 @@ class _HomeState extends State<Home> {
     await Navigator.push(
       context,
       MaterialPageRoute(
-        builder: (_) => NotificationsScreen(
-          notificationService: _notificationService,
-        ),
+        builder: (_) =>
+            NotificationsScreen(notificationService: _notificationService),
       ),
     );
     _loadUnreadCount(); // refresca el contador al volver
@@ -142,7 +143,7 @@ class _HomeState extends State<Home> {
                 index: _currentIndex,
                 children: [
                   _buildHomeTab(neonColor),
-                  const ExploreScreen(),
+                  ExploreScreen(onOpenAdvertising: _openAdvertising),
                   LiveTabScreen(
                     onOpenLive: (liveId) {
                       debugPrint('Abriendo transmisión: $liveId');
@@ -290,6 +291,11 @@ class _HomeState extends State<Home> {
             ),
           ),
           const SizedBox(height: 24),
+
+          // Sección de Publicidad (tarjeta clicable, no FAB)
+          PublicidadSection(onTap: _openAdvertising),
+          const SizedBox(height: 24),
+
           const Text(
             'Videos destacados',
             style: TextStyle(
