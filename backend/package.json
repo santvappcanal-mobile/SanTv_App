@@ -13,7 +13,7 @@
     "express",
     "mongodb",
     "santv"
-  ], 
+  ],
   "author": "",
   "license": "ISC",
   "dependencies": {
@@ -24,6 +24,7 @@
     "dotenv": "^16.6.1",
     "express": "^4.22.2",
     "express-async-handler": "^1.2.0",
+    "groq-sdk": "^1.6.0",
     "jsonwebtoken": "^9.0.3",
     "mongodb": "^7.5.0",
     "mongoose": "^8.24.4",

@@ -5,6 +5,7 @@ class AppUser {
   final String email;
   final String? avatarUrl;
   final bool verified;
+  final String role;
 
   const AppUser({
     required this.id,
@@ -12,7 +13,10 @@ class AppUser {
     required this.email,
     this.avatarUrl,
     this.verified = false,
+    this.role = 'user',
   });
+
+  bool get isAdmin => role == 'admin';
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
     return AppUser(
@@ -21,6 +25,7 @@ class AppUser {
       email: (json['email'] ?? '').toString(),
       avatarUrl: json['avatarUrl']?.toString(),
       verified: json['verified'] == true,
+      role: (json['role'] ?? 'user').toString(),
     );
   }
 
@@ -30,5 +35,6 @@ class AppUser {
         'email': email,
         'avatarUrl': avatarUrl,
         'verified': verified,
+        'role': role,
       };
 }

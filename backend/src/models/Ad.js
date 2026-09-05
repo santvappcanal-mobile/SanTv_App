@@ -4,52 +4,47 @@ const adSchema = new mongoose.Schema(
   {
     title: {
       type: String,
-      required: [true, 'El título del anuncio es obligatorio'],
+      required: true,
       trim: true,
     },
     type: {
       type: String,
-      enum: ['video', 'banner', 'popup'], // Tipos de anuncios típicos en apps de TV/Streaming
-      default: 'video',
-      required: [true, 'El tipo de anuncio es obligatorio'],
+      enum: ['video', 'banner', 'popup'],
+      required: true,
     },
     mediaUrl: {
       type: String,
-      required: [true, 'La URL del recurso multimedia (video o imagen) es obligatoria'],
+      required: true,
     },
     targetUrl: {
       type: String,
-      trim: true,
-      description: 'URL a la que el usuario será redirigido al hacer clic',
     },
     duration: {
+      // duración en segundos, aplica principalmente a type: 'video'
       type: Number,
-      default: 0, // Duración en segundos (útil si el tipo es 'video')
-    },
-    isActive: {
-      type: Boolean,
-      default: true, // Permite activar o desactivar el anuncio temporalmente
     },
     startDate: {
       type: Date,
-      default: Date.now, // Cuándo empieza la campaña del anuncio
+      required: true,
     },
     endDate: {
-      type: Date, // Cuándo termina la campaña del anuncio
+      // no es obligatorio: un anuncio puede quedar activo indefinidamente
+      type: Date,
     },
-    // Estadísticas básicas
+    isActive: {
+      type: Boolean,
+      default: true,
+    },
     impressions: {
       type: Number,
-      default: 0, // Cantidad de veces que se ha mostrado
+      default: 0,
     },
     clicks: {
       type: Number,
-      default: 0, // Cantidad de veces que los usuarios han hecho clic
-    }
+      default: 0,
+    },
   },
-  {
-    timestamps: true, // Añade automáticamente 'createdAt' y 'updatedAt'
-  }
+  { timestamps: true }
 );
 
 module.exports = mongoose.model('Ad', adSchema);
