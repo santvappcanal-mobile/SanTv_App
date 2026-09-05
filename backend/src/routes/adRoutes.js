@@ -4,6 +4,7 @@ const {
   createAd,
   getAds,
   getAdsForContent,
+  getAdPortfolio,
   getAdById,
   registerImpression,
   registerClick,
@@ -13,7 +14,8 @@ const {
 const { protect, authorize } = require('../middleware/auth');
 
 // Rutas públicas
-router.get('/for-content/:contentId', getAdsForContent);
+router.get('/portfolio', getAdPortfolio);
+router.get('/for-content', getAdsForContent);
 router.put('/:id/impression', registerImpression);
 router.put('/:id/click', registerClick);
 

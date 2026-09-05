@@ -112,7 +112,7 @@ class _AssistantChatSheetState extends State<AssistantChatSheet> {
                 Container(
                   padding: const EdgeInsets.all(8),
                   decoration: BoxDecoration(
-                    color: neonGreen.withOpacity(0.15),
+                    color: neonGreen.withValues(alpha: 0.15),
                     shape: BoxShape.circle,
                   ),
                   child: const Icon(Icons.smart_toy_outlined, color: neonGreen),
