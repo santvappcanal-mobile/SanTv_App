@@ -26,13 +26,13 @@ class ProfileHeaderCard extends StatelessWidget {
     return GlassContainer(
       padding: const EdgeInsets.all(20),
       gradientColors: [
-        Colors.white.withOpacity(0.10),
-        Colors.white.withOpacity(0.04),
+        Colors.white.withValues(alpha: 0.10),
+        Colors.white.withValues(alpha: 0.04),
       ],
-      border: Border.all(color: Colors.white.withOpacity(0.18)),
+      border: Border.all(color: Colors.white.withValues(alpha: 0.18)),
       boxShadow: [
         BoxShadow(
-          color: _neonGreen.withOpacity(0.08),
+          color: _neonGreen.withValues(alpha: 0.08),
           blurRadius: 30,
           spreadRadius: -6,
         ),
@@ -46,7 +46,7 @@ class ProfileHeaderCard extends StatelessWidget {
               border: Border.all(color: _neonGreen, width: 2),
               boxShadow: [
                 BoxShadow(
-                  color: _neonGreen.withOpacity(0.4),
+                  color: _neonGreen.withValues(alpha: 0.4),
                   blurRadius: 16,
                   spreadRadius: 1,
                 ),
@@ -54,7 +54,7 @@ class ProfileHeaderCard extends StatelessWidget {
             ),
             child: CircleAvatar(
               radius: 42,
-              backgroundColor: Colors.white.withOpacity(0.08),
+              backgroundColor: Colors.white.withValues(alpha: 0.08),
               backgroundImage:
                   avatarUrl != null ? NetworkImage(avatarUrl!) : null,
               child: avatarUrl == null
@@ -74,7 +74,7 @@ class ProfileHeaderCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             userEmail,
-            style: TextStyle(color: Colors.white.withOpacity(0.6), fontSize: 13),
+            style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
           ),
           const SizedBox(height: 16),
           GlassButton(
