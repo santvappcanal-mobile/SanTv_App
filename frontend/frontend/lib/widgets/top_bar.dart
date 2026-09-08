@@ -3,17 +3,9 @@ import 'package:flutter/material.dart';
 class TopBar extends StatelessWidget implements PreferredSizeWidget {
   const TopBar({
     super.key,
-    required this.onProfileTap,
-    required this.onLogoutTap,
     required this.onNotificationsTap,
     this.unreadCount = 0,
   });
-
-  /// Se llama cuando el usuario toca "Perfil" en el menú.
-  final VoidCallback onProfileTap;
-
-  /// Se llama cuando el usuario toca "Cerrar sesión" en el menú.
-  final VoidCallback onLogoutTap;
 
   /// Se llama cuando el usuario toca "Notificaciones" en el menú.
   final VoidCallback onNotificationsTap;
@@ -43,26 +35,12 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
             offset: const Offset(0, 50),
             onSelected: (value) {
               switch (value) {
-                case 'profile':
-                  onProfileTap();
-                  break;
-                case 'logout':
-                  onLogoutTap();
-                  break;
                 case 'notifications':
                   onNotificationsTap();
                   break;
               }
             },
             itemBuilder: (BuildContext context) => [
-              const PopupMenuItem<String>(
-                value: 'profile',
-                child: ListTile(
-                  leading: Icon(Icons.person_outline, color: Color(0xFF39FF14)),
-                  title: Text('Perfil', style: TextStyle(color: Colors.white)),
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
               PopupMenuItem<String>(
                 value: 'notifications',
                 child: ListTile(
@@ -87,15 +65,6 @@ class TopBar extends StatelessWidget implements PreferredSizeWidget {
                           ),
                         )
                       : null,
-                  contentPadding: EdgeInsets.zero,
-                ),
-              ),
-              const PopupMenuDivider(height: 1),
-              const PopupMenuItem<String>(
-                value: 'logout',
-                child: ListTile(
-                  leading: Icon(Icons.logout, color: Colors.white70),
-                  title: Text('Cerrar sesión', style: TextStyle(color: Colors.white70)),
                   contentPadding: EdgeInsets.zero,
                 ),
               ),
