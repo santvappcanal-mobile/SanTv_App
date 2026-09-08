@@ -1,8 +1,8 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/assistant_chat_sheet.dart';
-import '../widgets/publicidad_section.dart';
+import '../widgets/home/home_tab_content.dart';
+import '../widgets/home/glass_bottom_nav_bar.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
@@ -142,7 +142,10 @@ class _HomeState extends State<Home> {
               child: IndexedStack(
                 index: _currentIndex,
                 children: [
-                  _buildHomeTab(neonColor),
+                  HomeTabContent(
+                    neonColor: neonColor,
+                    onOpenAdvertising: _openAdvertising,
+                  ),
                   ExploreScreen(onOpenAdvertising: _openAdvertising),
                   LiveTabScreen(
                     onOpenLive: (liveId) {
@@ -183,171 +186,10 @@ class _HomeState extends State<Home> {
         backgroundColor: neonColor,
         child: const Icon(Icons.smart_toy_outlined, color: Colors.black),
       ),
-      bottomNavigationBar: _buildGlassNavBar(neonColor),
-    );
-  }
-
-  Widget _buildGlassNavBar(Color neonColor) {
-    return ClipRRect(
-      borderRadius: const BorderRadius.only(
-        topLeft: Radius.circular(24),
-        topRight: Radius.circular(24),
-      ),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
-        child: Container(
-          decoration: BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withOpacity(0.08),
-                Colors.white.withOpacity(0.03),
-              ],
-            ),
-            border: Border(
-              top: BorderSide(color: Colors.white.withOpacity(0.15)),
-            ),
-          ),
-          child: BottomNavigationBar(
-            currentIndex: _currentIndex,
-            onTap: (index) => setState(() => _currentIndex = index),
-            backgroundColor: Colors.transparent,
-            elevation: 0,
-            selectedItemColor: neonColor,
-            unselectedItemColor: Colors.white38,
-            type: BottomNavigationBarType.fixed,
-            items: const [
-              BottomNavigationBarItem(icon: Icon(Icons.home), label: 'Inicio'),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.explore),
-                label: 'Explorar',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.live_tv),
-                label: 'En Vivo',
-              ),
-              BottomNavigationBarItem(
-                icon: Icon(Icons.person),
-                label: 'Perfil',
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildHomeTab(Color neonColor) {
-    return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(20),
-            child: BackdropFilter(
-              filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-              child: Container(
-                height: 200,
-                width: double.infinity,
-                decoration: BoxDecoration(
-                  borderRadius: BorderRadius.circular(20),
-                  gradient: LinearGradient(
-                    begin: Alignment.topLeft,
-                    end: Alignment.bottomRight,
-                    colors: [
-                      neonColor.withOpacity(0.20),
-                      Colors.white.withOpacity(0.05),
-                    ],
-                  ),
-                  border: Border.all(color: Colors.white.withOpacity(0.18)),
-                  boxShadow: [
-                    BoxShadow(
-                      color: neonColor.withOpacity(0.15),
-                      blurRadius: 30,
-                      spreadRadius: -8,
-                    ),
-                  ],
-                ),
-                child: Center(
-                  child: Column(
-                    mainAxisAlignment: MainAxisAlignment.center,
-                    children: [
-                      Icon(Icons.play_circle_fill, size: 60, color: neonColor),
-                      const SizedBox(height: 10),
-                      const Text(
-                        'Canal en vivo',
-                        style: TextStyle(
-                          color: Colors.white,
-                          fontSize: 18,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-                    ],
-                  ),
-                ),
-              ),
-            ),
-          ),
-          const SizedBox(height: 24),
-
-          // Sección de Publicidad (tarjeta clicable, no FAB)
-          PublicidadSection(onTap: _openAdvertising),
-          const SizedBox(height: 24),
-
-          const Text(
-            'Videos destacados',
-            style: TextStyle(
-              color: Colors.white,
-              fontSize: 20,
-              fontWeight: FontWeight.bold,
-            ),
-          ),
-          const SizedBox(height: 12),
-          SizedBox(
-            height: 120,
-            child: ListView.builder(
-              scrollDirection: Axis.horizontal,
-              itemCount: 5,
-              itemBuilder: (context, index) {
-                return Padding(
-                  padding: const EdgeInsets.only(right: 12),
-                  child: ClipRRect(
-                    borderRadius: BorderRadius.circular(16),
-                    child: BackdropFilter(
-                      filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-                      child: Container(
-                        width: 140,
-                        decoration: BoxDecoration(
-                          borderRadius: BorderRadius.circular(16),
-                          gradient: LinearGradient(
-                            begin: Alignment.topLeft,
-                            end: Alignment.bottomRight,
-                            colors: [
-                              Colors.white.withOpacity(0.08),
-                              Colors.white.withOpacity(0.03),
-                            ],
-                          ),
-                          border: Border.all(
-                            color: Colors.white.withOpacity(0.15),
-                          ),
-                        ),
-                        child: const Center(
-                          child: Text(
-                            'Agregar Video',
-                            style: TextStyle(color: Colors.white),
-                            textAlign: TextAlign.center,
-                          ),
-                        ),
-                      ),
-                    ),
-                  ),
-                );
-              },
-            ),
-          ),
-        ],
+      bottomNavigationBar: GlassBottomNavBar(
+        currentIndex: _currentIndex,
+        onTap: (index) => setState(() => _currentIndex = index),
+        neonColor: neonColor,
       ),
     );
   }
