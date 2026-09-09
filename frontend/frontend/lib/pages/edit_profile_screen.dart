@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
+import '../widgets/profile/profile_form_field.dart';
+import '../widgets/profile/save_profile_button.dart';
 
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({
@@ -86,9 +88,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
           child: Column(
             crossAxisAlignment: CrossAxisAlignment.stretch,
             children: [
-              _buildField(
+              ProfileFormField(
                 controller: _nameCtrl,
                 label: 'Nombre',
+                accentColor: _neonGreen,
                 validator: (value) {
                   final v = value?.trim() ?? '';
                   if (v.isEmpty) return 'El nombre es obligatorio';
@@ -98,9 +101,10 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 },
               ),
               const SizedBox(height: 16),
-              _buildField(
+              ProfileFormField(
                 controller: _emailCtrl,
                 label: 'Correo',
+                accentColor: _neonGreen,
                 keyboardType: TextInputType.emailAddress,
                 validator: (value) {
                   final v = value?.trim() ?? '';
@@ -114,52 +118,13 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
                 Text(_error!, style: const TextStyle(color: Colors.redAccent)),
               ],
               const SizedBox(height: 28),
-              ElevatedButton(
-                onPressed: _saving ? null : _save,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: _neonGreen,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
-                ),
-                child: _saving
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(strokeWidth: 2, color: Colors.black),
-                      )
-                    : const Text(
-                        'Guardar cambios',
-                        style: TextStyle(color: Colors.black, fontWeight: FontWeight.bold),
-                      ),
+              SaveProfileButton(
+                isLoading: _saving,
+                onPressed: _save,
+                backgroundColor: _neonGreen,
               ),
             ],
           ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildField({
-    required TextEditingController controller,
-    required String label,
-    TextInputType? keyboardType,
-    String? Function(String?)? validator,
-  }) {
-    return TextFormField(
-      controller: controller,
-      keyboardType: keyboardType,
-      validator: validator,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white60),
-        enabledBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide(color: Colors.white.withOpacity(0.2)),
-        ),
-        focusedBorder: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: const BorderSide(color: _neonGreen),
         ),
       ),
     );
