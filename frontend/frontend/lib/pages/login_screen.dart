@@ -207,7 +207,6 @@ class _LoginScreenState extends State<LoginScreen> {
                     return null;
                   },
                 ),
-<<<<<<< HEAD
                 const SizedBox(height: 8),
                 Align(
                   alignment: Alignment.centerRight,
@@ -229,9 +228,6 @@ class _LoginScreenState extends State<LoginScreen> {
                   ),
                 ),
                 const SizedBox(height: 16),
-=======
-                const SizedBox(height: 24),
->>>>>>> main
                 ClipRRect(
                   borderRadius: BorderRadius.circular(16),
                   child: BackdropFilter(

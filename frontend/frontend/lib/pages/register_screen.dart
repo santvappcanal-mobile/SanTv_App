@@ -1,30 +1,12 @@
-<<<<<<< HEAD
 import 'dart:ui';
-=======
-<<<<<<< HEAD
-import 'dart:ui';
-import 'package:flutter/material.dart';
-import '../services/auth_service.dart';
-
-/// Formulario de registro con estilo glassmorfismo. Se usa embebido
-/// dentro de [AuthScreen] (pages/auth_screen.dart), dentro de la
-/// pestaña "Registrarse". Toda la lógica de registro vive aquí,
-/// separada del login.
-=======
-// lib/pages/register_screen.dart
->>>>>>> main
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../services/auth_service.dart';
 
-<<<<<<< HEAD
 /// Formulario de registro con estilo glassmorfismo. Se usa embebido
 /// dentro de [AuthScreen] (pages/auth_screen.dart), dentro de la
 /// pestaña "Registrarse". Toda la lógica de registro vive aquí,
 /// separada del login.
-=======
->>>>>>> 8da150922caf37941ec32d10bcf0ec02e6c6c754
->>>>>>> main
 class RegisterScreen extends StatefulWidget {
   const RegisterScreen({
     super.key,
@@ -63,7 +45,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
   bool _showPasswordChecklist = false;
 
   static const Color _neonGreen = Color(0xFF39FF14);
-<<<<<<< HEAD
 
   static final RegExp _nameRegex = RegExp(r'^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$');
 
@@ -84,8 +65,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     // Repinta la checklist en tiempo real mientras el usuario escribe.
     _passwordCtrl.addListener(() => setState(() {}));
   }
-=======
->>>>>>> main
 
   @override
   void dispose() {
@@ -173,13 +152,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
       focusedBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
         borderSide: const BorderSide(color: _neonGreen, width: 1.5),
-<<<<<<< HEAD
-=======
-      ),
-      errorBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(16),
-        borderSide: const BorderSide(color: Colors.redAccent, width: 1.2),
->>>>>>> main
       ),
       errorBorder: OutlineInputBorder(
         borderRadius: BorderRadius.circular(16),
@@ -236,10 +208,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
 
   @override
   Widget build(BuildContext context) {
-<<<<<<< HEAD
-=======
-<<<<<<< HEAD
->>>>>>> main
     // Nota: no lleva Scaffold propio porque se embebe dentro de
     // AuthScreen, que ya provee el fondo (idealmente con gradiente
     // o imagen) sobre el que flota esta tarjeta de vidrio.
@@ -258,50 +226,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 Colors.white.withOpacity(0.10),
                 Colors.white.withOpacity(0.04),
               ],
-<<<<<<< HEAD
-=======
-=======
-    return Form(
-      key: _formKey,
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.stretch,
-        children: [
-          TextFormField(
-            controller: _nameCtrl,
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputDecoration('Nombre completo', Icons.person_outline),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Ingresa tu nombre';
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _emailCtrl,
-            keyboardType: TextInputType.emailAddress,
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputDecoration('Correo electrónico', Icons.email_outlined),
-            validator: (v) {
-              if (v == null || v.trim().isEmpty) return 'Ingresa tu correo';
-              if (!v.contains('@')) return 'Correo no válido';
-              return null;
-            },
-          ),
-          const SizedBox(height: 16),
-          TextFormField(
-            controller: _passwordCtrl,
-            obscureText: _obscurePass,
-            style: const TextStyle(color: Colors.white),
-            decoration: _inputDecoration('Contraseña', Icons.lock_outline).copyWith(
-              suffixIcon: IconButton(
-                icon: Icon(
-                  _obscurePass ? Icons.visibility_off : Icons.visibility,
-                  color: Colors.white54,
-                ),
-                onPressed: () => setState(() => _obscurePass = !_obscurePass),
-              ),
->>>>>>> 8da150922caf37941ec32d10bcf0ec02e6c6c754
->>>>>>> main
             ),
             border: Border.all(
               color: Colors.white.withOpacity(0.18),
@@ -332,20 +256,12 @@ class _RegisterScreenState extends State<RegisterScreen> {
                     'Nombre completo',
                     Icons.person_outline,
                   ),
-<<<<<<< HEAD
                   inputFormatters: [
                     FilteringTextInputFormatter.allow(
                       RegExp(r'[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]'),
                     ),
                   ],
                   validator: _validateName,
-=======
-                  validator: (v) {
-                    if (v == null || v.trim().isEmpty)
-                      return 'Ingresa tu nombre';
-                    return null;
-                  },
->>>>>>> main
                 ),
                 const SizedBox(height: 16),
                 TextFormField(
@@ -364,7 +280,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                   },
                 ),
                 const SizedBox(height: 16),
-<<<<<<< HEAD
                 Focus(
                   onFocusChange: (hasFocus) {
                     setState(() {
@@ -398,33 +313,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
                 ),
                 _buildPasswordChecklist(),
                 const SizedBox(height: 8),
-=======
-                TextFormField(
-                  controller: _passwordCtrl,
-                  obscureText: _obscurePass,
-                  style: const TextStyle(color: Colors.white),
-                  decoration: _inputDecoration('Contraseña', Icons.lock_outline)
-                      .copyWith(
-                        suffixIcon: IconButton(
-                          icon: Icon(
-                            _obscurePass
-                                ? Icons.visibility_off
-                                : Icons.visibility,
-                            color: Colors.white54,
-                          ),
-                          onPressed: () =>
-                              setState(() => _obscurePass = !_obscurePass),
-                        ),
-                      ),
-                  validator: (v) {
-                    if (v == null || v.length < 6) {
-                      return 'Mínimo 6 caracteres';
-                    }
-                    return null;
-                  },
-                ),
-                const SizedBox(height: 16),
->>>>>>> main
                 TextFormField(
                   controller: _confirmCtrl,
                   obscureText: _obscureConfirm,
@@ -583,7 +471,6 @@ class _RegisterScreenState extends State<RegisterScreen> {
     );
   }
 }
-<<<<<<< HEAD
 
 /// Un requisito de la contraseña: texto a mostrar + regla de validación.
 class _PasswordRule {
@@ -591,5 +478,3 @@ class _PasswordRule {
   final String label;
   final bool Function(String value) isValid;
 }
-=======
->>>>>>> main
