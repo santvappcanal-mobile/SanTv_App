@@ -14,6 +14,7 @@ class GlassContainer extends StatelessWidget {
     this.borderRadius = 20,
     this.blurSigma = 16,
     this.gradientColors,
+    this.color,
     this.border,
     this.boxShadow,
     this.width,
@@ -25,6 +26,7 @@ class GlassContainer extends StatelessWidget {
   final double borderRadius;
   final double blurSigma;
   final List<Color>? gradientColors;
+  final Color? color;
   final Border? border;
   final List<BoxShadow>? boxShadow;
   final double? width;
@@ -43,16 +45,21 @@ class GlassContainer extends StatelessWidget {
           padding: padding,
           decoration: BoxDecoration(
             borderRadius: BorderRadius.circular(borderRadius),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: gradientColors ??
-                  [
-                    Colors.white.withValues(alpha: 0.08),
-                    Colors.white.withValues(alpha: 0.03),
-                  ],
-            ),
-            border: border ?? Border.all(color: Colors.white.withValues(alpha: 0.15)),
+            // BoxDecoration no permite color y gradient a la vez: si pasas
+            // "color" (fondo sólido), se ignora gradientColors.
+            color: color,
+            gradient: color == null
+                ? LinearGradient(
+                    begin: Alignment.topLeft,
+                    end: Alignment.bottomRight,
+                    colors: gradientColors ??
+                        [
+                          Colors.white.withValues(alpha: 0.08),
+                          Colors.white.withValues(alpha: 0.03),
+                        ],
+                  )
+                : null,
+            border: border ?? Border.all(color: Colors.white.withOpacity(0.15)),
             boxShadow: boxShadow,
           ),
           child: child,
