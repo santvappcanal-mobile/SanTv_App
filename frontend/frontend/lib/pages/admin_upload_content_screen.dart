@@ -3,6 +3,11 @@ import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/content_services.dart';
+import '../widgets/admin/custom_text_field.dart';
+import '../widgets/admin/content_type_dropdown.dart';
+import '../widgets/admin/video_picker_field.dart';
+import '../widgets/admin/upload_status_message.dart';
+import '../widgets/admin/upload_submit_button.dart';
 
 class AdminUploadContentScreen extends StatefulWidget {
   const AdminUploadContentScreen({super.key, required this.authService});
@@ -136,38 +141,48 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
         child: ListView(
           padding: const EdgeInsets.all(20),
           children: [
-            _buildTextField(_titleController, 'Título', requerido: true),
+            CustomTextField(
+              controller: _titleController,
+              label: 'Título',
+              requerido: true,
+            ),
             const SizedBox(height: 14),
-            _buildTextField(
-              _descriptionController,
-              'Descripción',
+            CustomTextField(
+              controller: _descriptionController,
+              label: 'Descripción',
               requerido: true,
               maxLines: 3,
             ),
             const SizedBox(height: 14),
-            _buildTypeDropdown(),
-            const SizedBox(height: 14),
-            _buildTextField(
-              _genresController,
-              'Géneros (separados por coma, ej: Acción, Drama)',
+            ContentTypeDropdown(
+              value: _type,
+              onChanged: (value) => setState(() => _type = value),
             ),
             const SizedBox(height: 14),
-            _buildTextField(_thumbnailUrlController, 'URL de miniatura (opcional)'),
+            CustomTextField(
+              controller: _genresController,
+              label: 'Géneros (separados por coma, ej: Acción, Drama)',
+            ),
+            const SizedBox(height: 14),
+            CustomTextField(
+              controller: _thumbnailUrlController,
+              label: 'URL de miniatura (opcional)',
+            ),
             const SizedBox(height: 14),
             Row(
               children: [
                 Expanded(
-                  child: _buildTextField(
-                    _durationController,
-                    'Duración (min)',
+                  child: CustomTextField(
+                    controller: _durationController,
+                    label: 'Duración (min)',
                     tipoNumerico: true,
                   ),
                 ),
                 const SizedBox(width: 12),
                 Expanded(
-                  child: _buildTextField(
-                    _releaseYearController,
-                    'Año de estreno',
+                  child: CustomTextField(
+                    controller: _releaseYearController,
+                    label: 'Año de estreno',
                     tipoNumerico: true,
                   ),
                 ),
@@ -182,132 +197,26 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 8),
-            _buildVideoPicker(),
+            VideoPickerField(
+              fileName: _videoFileName,
+              onPick: _elegirVideo,
+              enabled: !_subiendo,
+              accentColor: neonGreen,
+            ),
             const SizedBox(height: 24),
             if (_mensaje != null)
-              Padding(
-                padding: const EdgeInsets.only(bottom: 16),
-                child: Text(
-                  _mensaje!,
-                  style: TextStyle(
-                    color: _mensajeEsError ? Colors.redAccent : neonGreen,
-                  ),
-                ),
+              UploadStatusMessage(
+                message: _mensaje!,
+                isError: _mensajeEsError,
+                successColor: neonGreen,
               ),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _subiendo ? null : _enviar,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: neonGreen,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                  shape: RoundedRectangleBorder(
-                    borderRadius: BorderRadius.circular(12),
-                  ),
-                ),
-                child: _subiendo
-                    ? const SizedBox(
-                        width: 20,
-                        height: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.black,
-                        ),
-                      )
-                    : const Text(
-                        'Subir contenido',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
+            UploadSubmitButton(
+              isLoading: _subiendo,
+              onPressed: _enviar,
+              backgroundColor: neonGreen,
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  Widget _buildTextField(
-    TextEditingController controller,
-    String label, {
-    bool requerido = false,
-    bool tipoNumerico = false,
-    int maxLines = 1,
-  }) {
-    return TextFormField(
-      controller: controller,
-      maxLines: maxLines,
-      keyboardType: tipoNumerico ? TextInputType.number : TextInputType.text,
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: label,
-        labelStyle: const TextStyle(color: Colors.white54),
-        filled: true,
-        fillColor: const Color(0xFF141414),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-      ),
-      validator: requerido
-          ? (value) =>
-              (value == null || value.trim().isEmpty) ? 'Campo obligatorio' : null
-          : null,
-    );
-  }
-
-  Widget _buildTypeDropdown() {
-    return DropdownButtonFormField<String>(
-      initialValue: _type,
-      dropdownColor: const Color(0xFF141414),
-      style: const TextStyle(color: Colors.white),
-      decoration: InputDecoration(
-        labelText: 'Tipo de contenido',
-        labelStyle: const TextStyle(color: Colors.white54),
-        filled: true,
-        fillColor: const Color(0xFF141414),
-        border: OutlineInputBorder(
-          borderRadius: BorderRadius.circular(12),
-          borderSide: BorderSide.none,
-        ),
-      ),
-      items: const [
-        DropdownMenuItem(value: 'movie', child: Text('Película')),
-        DropdownMenuItem(value: 'series', child: Text('Serie')),
-        DropdownMenuItem(value: 'documentary', child: Text('Documental')),
-      ],
-      onChanged: (value) {
-        if (value != null) setState(() => _type = value);
-      },
-    );
-  }
-
-  Widget _buildVideoPicker() {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: const Color(0xFF141414),
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.white12),
-      ),
-      child: Row(
-        children: [
-          Icon(Icons.video_file_outlined, color: neonGreen),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Text(
-              _videoFileName ?? 'Ningún video seleccionado',
-              style: const TextStyle(color: Colors.white70, fontSize: 13),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-          TextButton(
-            onPressed: _subiendo ? null : _elegirVideo,
-            child: const Text('Elegir video'),
-          ),
-        ],
       ),
     );
   }
