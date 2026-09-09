@@ -1,46 +1,111 @@
 const asyncHandler = require('express-async-handler');
 const Content = require('../models/Content');
+const { extractYoutubeId, getYoutubeThumbnail } = require('../utils/youtube');
 
-// @desc    Crear nuevo contenido (sube el video directamente a Cloudinary)
-// @route   POST /api/content
+// @desc    Obtener título, autor y thumbnail de un video de YouTube a partir del link
+// @route   GET /api/content/youtube-preview?url=...
 // @access  Private/Editor+
-// @body    multipart/form-data: title, description, type, genres (coma-separado),
-//          thumbnailUrl, duration, releaseYear, isPremium + archivo 'video'
-const createContent = asyncHandler(async (req, res) => {
-  const { title, description, type, genres, thumbnailUrl, duration, releaseYear, isPremium } =
-    req.body;
+const getYoutubePreview = asyncHandler(async (req, res) => {
+  const { url } = req.query;
 
-  if (!title || !type) {
+  if (!url) {
     res.status(400);
-    throw new Error('Título y tipo son obligatorios');
+    throw new Error('Debes enviar el parámetro "url" con el link de YouTube');
   }
 
-  if (!req.file) {
+  const videoId = extractYoutubeId(url);
+  if (!videoId) {
     res.status(400);
-    throw new Error('Debes subir un archivo de video');
+    throw new Error('No se pudo reconocer un link válido de YouTube');
   }
 
-  // multer-storage-cloudinary deja la URL segura del archivo subido en req.file.path
-  const videoUrl = req.file.path;
+  const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+
+  let oembedData;
+  try {
+    const response = await fetch(oembedUrl);
+    if (!response.ok) {
+      res.status(404);
+      throw new Error('No se encontró información para ese video (¿el link es correcto y es público?)');
+    }
+    oembedData = await response.json();
+  } catch (error) {
+    res.status(502);
+    throw new Error('No se pudo consultar la información del video en YouTube');
+  }
+
+  res.json({
+    success: true,
+    data: {
+      videoId,
+      title: oembedData.title,
+      channelName: oembedData.author_name,
+      thumbnailUrl: getYoutubeThumbnail(videoId, 'maxresdefault'),
+      embedUrl: `https://www.youtube.com/embed/${videoId}`,
+      originalUrl: url,
+    },
+  });
+});
+
+// @desc    Crear nuevo contenido a partir de un link de YouTube
+// @route   POST /api/content/from-youtube
+// @access  Private/Editor+
+const createContentFromYoutube = asyncHandler(async (req, res) => {
+  const { videoUrl, title, description, type, category, releaseDate, isPublished } = req.body;
+
+  if (!videoUrl || !title || !type) {
+    res.status(400);
+    throw new Error('videoUrl, title y type son obligatorios');
+  }
+
+  const videoId = extractYoutubeId(videoUrl);
+  if (!videoId) {
+    res.status(400);
+    throw new Error('El link de YouTube no es válido');
+  }
 
   const content = await Content.create({
     title,
-    description,
+    description: description || '',
     type,
-    genres: genres
-      ? genres.split(',').map((g) => g.trim()).filter(Boolean)
-      : [],
+    category: Array.isArray(category) ? category : (category ? category.split(',').map((c) => c.trim()) : []),
+    thumbnailUrl: getYoutubeThumbnail(videoId, 'maxresdefault'),
     videoUrl,
-    thumbnailUrl,
-    duration,
-    releaseYear,
-    isPremium: isPremium === 'true' || isPremium === true,
+    releaseDate: releaseDate || undefined,
+    isPublished: isPublished ?? true, // por defecto queda publicado al crearlo
+    createdBy: req.user._id,
   });
 
   res.status(201).json({ success: true, data: content });
 });
 
-// @desc    Obtener todo el contenido (con filtros y paginación)
+// @desc    Crear nuevo contenido (genérico, sin asumir YouTube)
+// @route   POST /api/content
+// @access  Private/Editor+
+const createContent = asyncHandler(async (req, res) => {
+  const { title, description, type, category, thumbnailUrl, videoUrl, duration, releaseDate } = req.body;
+
+  if (!title || !type || !videoUrl) {
+    res.status(400);
+    throw new Error('Título, tipo y videoUrl son obligatorios');
+  }
+
+  const content = await Content.create({
+    title,
+    description,
+    type,
+    category,
+    thumbnailUrl,
+    videoUrl,
+    duration,
+    releaseDate,
+    createdBy: req.user._id,
+  });
+
+  res.status(201).json({ success: true, data: content });
+});
+
+// @desc    Obtener contenido publicado (para usuarios finales)
 // @route   GET /api/content
 // @access  Public
 const getContents = asyncHandler(async (req, res) => {
@@ -48,15 +113,46 @@ const getContents = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const skip = (page - 1) * limit;
 
-  const filter = { isActive: true };
+  const filter = { isPublished: true };
   if (req.query.type) filter.type = req.query.type;
-  if (req.query.genre) filter.genres = req.query.genre;
+  if (req.query.category) filter.category = req.query.category;
   if (req.query.search) filter.$text = { $search: req.query.search };
 
   const contents = await Content.find(filter)
     .sort({ createdAt: -1 })
     .skip(skip)
     .limit(limit);
+  const total = await Content.countDocuments(filter);
+
+  res.json({
+    success: true,
+    count: contents.length,
+    total,
+    page,
+    pages: Math.ceil(total / limit),
+    data: contents,
+  });
+});
+
+// @desc    Obtener TODO el contenido (publicado o no) para el panel de admin
+// @route   GET /api/content/admin?status=published|unpublished&type=...&search=...
+// @access  Private/Editor+
+const getAllContentAdmin = asyncHandler(async (req, res) => {
+  const page = parseInt(req.query.page) || 1;
+  const limit = parseInt(req.query.limit) || 20;
+  const skip = (page - 1) * limit;
+
+  const filter = {};
+  if (req.query.status === 'published') filter.isPublished = true;
+  if (req.query.status === 'unpublished') filter.isPublished = false;
+  if (req.query.type) filter.type = req.query.type;
+  if (req.query.search) filter.$text = { $search: req.query.search };
+
+  const contents = await Content.find(filter)
+    .sort({ createdAt: -1 })
+    .skip(skip)
+    .limit(limit)
+    .populate('createdBy', 'name email');
   const total = await Content.countDocuments(filter);
 
   res.json({
@@ -101,7 +197,25 @@ const registerView = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { views: content.views } });
 });
 
-// @desc    Actualizar contenido
+// @desc    Publicar o despublicar contenido (toggle o valor explícito)
+// @route   PATCH /api/content/:id/publish
+// @access  Private/Editor+
+// Body opcional: { "isPublished": true }  -> si no se envía, hace toggle del valor actual
+const togglePublish = asyncHandler(async (req, res) => {
+  const content = await Content.findById(req.params.id);
+
+  if (!content) {
+    res.status(404);
+    throw new Error('Contenido no encontrado');
+  }
+
+  content.isPublished = req.body.isPublished !== undefined ? req.body.isPublished : !content.isPublished;
+  await content.save();
+
+  res.json({ success: true, data: content });
+});
+
+// @desc    Editar contenido (título, descripción, tipo, categoría, etc.)
 // @route   PUT /api/content/:id
 // @access  Private/Editor+
 const updateContent = asyncHandler(async (req, res) => {
@@ -112,13 +226,21 @@ const updateContent = asyncHandler(async (req, res) => {
     throw new Error('Contenido no encontrado');
   }
 
+  // Si viene un nuevo link de YouTube, recalculamos el thumbnail
+  if (req.body.videoUrl && req.body.videoUrl !== content.videoUrl) {
+    const videoId = extractYoutubeId(req.body.videoUrl);
+    if (videoId) {
+      req.body.thumbnailUrl = getYoutubeThumbnail(videoId, 'maxresdefault');
+    }
+  }
+
   Object.assign(content, req.body);
   const updatedContent = await content.save();
 
   res.json({ success: true, data: updatedContent });
 });
 
-// @desc    Eliminar contenido
+// @desc    Eliminar contenido definitivamente
 // @route   DELETE /api/content/:id
 // @access  Private/Editor+
 const deleteContent = asyncHandler(async (req, res) => {
@@ -134,10 +256,14 @@ const deleteContent = asyncHandler(async (req, res) => {
 });
 
 module.exports = {
+  getYoutubePreview,
+  createContentFromYoutube,
   createContent,
   getContents,
+  getAllContentAdmin,
   getContentById,
   registerView,
+  togglePublish,
   updateContent,
   deleteContent,
 };
