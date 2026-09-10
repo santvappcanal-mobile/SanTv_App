@@ -1,5 +1,29 @@
 {
   "dependencies": {
-    "dotenv": "^17.4.2"
-  }
+    "dotenv": "^17.4.2",
+    "express": "^5.2.1",
+    "mongodb": "^7.6.0"
+  },
+  "name": "santv_app",
+  "version": "1.0.0",
+  "description": "<div align=\"center\">",
+  "main": "index.js",
+  "devDependencies": {
+    "nodemon": "^3.1.14"
+  },
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/santvappcanal-mobile/SanTv_App.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "bugs": {
+    "url": "https://github.com/santvappcanal-mobile/SanTv_App/issues"
+  },
+  "homepage": "https://github.com/santvappcanal-mobile/SanTv_App#readme"
 }

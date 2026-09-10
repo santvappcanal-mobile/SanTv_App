@@ -16,6 +16,10 @@ const adSchema = new mongoose.Schema(
       type: String,
       required: true,
     },
+    mediaPublicId: {
+      type: String,
+      default: '', // ID de Cloudinary del archivo, necesario para poder eliminarlo
+    },
     targetUrl: {
       type: String,
     },
