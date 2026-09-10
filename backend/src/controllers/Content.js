@@ -51,7 +51,7 @@ const getYoutubePreview = asyncHandler(async (req, res) => {
 // @route   POST /api/content/from-youtube
 // @access  Private/Editor+
 const createContentFromYoutube = asyncHandler(async (req, res) => {
-  const { videoUrl, title, description, type, category, releaseDate, isPublished } = req.body;
+  const { videoUrl, title, description, type, genres, releaseYear, isPremium } = req.body;
 
   if (!videoUrl || !title || !type) {
     res.status(400);
@@ -68,12 +68,12 @@ const createContentFromYoutube = asyncHandler(async (req, res) => {
     title,
     description: description || '',
     type,
-    category: Array.isArray(category) ? category : (category ? category.split(',').map((c) => c.trim()) : []),
+    genres: Array.isArray(genres) ? genres : (genres ? genres.split(',').map((g) => g.trim()) : []),
     thumbnailUrl: getYoutubeThumbnail(videoId, 'maxresdefault'),
     videoUrl,
-    releaseDate: releaseDate || undefined,
-    isPublished: isPublished ?? true, // por defecto queda publicado al crearlo
-    createdBy: req.user._id,
+    releaseYear,
+    isPremium: isPremium ?? false,
+    isActive: true, // por defecto queda activo/publicado al crearlo
   });
 
   res.status(201).json({ success: true, data: content });
@@ -83,7 +83,7 @@ const createContentFromYoutube = asyncHandler(async (req, res) => {
 // @route   POST /api/content
 // @access  Private/Editor+
 const createContent = asyncHandler(async (req, res) => {
-  const { title, description, type, category, thumbnailUrl, videoUrl, duration, releaseDate } = req.body;
+  const { title, description, type, genres, thumbnailUrl, thumbnailPublicId, videoUrl, videoPublicId, duration, releaseYear, isPremium } = req.body;
 
   if (!title || !type || !videoUrl) {
     res.status(400);
@@ -94,18 +94,20 @@ const createContent = asyncHandler(async (req, res) => {
     title,
     description,
     type,
-    category,
+    genres,
     thumbnailUrl,
+    thumbnailPublicId,
     videoUrl,
+    videoPublicId,
     duration,
-    releaseDate,
-    createdBy: req.user._id,
+    releaseYear,
+    isPremium,
   });
 
   res.status(201).json({ success: true, data: content });
 });
 
-// @desc    Obtener contenido publicado (para usuarios finales)
+// @desc    Obtener contenido activo/publicado (para usuarios finales)
 // @route   GET /api/content
 // @access  Public
 const getContents = asyncHandler(async (req, res) => {
@@ -113,10 +115,10 @@ const getContents = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const skip = (page - 1) * limit;
 
-  const filter = { isPublished: true };
+  const filter = { isActive: true };
   if (req.query.type) filter.type = req.query.type;
-  if (req.query.category) filter.category = req.query.category;
-  if (req.query.search) filter.$text = { $search: req.query.search };
+  if (req.query.genre) filter.genres = req.query.genre;
+  if (req.query.search) filter.title = { $regex: req.query.search, $options: 'i' };
 
   const contents = await Content.find(filter)
     .sort({ createdAt: -1 })
@@ -134,8 +136,8 @@ const getContents = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Obtener TODO el contenido (publicado o no) para el panel de admin
-// @route   GET /api/content/admin?status=published|unpublished&type=...&search=...
+// @desc    Obtener TODO el contenido (activo o no) para el panel de admin
+// @route   GET /api/content/admin?status=active|inactive&type=...&search=...
 // @access  Private/Editor+
 const getAllContentAdmin = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -143,16 +145,15 @@ const getAllContentAdmin = asyncHandler(async (req, res) => {
   const skip = (page - 1) * limit;
 
   const filter = {};
-  if (req.query.status === 'published') filter.isPublished = true;
-  if (req.query.status === 'unpublished') filter.isPublished = false;
+  if (req.query.status === 'active') filter.isActive = true;
+  if (req.query.status === 'inactive') filter.isActive = false;
   if (req.query.type) filter.type = req.query.type;
-  if (req.query.search) filter.$text = { $search: req.query.search };
+  if (req.query.search) filter.title = { $regex: req.query.search, $options: 'i' };
 
   const contents = await Content.find(filter)
     .sort({ createdAt: -1 })
     .skip(skip)
-    .limit(limit)
-    .populate('createdBy', 'name email');
+    .limit(limit);
   const total = await Content.countDocuments(filter);
 
   res.json({
@@ -197,10 +198,10 @@ const registerView = asyncHandler(async (req, res) => {
   res.json({ success: true, data: { views: content.views } });
 });
 
-// @desc    Publicar o despublicar contenido (toggle o valor explícito)
+// @desc    Activar o desactivar contenido (toggle o valor explícito)
 // @route   PATCH /api/content/:id/publish
 // @access  Private/Editor+
-// Body opcional: { "isPublished": true }  -> si no se envía, hace toggle del valor actual
+// Body opcional: { "isActive": true }  -> si no se envía, hace toggle del valor actual
 const togglePublish = asyncHandler(async (req, res) => {
   const content = await Content.findById(req.params.id);
 
@@ -209,13 +210,13 @@ const togglePublish = asyncHandler(async (req, res) => {
     throw new Error('Contenido no encontrado');
   }
 
-  content.isPublished = req.body.isPublished !== undefined ? req.body.isPublished : !content.isPublished;
+  content.isActive = req.body.isActive !== undefined ? req.body.isActive : !content.isActive;
   await content.save();
 
   res.json({ success: true, data: content });
 });
 
-// @desc    Editar contenido (título, descripción, tipo, categoría, etc.)
+// @desc    Editar contenido (título, descripción, tipo, géneros, etc.)
 // @route   PUT /api/content/:id
 // @access  Private/Editor+
 const updateContent = asyncHandler(async (req, res) => {
@@ -240,15 +241,23 @@ const updateContent = asyncHandler(async (req, res) => {
   res.json({ success: true, data: updatedContent });
 });
 
-// @desc    Eliminar contenido definitivamente
+// @desc    Eliminar contenido definitivamente (incluye limpieza en Cloudinary)
 // @route   DELETE /api/content/:id
 // @access  Private/Editor+
 const deleteContent = asyncHandler(async (req, res) => {
+  const cloudinary = require('../config/cloudinary');
   const content = await Content.findById(req.params.id);
 
   if (!content) {
     res.status(404);
     throw new Error('Contenido no encontrado');
+  }
+
+  if (content.videoPublicId) {
+    await cloudinary.uploader.destroy(content.videoPublicId, { resource_type: 'video' });
+  }
+  if (content.thumbnailPublicId) {
+    await cloudinary.uploader.destroy(content.thumbnailPublicId);
   }
 
   await content.deleteOne();

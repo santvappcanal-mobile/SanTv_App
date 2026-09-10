@@ -12,17 +12,20 @@ class ProfileScreen extends StatelessWidget {
     required this.userName,
     required this.userEmail,
     this.avatarUrl,
+    this.isAdmin = false,
     this.onEditProfile,
     this.onMyList,
     this.onAdvertising,
     this.onSettings,
     this.onHelp,
     this.onLogout,
+    this.onAdminPanel,
   });
 
   final String userName;
   final String userEmail;
   final String? avatarUrl;
+  final bool isAdmin;
 
   final VoidCallback? onEditProfile;
   final VoidCallback? onMyList;
@@ -30,6 +33,7 @@ class ProfileScreen extends StatelessWidget {
   final VoidCallback? onSettings;
   final VoidCallback? onHelp;
   final VoidCallback? onLogout;
+  final VoidCallback? onAdminPanel;
 
   @override
   Widget build(BuildContext context) {
@@ -78,6 +82,12 @@ class ProfileScreen extends StatelessWidget {
                 label: 'Ayuda y soporte',
                 onTap: onHelp,
               ),
+              if (isAdmin)
+                ProfileMenuOption(
+                  icon: Icons.admin_panel_settings_outlined,
+                  label: 'Panel de Admin',
+                  onTap: onAdminPanel,
+                ),
             ],
           ),
           const SizedBox(height: 24),

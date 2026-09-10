@@ -19,6 +19,10 @@ const liveEventSchema = new mongoose.Schema(
       type: String,
       default: '', // Póster promocional del evento
     },
+    thumbnailPublicId: {
+      type: String,
+      default: '', // ID de Cloudinary del thumbnail, necesario para poder eliminarlo
+    },
     status: {
       type: String,
       enum: ['scheduled', 'live', 'ended'], // Estados del evento
@@ -45,7 +49,7 @@ const liveEventSchema = new mongoose.Schema(
     totalViews: {
       type: Number,
       default: 0, // Total de personas que entraron al stream
-    }
+    },
   },
   {
     timestamps: true,

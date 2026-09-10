@@ -373,16 +373,28 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   });
 });
 
-// @desc    Obtener todos los usuarios
-// @route   GET /api/users
+// @desc    Obtener todos los usuarios (con filtros y búsqueda)
+// @route   GET /api/users?role=admin&isActive=true&isVerified=true&search=juan
 // @access  Private/Admin
 const getUsers = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
   const limit = parseInt(req.query.limit) || 20;
   const skip = (page - 1) * limit;
 
-  const users = await User.find().skip(skip).limit(limit);
-  const total = await User.countDocuments();
+  const filter = {};
+  if (req.query.role) filter.role = req.query.role;
+  if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true';
+  if (req.query.isVerified !== undefined) filter.isVerified = req.query.isVerified === 'true';
+  if (req.query.subscriptionPlan) filter.subscriptionPlan = req.query.subscriptionPlan;
+  if (req.query.search) {
+    filter.$or = [
+      { name: { $regex: req.query.search, $options: 'i' } },
+      { email: { $regex: req.query.search, $options: 'i' } },
+    ];
+  }
+
+  const users = await User.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 });
+  const total = await User.countDocuments(filter);
 
   res.json({
     success: true,
@@ -408,7 +420,7 @@ const getUserById = asyncHandler(async (req, res) => {
   res.json({ success: true, data: user });
 });
 
-// @desc    Actualizar usuario (admin)
+// @desc    Actualizar usuario (admin) - rol, plan, estado y verificación
 // @route   PUT /api/users/:id
 // @access  Private/Admin
 const updateUser = asyncHandler(async (req, res) => {
@@ -429,6 +441,7 @@ const updateUser = asyncHandler(async (req, res) => {
   user.role = req.body.role ?? user.role;
   user.subscriptionPlan = req.body.subscriptionPlan ?? user.subscriptionPlan;
   user.isActive = req.body.isActive ?? user.isActive;
+  user.isVerified = req.body.isVerified ?? user.isVerified;
 
   const updatedUser = await user.save();
   res.json({ success: true, data: updatedUser });

@@ -1,6 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const User = require('../models/User');
 const Content = require('../models/Content');
+const Ad = require('../models/Ad');
 const LiveEvent = require('../models/LiveEvent');
 
 // @desc    Obtener estadísticas generales para el dashboard de admin
@@ -11,10 +12,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     totalUsers,
     activeUsers,
     totalContent,
-    publishedContent,
-    unpublishedContent,
+    activeContent,
+    inactiveContent,
     totalLiveEvents,
-    activeLiveEvents,
+    liveNow,
+    totalAds,
+    activeAds,
     viewsAgg,
     contentByType,
     usersByRole,
@@ -22,10 +25,12 @@ const getDashboardStats = asyncHandler(async (req, res) => {
     User.countDocuments(),
     User.countDocuments({ isActive: true }),
     Content.countDocuments(),
-    Content.countDocuments({ isPublished: true }),
-    Content.countDocuments({ isPublished: false }),
+    Content.countDocuments({ isActive: true }),
+    Content.countDocuments({ isActive: false }),
     LiveEvent.countDocuments(),
     LiveEvent.countDocuments({ status: 'live' }),
+    Ad.countDocuments(),
+    Ad.countDocuments({ isActive: true }),
     Content.aggregate([{ $group: { _id: null, totalViews: { $sum: '$views' } } }]),
     Content.aggregate([{ $group: { _id: '$type', count: { $sum: 1 } } }]),
     User.aggregate([{ $group: { _id: '$role', count: { $sum: 1 } } }]),
@@ -34,7 +39,7 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   const totalViews = viewsAgg[0]?.totalViews || 0;
 
   // Top 5 contenido más visto, útil para el dashboard
-  const topContent = await Content.find({ isPublished: true })
+  const topContent = await Content.find({ isActive: true })
     .sort({ views: -1 })
     .limit(5)
     .select('title views type thumbnailUrl');
@@ -49,15 +54,19 @@ const getDashboardStats = asyncHandler(async (req, res) => {
       },
       content: {
         total: totalContent,
-        published: publishedContent,
-        unpublished: unpublishedContent,
+        active: activeContent,
+        inactive: inactiveContent,
         totalViews,
         byType: contentByType.reduce((acc, t) => ({ ...acc, [t._id]: t.count }), {}),
         topContent,
       },
+      ads: {
+        total: totalAds,
+        active: activeAds,
+      },
       liveEvents: {
         total: totalLiveEvents,
-        active: activeLiveEvents,
+        live: liveNow,
       },
     },
   });

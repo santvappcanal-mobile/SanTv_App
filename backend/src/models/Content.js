@@ -26,9 +26,17 @@ const contentSchema = new mongoose.Schema(
       type: String,
       required: [true, 'La URL del video es obligatoria'],
     },
+    videoPublicId: {
+      type: String,
+      default: '', // ID de Cloudinary del video, necesario para poder eliminarlo
+    },
     thumbnailUrl: {
       type: String,
       default: '', // Imagen de miniatura o póster
+    },
+    thumbnailPublicId: {
+      type: String,
+      default: '', // ID de Cloudinary del thumbnail, necesario para poder eliminarlo
     },
     duration: {
       type: Number,
@@ -48,7 +56,7 @@ const contentSchema = new mongoose.Schema(
     views: {
       type: Number,
       default: 0, // Contador de reproducciones
-    }
+    },
   },
   {
     timestamps: true, // Añade createdAt y updatedAt

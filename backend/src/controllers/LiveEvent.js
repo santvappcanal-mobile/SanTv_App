@@ -5,11 +5,11 @@ const LiveEvent = require('../models/LiveEvent');
 // @route   POST /api/live-events
 // @access  Private/Editor+
 const createLiveEvent = asyncHandler(async (req, res) => {
-  const { title, description, streamUrl, thumbnailUrl, scheduledStart, scheduledEnd } = req.body;
+  const { title, description, streamUrl, thumbnailUrl, thumbnailPublicId, scheduledStartTime, isPremium } = req.body;
 
-  if (!title || !streamUrl || !scheduledStart) {
+  if (!title || !streamUrl || !scheduledStartTime) {
     res.status(400);
-    throw new Error('Título, streamUrl y scheduledStart son obligatorios');
+    throw new Error('Título, streamUrl y scheduledStartTime son obligatorios');
   }
 
   const event = await LiveEvent.create({
@@ -17,9 +17,9 @@ const createLiveEvent = asyncHandler(async (req, res) => {
     description,
     streamUrl,
     thumbnailUrl,
-    scheduledStart,
-    scheduledEnd,
-    createdBy: req.user._id,
+    thumbnailPublicId,
+    scheduledStartTime,
+    isPremium,
   });
 
   res.status(201).json({ success: true, data: event });
@@ -32,7 +32,7 @@ const getLiveEvents = asyncHandler(async (req, res) => {
   const filter = {};
   if (req.query.status) filter.status = req.query.status;
 
-  const events = await LiveEvent.find(filter).sort({ scheduledStart: 1 });
+  const events = await LiveEvent.find(filter).sort({ scheduledStartTime: 1 });
   res.json({ success: true, count: events.length, data: events });
 });
 
@@ -40,7 +40,7 @@ const getLiveEvents = asyncHandler(async (req, res) => {
 // @route   GET /api/live-events/active
 // @access  Public
 const getActiveLiveEvents = asyncHandler(async (req, res) => {
-  const events = await LiveEvent.find({ status: 'live' }).sort({ actualStart: -1 });
+  const events = await LiveEvent.find({ status: 'live' }).sort({ actualStartTime: -1 });
   res.json({ success: true, count: events.length, data: events });
 });
 
@@ -70,7 +70,7 @@ const startLiveEvent = asyncHandler(async (req, res) => {
   }
 
   event.status = 'live';
-  event.actualStart = new Date();
+  event.actualStartTime = new Date();
   await event.save();
 
   res.json({ success: true, data: event });
@@ -88,30 +88,42 @@ const endLiveEvent = asyncHandler(async (req, res) => {
   }
 
   event.status = 'ended';
-  event.actualEnd = new Date();
+  event.endTime = new Date();
   await event.save();
 
   res.json({ success: true, data: event });
 });
 
-// @desc    Actualizar contador de espectadores
+// @desc    Actualizar contador de espectadores actuales
 // @route   PUT /api/live-events/:id/viewers
 // @access  Private
 const updateViewersCount = asyncHandler(async (req, res) => {
-  const { viewersCount } = req.body;
+  const { currentViewers } = req.body;
 
-  const event = await LiveEvent.findByIdAndUpdate(
-    req.params.id,
-    { viewersCount },
-    { new: true }
-  );
+  if (currentViewers === undefined || currentViewers < 0) {
+    res.status(400);
+    throw new Error('currentViewers debe ser un número mayor o igual a 0');
+  }
+
+  const event = await LiveEvent.findById(req.params.id);
 
   if (!event) {
     res.status(404);
     throw new Error('Evento no encontrado');
   }
 
-  res.json({ success: true, data: { viewersCount: event.viewersCount } });
+  const wasZero = event.currentViewers === 0;
+
+  event.currentViewers = currentViewers;
+
+  // Si pasó de 0 a más de 0, contamos que "entró" un nuevo espectador al total histórico
+  if (wasZero && currentViewers > 0) {
+    event.totalViews += 1;
+  }
+
+  await event.save();
+
+  res.json({ success: true, data: { currentViewers: event.currentViewers, totalViews: event.totalViews } });
 });
 
 // @desc    Actualizar evento
@@ -131,15 +143,20 @@ const updateLiveEvent = asyncHandler(async (req, res) => {
   res.json({ success: true, data: updatedEvent });
 });
 
-// @desc    Eliminar/cancelar evento
+// @desc    Eliminar/cancelar evento (incluye limpieza en Cloudinary)
 // @route   DELETE /api/live-events/:id
 // @access  Private/Editor+
 const deleteLiveEvent = asyncHandler(async (req, res) => {
+  const cloudinary = require('../config/cloudinary');
   const event = await LiveEvent.findById(req.params.id);
 
   if (!event) {
     res.status(404);
     throw new Error('Evento no encontrado');
+  }
+
+  if (event.thumbnailPublicId) {
+    await cloudinary.uploader.destroy(event.thumbnailPublicId);
   }
 
   await event.deleteOne();

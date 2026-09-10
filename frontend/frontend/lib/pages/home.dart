@@ -12,6 +12,7 @@ import 'profile_screen.dart';
 import 'edit_profile_screen.dart';
 import 'notifications_screen.dart';
 import 'publicidad_screen.dart';
+import 'admin_dashboard_screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key, required this.authService});
@@ -90,6 +91,15 @@ class _HomeState extends State<Home> {
     );
   }
 
+  Future<void> _openAdminPanel() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminDashboardScreen(authService: widget.authService),
+      ),
+    );
+  }
+
   Future<void> _handleLogout() async {
     await widget.authService.logout();
     if (!mounted) return;
@@ -162,6 +172,7 @@ class _HomeState extends State<Home> {
                           userName: _currentUser?.name ?? 'Usuario',
                           userEmail: _currentUser?.email ?? '',
                           avatarUrl: _currentUser?.avatarUrl,
+                          isAdmin: _currentUser?.isAdmin ?? false,
                           onEditProfile: _openEditProfile,
                           onMyList: () {
                             // TODO: navega a "Mi Lista"
@@ -174,6 +185,7 @@ class _HomeState extends State<Home> {
                             // TODO: navega a ayuda y soporte
                           },
                           onLogout: _handleLogout,
+                          onAdminPanel: _openAdminPanel,
                         ),
                 ],
               ),
