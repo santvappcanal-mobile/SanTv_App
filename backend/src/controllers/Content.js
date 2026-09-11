@@ -21,18 +21,20 @@ const getYoutubePreview = asyncHandler(async (req, res) => {
 
   const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
 
-  let oembedData;
+  let response;
   try {
-    const response = await fetch(oembedUrl);
-    if (!response.ok) {
-      res.status(404);
-      throw new Error('No se encontró información para ese video (¿el link es correcto y es público?)');
-    }
-    oembedData = await response.json();
+    response = await fetch(oembedUrl);
   } catch (error) {
     res.status(502);
-    throw new Error('No se pudo consultar la información del video en YouTube');
+    throw new Error('No se pudo conectar con YouTube. Verifica la conexión del servidor.');
   }
+
+  if (!response.ok) {
+    res.status(404);
+    throw new Error('No se encontró información para ese video (¿el link es correcto y es público?)');
+  }
+
+  const oembedData = await response.json();
 
   res.json({
     success: true,
@@ -108,7 +110,7 @@ const createContent = asyncHandler(async (req, res) => {
 });
 
 // @desc    Obtener contenido activo/publicado (para usuarios finales)
-// @route   GET /api/content
+// @route   GET /api/content?sort=views&limit=10
 // @access  Public
 const getContents = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -120,8 +122,10 @@ const getContents = asyncHandler(async (req, res) => {
   if (req.query.genre) filter.genres = req.query.genre;
   if (req.query.search) filter.title = { $regex: req.query.search, $options: 'i' };
 
+  const sortOption = req.query.sort === 'views' ? { views: -1 } : { createdAt: -1 };
+
   const contents = await Content.find(filter)
-    .sort({ createdAt: -1 })
+    .sort(sortOption)
     .skip(skip)
     .limit(limit);
   const total = await Content.countDocuments(filter);
