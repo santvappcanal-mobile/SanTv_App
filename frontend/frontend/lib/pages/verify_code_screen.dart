@@ -1,6 +1,10 @@
 import 'dart:async';
 import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
+import '../widgets/verify_code/verify_header.dart';
+import '../widgets/verify_code/code_input_field.dart';
+import '../widgets/verify_code/verify_button.dart';
+import '../widgets/verify_code/resend_code_link.dart';
 
 /// Pantalla de verificación de correo. Se muestra automáticamente
 /// después de un registro exitoso (cuando `pendingVerification` es
@@ -41,7 +45,6 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
   Timer? _timer;
 
   static const Color _neonGreen = Color(0xFF39FF14);
-  static const Color _fieldFill = Color(0xFF1A1A1A);
 
   @override
   void dispose() {
@@ -119,25 +122,6 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
     }
   }
 
-  InputDecoration _codeDecoration() {
-    return InputDecoration(
-      labelText: 'Código de verificación',
-      labelStyle: const TextStyle(color: Colors.white70),
-      counterText: '',
-      prefixIcon: const Icon(Icons.pin_outlined, color: _neonGreen),
-      filled: true,
-      fillColor: _fieldFill,
-      border: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: BorderSide.none,
-      ),
-      focusedBorder: OutlineInputBorder(
-        borderRadius: BorderRadius.circular(12),
-        borderSide: const BorderSide(color: _neonGreen, width: 2),
-      ),
-    );
-  }
-
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -159,92 +143,16 @@ class _VerifyCodeScreenState extends State<VerifyCodeScreen> {
               crossAxisAlignment: CrossAxisAlignment.stretch,
               children: [
                 const SizedBox(height: 20),
-                const Icon(
-                  Icons.mark_email_read_outlined,
-                  color: _neonGreen,
-                  size: 64,
-                ),
-                const SizedBox(height: 20),
-                const Text(
-                  'Confirma tu correo',
-                  textAlign: TextAlign.center,
-                  style: TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-                const SizedBox(height: 12),
-                Text(
-                  'Enviamos un código de verificación a\n${widget.email}',
-                  textAlign: TextAlign.center,
-                  style: const TextStyle(color: Colors.white70, fontSize: 14),
-                ),
+                VerifyHeader(email: widget.email),
                 const SizedBox(height: 32),
-                TextFormField(
-                  controller: _codeController,
-                  keyboardType: TextInputType.number,
-                  textAlign: TextAlign.center,
-                  maxLength: 6,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontSize: 22,
-                    letterSpacing: 8,
-                  ),
-                  decoration: _codeDecoration(),
-                  validator: (value) {
-                    if (value == null || value.trim().isEmpty) {
-                      return 'Ingresa el código';
-                    }
-                    if (value.trim().length < 4) {
-                      return 'Código incompleto';
-                    }
-                    return null;
-                  },
-                ),
+                CodeInputField(controller: _codeController),
                 const SizedBox(height: 24),
-                ElevatedButton(
-                  onPressed: _loading ? null : _handleVerify,
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: _neonGreen,
-                    foregroundColor: Colors.black,
-                    padding: const EdgeInsets.symmetric(vertical: 16),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(12),
-                    ),
-                    elevation: 5,
-                  ),
-                  child: _loading
-                      ? const SizedBox(
-                          height: 20,
-                          width: 20,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2,
-                            color: Colors.black,
-                          ),
-                        )
-                      : const Text(
-                          'CONFIRMAR CÓDIGO',
-                          style: TextStyle(
-                            fontSize: 16,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 1.2,
-                          ),
-                        ),
-                ),
+                VerifyButton(loading: _loading, onPressed: _handleVerify),
                 const SizedBox(height: 20),
-                TextButton(
-                  onPressed: (_resending || _cooldown > 0)
-                      ? null
-                      : _handleResend,
-                  child: Text(
-                    _resending
-                        ? 'Reenviando...'
-                        : _cooldown > 0
-                        ? 'Reenviar código (${_cooldown}s)'
-                        : '¿No recibiste el código? Reenviar',
-                    style: const TextStyle(color: Colors.white70),
-                  ),
+                ResendCodeLink(
+                  resending: _resending,
+                  cooldown: _cooldown,
+                  onPressed: _handleResend,
                 ),
               ],
             ),
