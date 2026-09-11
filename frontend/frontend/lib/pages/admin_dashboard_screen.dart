@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/admin_service.dart';
 import '../models/admin_stats.dart';
+import 'admin_add_youtube_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key, required this.authService});
@@ -51,6 +52,16 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     });
   }
 
+  Future<void> _abrirAgregarVideo() async {
+    final agregado = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminAddYoutubeScreen(authService: widget.authService),
+      ),
+    );
+    if (agregado == true) _cargarStats(); // refresca el dashboard al volver
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -67,6 +78,15 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         ],
       ),
       body: _buildBody(),
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: neonGreen,
+        icon: const Icon(Icons.add, color: Colors.black),
+        label: const Text(
+          'Agregar video',
+          style: TextStyle(color: Colors.black),
+        ),
+        onPressed: _abrirAgregarVideo,
+      ),
     );
   }
 
@@ -129,6 +149,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           _buildSectionTitle('Top 5 contenido más visto'),
           const SizedBox(height: 12),
           _buildTopContent(stats.topContent),
+          const SizedBox(
+            height: 80,
+          ), // espacio para que el FAB no tape el último item
         ],
       ),
     );
