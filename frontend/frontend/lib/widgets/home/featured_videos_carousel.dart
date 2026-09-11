@@ -51,7 +51,7 @@ class _VideoPlaceholderCard extends StatelessWidget {
       child: Center(
         child: Text(
           'Agregar Video',
-          style: TextStyle(color: Color.fromARGB(255, 243, 239, 239)),
+          style: TextStyle(color: Color.fromARGB(255, 243, 235, 235)),
           textAlign: TextAlign.center,
         ),
       ),

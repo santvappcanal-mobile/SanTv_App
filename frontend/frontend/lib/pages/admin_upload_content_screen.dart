@@ -31,9 +31,11 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
   final _thumbnailUrlController = TextEditingController();
   final _durationController = TextEditingController();
   final _releaseYearController = TextEditingController();
+  final _videoUrlController = TextEditingController(); // NUEVO
 
   String _type = 'movie';
   bool _isPremium = false;
+  bool _usarUrlExterna = false; // NUEVO: alterna entre subir archivo o pegar link
   File? _videoFile;
   String? _videoFileName;
   bool _subiendo = false;
@@ -56,6 +58,7 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
     _thumbnailUrlController.dispose();
     _durationController.dispose();
     _releaseYearController.dispose();
+    _videoUrlController.dispose(); // NUEVO
     super.dispose();
   }
 
@@ -72,10 +75,26 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
     }
   }
 
+  bool _esUrlValida(String value) {
+    final uri = Uri.tryParse(value.trim());
+    return uri != null &&
+        uri.hasScheme &&
+        (uri.isScheme('http') || uri.isScheme('https'));
+  }
+
   Future<void> _enviar() async {
     if (!_formKey.currentState!.validate()) return;
 
-    if (_videoFile == null) {
+    if (_usarUrlExterna) {
+      final url = _videoUrlController.text.trim();
+      if (url.isEmpty || !_esUrlValida(url)) {
+        setState(() {
+          _mensaje = 'Ingresa una URL de video válida (http/https).';
+          _mensajeEsError = true;
+        });
+        return;
+      }
+    } else if (_videoFile == null) {
       setState(() {
         _mensaje = 'Debes seleccionar un archivo de video.';
         _mensajeEsError = true;
@@ -88,25 +107,40 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
       _mensaje = null;
     });
 
-    final result = await _contentService.subirVideo(
-      title: _titleController.text.trim(),
-      description: _descriptionController.text.trim(),
-      type: _type,
-      videoFile: _videoFile!,
-      genres: _genresController.text.trim(),
-      thumbnailUrl: _thumbnailUrlController.text.trim(),
-      duration: int.tryParse(_durationController.text.trim()),
-      releaseYear: int.tryParse(_releaseYearController.text.trim()),
-      isPremium: _isPremium,
-    );
+    // TODO: 'crearConUrlExterna' aún no existe en ContentService.
+    // Debe crear el Content directamente con el campo videoUrl,
+    // sin pasar por /api/uploads/video (sin Cloudinary de por medio).
+    final result = _usarUrlExterna
+        ? await _contentService.crearConUrlExterna(
+            title: _titleController.text.trim(),
+            description: _descriptionController.text.trim(),
+            type: _type,
+            videoUrl: _videoUrlController.text.trim(),
+            genres: _genresController.text.trim(),
+            thumbnailUrl: _thumbnailUrlController.text.trim(),
+            duration: int.tryParse(_durationController.text.trim()),
+            releaseYear: int.tryParse(_releaseYearController.text.trim()),
+            isPremium: _isPremium,
+          )
+        : await _contentService.subirVideo(
+            title: _titleController.text.trim(),
+            description: _descriptionController.text.trim(),
+            type: _type,
+            videoFile: _videoFile!,
+            genres: _genresController.text.trim(),
+            thumbnailUrl: _thumbnailUrlController.text.trim(),
+            duration: int.tryParse(_durationController.text.trim()),
+            releaseYear: int.tryParse(_releaseYearController.text.trim()),
+            isPremium: _isPremium,
+          );
 
     if (!mounted) return;
 
     setState(() {
       _subiendo = false;
       _mensaje = result.success
-          ? 'Video subido correctamente.'
-          : (result.errorMessage ?? 'Ocurrió un error al subir el video.');
+          ? 'Contenido guardado correctamente.'
+          : (result.errorMessage ?? 'Ocurrió un error al guardar el contenido.');
       _mensajeEsError = !result.success;
     });
 
@@ -118,11 +152,13 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
       _thumbnailUrlController.clear();
       _durationController.clear();
       _releaseYearController.clear();
+      _videoUrlController.clear();
       setState(() {
         _videoFile = null;
         _videoFileName = null;
         _type = 'movie';
         _isPremium = false;
+        _usarUrlExterna = false;
       });
     }
   }
@@ -192,17 +228,42 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
             SwitchListTile(
               value: _isPremium,
               onChanged: (value) => setState(() => _isPremium = value),
-              activeColor: neonGreen,
+              activeThumbColor: neonGreen,
               title: const Text('Contenido premium', style: TextStyle(color: Colors.white)),
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 8),
-            VideoPickerField(
-              fileName: _videoFileName,
-              onPick: _elegirVideo,
-              enabled: !_subiendo,
-              accentColor: neonGreen,
+            SwitchListTile(
+              value: _usarUrlExterna,
+              onChanged: (value) => setState(() {
+                _usarUrlExterna = value;
+                _mensaje = null;
+              }),
+              activeColor: neonGreen,
+              title: const Text(
+                'Usar URL de video externo',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: const Text(
+                'Actívalo para videos grandes (evita el límite de 100 MB de Cloudinary)',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              contentPadding: EdgeInsets.zero,
             ),
+            const SizedBox(height: 8),
+            if (_usarUrlExterna)
+              CustomTextField(
+                controller: _videoUrlController,
+                label: 'URL del video (YouTube, streaming propio, etc.)',
+                requerido: true,
+              )
+            else
+              VideoPickerField(
+                fileName: _videoFileName,
+                onPick: _elegirVideo,
+                enabled: !_subiendo,
+                accentColor: neonGreen,
+              ),
             const SizedBox(height: 24),
             if (_mensaje != null)
               UploadStatusMessage(

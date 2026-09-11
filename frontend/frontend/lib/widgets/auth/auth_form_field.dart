@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/services.dart';
 
 class AuthFormField extends StatelessWidget {
   const AuthFormField({
@@ -10,6 +11,8 @@ class AuthFormField extends StatelessWidget {
     this.keyboardType,
     this.validator,
     this.obscureText = false,
+    this.suffixIcon,
+    this.inputFormatters,
   });
 
   final TextEditingController controller;
@@ -20,17 +23,25 @@ class AuthFormField extends StatelessWidget {
   final String? Function(String?)? validator;
   final bool obscureText;
 
+  /// Widget opcional al final del campo (ej: el ojito para mostrar/ocultar contraseña).
+  final Widget? suffixIcon;
+
+  /// Formatters opcionales (ej: filtrar el nombre para que solo acepte letras).
+  final List<TextInputFormatter>? inputFormatters;
+
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
       keyboardType: keyboardType,
       obscureText: obscureText,
+      inputFormatters: inputFormatters,
       style: const TextStyle(color: Colors.white),
       decoration: InputDecoration(
         labelText: label,
         labelStyle: const TextStyle(color: Colors.white70),
         prefixIcon: Icon(icon, color: accentColor),
+        suffixIcon: suffixIcon,
         filled: true,
         fillColor: Colors.white.withOpacity(0.06),
         border: OutlineInputBorder(

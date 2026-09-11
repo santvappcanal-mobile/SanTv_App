@@ -34,7 +34,7 @@ class HomeHeroBanner extends StatelessWidget {
             const Text(
               'Canal en vivo',
               style: TextStyle(
-                color: Colors.white,
+                color: Color.fromARGB(255, 243, 241, 241),
                 fontSize: 18,
                 fontWeight: FontWeight.bold,
               ),
