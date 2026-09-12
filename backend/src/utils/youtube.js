@@ -1,6 +1,27 @@
 const asyncHandler = require('express-async-handler');
-const Content = require('../models/Content');
-const { extractYoutubeId, getYoutubeThumbnail } = require('../utils/youtube');
+
+/**
+ * Extrae el ID de un video de YouTube a partir de distintos formatos de link:
+ * - https://www.youtube.com/watch?v=VIDEO_ID
+ * - https://youtu.be/VIDEO_ID
+ * - https://www.youtube.com/embed/VIDEO_ID
+ * - https://www.youtube.com/shorts/VIDEO_ID
+ */
+function extractYoutubeId(url) {
+  if (!url) return null;
+  const regex = /(?:youtube\.com\/(?:[^/]+\/.+\/|(?:v|e(?:mbed)?)\/|.*[?&]v=)|youtu\.be\/)([^"&?/\s]{11})/;
+  const match = url.match(regex);
+  return match ? match[1] : null;
+}
+
+/**
+ * Devuelve la URL del thumbnail de un video de YouTube.
+ * quality: default | mqdefault | hqdefault | sddefault | maxresdefault
+ */
+function getYoutubeThumbnail(videoId, quality = 'hqdefault') {
+  if (!videoId) return null;
+  return `https://img.youtube.com/vi/${videoId}/${quality}.jpg`;
+}
 
 // @desc    Obtener título, autor y thumbnail de un video de YouTube a partir del link
 // @route   GET /api/content/youtube-preview?url=...
@@ -48,3 +69,5 @@ const getYoutubePreview = asyncHandler(async (req, res) => {
     },
   });
 });
+
+module.exports = { extractYoutubeId, getYoutubeThumbnail, getYoutubePreview };
