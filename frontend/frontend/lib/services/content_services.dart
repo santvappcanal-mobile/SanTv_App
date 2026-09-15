@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
+import '../models/content.dart';
 
 class ContentUploadResult {
   ContentUploadResult({required this.success, this.errorMessage});
@@ -178,8 +179,8 @@ class ContentService {
         return YoutubePreviewResult(
           success: true,
           videoId: data['videoId']?.toString(),
-          title: data['title']?.toString(),
           channelName: data['channelName']?.toString(),
+          title: data['title']?.toString(),
           thumbnailUrl: data['thumbnailUrl']?.toString(),
           originalUrl: data['originalUrl']?.toString(),
         );
@@ -253,6 +254,49 @@ class ContentService {
         success: false,
         errorMessage: 'Error de conexión con el servidor. Verifica tu red.',
       );
+    }
+  }
+
+  /// Trae contenido público, ordenado por vistas (para "Videos destacados").
+  /// No requiere sesión activa.
+  Future<List<ContentItem>> obtenerVideosDestacados({int limit = 6}) async {
+    try {
+      final uri = _contentUrl.replace(
+        queryParameters: {'sort': 'views', 'limit': '$limit'},
+      );
+      final response = await http.get(uri);
+
+      if (response.statusCode != 200) return [];
+
+      final body = jsonDecode(response.body);
+      if (body is Map && body['success'] == true && body['data'] is List) {
+        return (body['data'] as List)
+            .map((e) => ContentItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Trae contenido público para la pantalla de Explorar (sin filtrar por vistas).
+  Future<List<ContentItem>> obtenerContenidoExplorar({int limit = 20}) async {
+    try {
+      final uri = _contentUrl.replace(queryParameters: {'limit': '$limit'});
+      final response = await http.get(uri);
+
+      if (response.statusCode != 200) return [];
+
+      final body = jsonDecode(response.body);
+      if (body is Map && body['success'] == true && body['data'] is List) {
+        return (body['data'] as List)
+            .map((e) => ContentItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
     }
   }
 }

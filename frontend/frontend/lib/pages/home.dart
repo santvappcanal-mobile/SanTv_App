@@ -155,8 +155,12 @@ class _HomeState extends State<Home> {
                   HomeTabContent(
                     neonColor: neonColor,
                     onOpenAdvertising: _openAdvertising,
+                    authService: widget.authService,
                   ),
-                  ExploreScreen(onOpenAdvertising: _openAdvertising),
+                  ExploreScreen(
+                    onOpenAdvertising: _openAdvertising,
+                    authService: widget.authService,
+                  ),
                   LiveTabScreen(
                     onOpenLive: (liveId) {
                       debugPrint('Abriendo transmisión: $liveId');

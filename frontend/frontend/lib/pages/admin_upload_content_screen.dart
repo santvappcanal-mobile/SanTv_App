@@ -60,14 +60,12 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
   }
 
   Future<void> _elegirVideo() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.video,
-    );
+    final files = await FilePicker.pickFiles(type: FileType.video);
 
-    if (result != null && result.files.single.path != null) {
+    if (files.isNotEmpty && files.first.path != null) {
       setState(() {
-        _videoFile = File(result.files.single.path!);
-        _videoFileName = result.files.single.name;
+        _videoFile = File(files.first.path!);
+        _videoFileName = files.first.name;
       });
     }
   }
@@ -134,7 +132,10 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B0B0B),
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Agregar contenido', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Agregar contenido',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -193,7 +194,10 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
               value: _isPremium,
               onChanged: (value) => setState(() => _isPremium = value),
               activeColor: neonGreen,
-              title: const Text('Contenido premium', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Contenido premium',
+                style: TextStyle(color: Colors.white),
+              ),
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 8),
