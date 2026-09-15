@@ -5,17 +5,23 @@ class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
 
   @override
-  State createState() => _SplashScreenState();
+  State<SplashScreen> createState() => _SplashScreenState();
 }
 
-class _SplashScreenState extends State
+class _SplashScreenState extends State<SplashScreen>
     with SingleTickerProviderStateMixin {
   late final AnimationController _controller;
-  late final Animation _fadeAnimation;
-  late final Animation _scaleAnimation;
+  late final Animation<double> _fadeAnimation;
+  late final Animation<double> _scaleAnimation;
 
   static const _storage = FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
+
+  // Colorimetría verde del Home
+  static const Color _bg1 = Color(0xFF0B0B0B);
+  static const Color _bg2 = Color(0xFF10241A);
+  static const Color _bg3 = Color(0xFF0B0B0B);
+  static const Color _neonGreen = Color(0xFF39FF14);
 
   @override
   void initState() {
@@ -25,8 +31,13 @@ class _SplashScreenState extends State
       vsync: this,
       duration: const Duration(milliseconds: 900),
     );
-    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
-    _scaleAnimation = Tween(begin: 0.85, end: 1.0).animate(
+
+    _fadeAnimation = CurvedAnimation(
+      parent: _controller,
+      curve: Curves.easeIn,
+    );
+
+    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
       CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
     );
 
@@ -34,7 +45,7 @@ class _SplashScreenState extends State
     _redirect();
   }
 
-  Future _redirect() async {
+  Future<void> _redirect() async {
     final results = await Future.wait([
       _storage.read(key: _tokenKey),
       Future.delayed(const Duration(milliseconds: 2200)),
@@ -64,11 +75,7 @@ class _SplashScreenState extends State
           gradient: LinearGradient(
             begin: Alignment.topLeft,
             end: Alignment.bottomRight,
-            colors: [
-              Color(0xFF0B1120),
-              Color(0xFF141B34),
-              Color(0xFF7A0C1E),
-            ],
+            colors: [_bg1, _bg2, _bg3],
           ),
         ),
         child: SafeArea(
@@ -81,32 +88,13 @@ class _SplashScreenState extends State
                   mainAxisAlignment: MainAxisAlignment.center,
                   children: [
                     const _GlassLogo(),
-                    const SizedBox(height: 28),
-                    const Text(
-                      'SAN TV',
-                      style: TextStyle(
-                        color: Colors.white,
-                        fontSize: 34,
-                        fontWeight: FontWeight.bold,
-                        letterSpacing: 4,
-                      ),
-                    ),
-                    const SizedBox(height: 10),
-                    Text(
-                      'Noticias, deportes y en vivo',
-                      style: TextStyle(
-                        color: Colors.white.withValues(alpha: 0.75),
-                        fontSize: 14,
-                        letterSpacing: 1.2,
-                      ),
-                    ),
                     const SizedBox(height: 48),
                     const SizedBox(
                       width: 28,
                       height: 28,
                       child: CircularProgressIndicator(
                         strokeWidth: 2.4,
-                        valueColor: AlwaysStoppedAnimation(Colors.white70),
+                        valueColor: AlwaysStoppedAnimation(_neonGreen),
                       ),
                     ),
                   ],
@@ -126,16 +114,19 @@ class _GlassLogo extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return Container(
-      width: 128,
-      height: 128,
+      width: 148,
+      height: 148,
       decoration: BoxDecoration(
         shape: BoxShape.circle,
         color: Colors.white.withValues(alpha: 0.08),
-        border: Border.all(color: Colors.white.withValues(alpha: 0.25), width: 1.4),
+        border: Border.all(
+          color: const Color(0xFF39FF14).withValues(alpha: 0.35),
+          width: 1.4,
+        ),
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withValues(alpha: 0.35),
-            blurRadius: 24,
+            color: const Color(0xFF39FF14).withValues(alpha: 0.18),
+            blurRadius: 28,
             offset: const Offset(0, 12),
           ),
         ],
@@ -148,8 +139,8 @@ class _GlassLogo extends StatelessWidget {
             fit: BoxFit.contain,
             errorBuilder: (context, error, stackTrace) => const Icon(
               Icons.live_tv_rounded,
-              color: Colors.white,
-              size: 56,
+              color: Color(0xFF39FF14),
+              size: 64,
             ),
           ),
         ),

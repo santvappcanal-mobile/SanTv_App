@@ -22,9 +22,8 @@ app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/watchlist', require('./routes/watchlistRoutes'));
 app.use('/api/uploads', require('./routes/upload.routes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
-
-// Ruta del Chatbot agregada correctamente
 app.use('/api/chat', require('./routes/chatRoutes'));
+
 
 // Manejo de errores
 app.use(notFound);
