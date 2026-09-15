@@ -2,9 +2,12 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class AuthFrostedCard extends StatelessWidget {
-  const AuthFrostedCard({super.key, required this.child});
+  const AuthFrostedCard({super.key, required this.child, this.boxShadow});
 
   final Widget child;
+
+  /// Sombra opcional (ej: el resplandor neón detrás de la tarjeta en login).
+  final List<BoxShadow>? boxShadow;
 
   @override
   Widget build(BuildContext context) {
@@ -28,6 +31,7 @@ class AuthFrostedCard extends StatelessWidget {
               color: Colors.white.withOpacity(0.18),
               width: 1.2,
             ),
+            boxShadow: boxShadow,
           ),
           child: child,
         ),

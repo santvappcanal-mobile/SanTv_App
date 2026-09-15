@@ -1,3 +1,4 @@
+import 'dart:ui';
 import 'package:flutter/material.dart';
 
 class AuthSubmitButton extends StatelessWidget {
@@ -7,6 +8,8 @@ class AuthSubmitButton extends StatelessWidget {
     required this.isLoading,
     required this.onTap,
     required this.accentColor,
+    this.blurred = false,
+    this.boxShadow,
   });
 
   final String label;
@@ -14,52 +17,66 @@ class AuthSubmitButton extends StatelessWidget {
   final VoidCallback? onTap;
   final Color accentColor;
 
+  /// Si es true, envuelve el botón en un BackdropFilter (efecto vidrio).
+  final bool blurred;
+
+  /// Sombra opcional (ej: el resplandor neón del botón en login).
+  final List<BoxShadow>? boxShadow;
+
   @override
   Widget build(BuildContext context) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: Container(
-        decoration: BoxDecoration(
-          borderRadius: BorderRadius.circular(16),
-          gradient: LinearGradient(
-            colors: [
-              accentColor.withOpacity(0.85),
-              accentColor.withOpacity(0.55),
-            ],
-          ),
-          border: Border.all(color: Colors.white.withOpacity(0.3)),
+    final button = Container(
+      decoration: BoxDecoration(
+        borderRadius: BorderRadius.circular(16),
+        gradient: LinearGradient(
+          colors: [
+            accentColor.withOpacity(0.85),
+            accentColor.withOpacity(0.55),
+          ],
         ),
-        child: Material(
-          color: Colors.transparent,
-          child: InkWell(
-            borderRadius: BorderRadius.circular(16),
-            onTap: isLoading ? null : onTap,
-            child: Padding(
-              padding: const EdgeInsets.symmetric(vertical: 16),
-              child: Center(
-                child: isLoading
-                    ? const SizedBox(
-                        height: 20,
-                        width: 20,
-                        child: CircularProgressIndicator(
-                          strokeWidth: 2,
-                          color: Colors.black,
-                        ),
-                      )
-                    : Text(
-                        label,
-                        style: const TextStyle(
-                          fontSize: 16,
-                          fontWeight: FontWeight.bold,
-                          letterSpacing: 1.2,
-                          color: Colors.black,
-                        ),
+        border: Border.all(color: Colors.white.withOpacity(0.3)),
+        boxShadow: boxShadow,
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(16),
+          onTap: isLoading ? null : onTap,
+          child: Padding(
+            padding: const EdgeInsets.symmetric(vertical: 16),
+            child: Center(
+              child: isLoading
+                  ? const SizedBox(
+                      height: 20,
+                      width: 20,
+                      child: CircularProgressIndicator(
+                        strokeWidth: 2,
+                        color: Colors.black,
                       ),
-              ),
+                    )
+                  : Text(
+                      label,
+                      style: const TextStyle(
+                        fontSize: 16,
+                        fontWeight: FontWeight.bold,
+                        letterSpacing: 1.2,
+                        color: Colors.black,
+                      ),
+                    ),
             ),
           ),
         ),
       ),
+    );
+
+    return ClipRRect(
+      borderRadius: BorderRadius.circular(16),
+      child: blurred
+          ? BackdropFilter(
+              filter: ImageFilter.blur(sigmaX: 8, sigmaY: 8),
+              child: button,
+            )
+          : button,
     );
   }
 }
