@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'pages/splash_screen.dart';
 import 'pages/home.dart';
 import 'pages/auth_screen.dart';
 import 'pages/verify_code_screen.dart';
@@ -13,13 +14,10 @@ class SanTvApp extends StatefulWidget {
   const SanTvApp({super.key});
 
   @override
-  State<SanTvApp> createState() => _SanTvAppState();
+  State createState() => _SanTvAppState();
 }
 
-class _SanTvAppState extends State<SanTvApp> {
-  // OJO: se movió aquí (fuera de build) para que sea UNA sola instancia
-  // durante toda la vida de la app, en vez de crear un AuthService nuevo
-  // en cada rebuild del widget.
+class _SanTvAppState extends State {
   late final AuthService authService = AuthService(
     baseUrl: 'http://10.0.2.2:3000',
   );
@@ -37,8 +35,9 @@ class _SanTvAppState extends State<SanTvApp> {
         ),
         useMaterial3: true,
       ),
-      initialRoute: '/login',
+      initialRoute: '/',
       routes: {
+        '/': (context) => const SplashScreen(),
         '/login': (context) => AuthScreen(
               authService: authService,
               onLoggedIn: () {
@@ -66,7 +65,6 @@ class _SanTvAppState extends State<SanTvApp> {
                 );
               },
             ),
-        // AHORA le pasamos el authService a Home
         '/home': (context) => Home(authService: authService),
       },
     );
