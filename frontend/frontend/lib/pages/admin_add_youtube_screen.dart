@@ -273,7 +273,7 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
             SwitchListTile(
               value: _isPremium,
               onChanged: (value) => setState(() => _isPremium = value),
-              activeColor: neonGreen,
+              activeThumbColor: neonGreen,
               title: const Text(
                 'Contenido premium',
                 style: TextStyle(color: Colors.white),
