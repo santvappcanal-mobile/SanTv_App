@@ -1,10 +1,12 @@
-import 'dart:ui';
 import 'package:flutter/material.dart';
+import '../../widgets/live_tab/pulsing_live_dot.dart';
+import '../../widgets/live_tab/featured_live_card.dart';
+import '../../widgets/live_tab/live_grid_card.dart';
 
 /// Pestaña "En Vivo". Se usa embebida dentro de [Home]
 /// (pages/home.dart), como uno de los ítems del IndexedStack.
 /// Muestra el listado de transmisiones activas en este momento.
-/// Al tocar una tarjeta, se navega a [LiveScreen] con el detalle.
+/// Al tocar una tarjeta, se navega a LiveScreen con el detalle.
 class LiveTabScreen extends StatelessWidget {
   const LiveTabScreen({super.key, this.onOpenLive});
 
@@ -52,10 +54,10 @@ class LiveTabScreen extends StatelessWidget {
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
           Row(
-            children: [
-              _pulsingDot(),
-              const SizedBox(width: 8),
-              const Text(
+            children: const [
+              PulsingLiveDot(),
+              SizedBox(width: 8),
+              Text(
                 'En vivo ahora',
                 style: TextStyle(
                   color: Colors.white,
@@ -68,7 +70,13 @@ class LiveTabScreen extends StatelessWidget {
           const SizedBox(height: 16),
 
           // Transmisión destacada (la más vista)
-          _buildFeaturedCard(context, neonColor, featured),
+          FeaturedLiveCard(
+            title: featured['title'] as String,
+            streamer: featured['streamer'] as String,
+            viewers: featured['viewers'] as int,
+            neonColor: neonColor,
+            onTap: () => onOpenLive?.call(featured['id'] as String),
+          ),
 
           const SizedBox(height: 24),
           const Text(
@@ -92,270 +100,17 @@ class LiveTabScreen extends StatelessWidget {
               childAspectRatio: 0.85,
             ),
             itemBuilder: (context, index) {
-              return _buildLiveCard(context, neonColor, rest[index]);
+              final stream = rest[index];
+              return LiveGridCard(
+                title: stream['title'] as String,
+                viewers: stream['viewers'] as int,
+                neonColor: neonColor,
+                onTap: () => onOpenLive?.call(stream['id'] as String),
+              );
             },
           ),
         ],
       ),
-    );
-  }
-
-  Widget _pulsingDot() {
-    return const _PulsingLiveDot();
-  }
-
-  Widget _buildFeaturedCard(
-    BuildContext context,
-    Color neonColor,
-    Map<String, dynamic> stream,
-  ) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 16, sigmaY: 16),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(20),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                neonColor.withOpacity(0.22),
-                Colors.white.withOpacity(0.05),
-              ],
-            ),
-            border: Border.all(color: Colors.white.withOpacity(0.18)),
-            boxShadow: [
-              BoxShadow(
-                color: neonColor.withOpacity(0.15),
-                blurRadius: 30,
-                spreadRadius: -8,
-              ),
-            ],
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(20),
-              onTap: () => onOpenLive?.call(stream['id'] as String),
-              child: Padding(
-                padding: const EdgeInsets.all(18),
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Row(
-                      children: [
-                        _liveBadge(),
-                        const Spacer(),
-                        Icon(
-                          Icons.visibility,
-                          size: 14,
-                          color: Colors.white.withOpacity(0.6),
-                        ),
-                        const SizedBox(width: 4),
-                        Text(
-                          '${stream['viewers']} viendo',
-                          style: TextStyle(
-                            color: Colors.white.withOpacity(0.6),
-                            fontSize: 12,
-                          ),
-                        ),
-                      ],
-                    ),
-                    const SizedBox(height: 40),
-                    Center(
-                      child: Icon(
-                        Icons.play_circle_fill,
-                        size: 56,
-                        color: neonColor,
-                      ),
-                    ),
-                    const SizedBox(height: 40),
-                    Text(
-                      stream['title'] as String,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontSize: 18,
-                        fontWeight: FontWeight.bold,
-                      ),
-                    ),
-                    const SizedBox(height: 4),
-                    Text(
-                      stream['streamer'] as String,
-                      style: TextStyle(
-                        color: Colors.white.withOpacity(0.6),
-                        fontSize: 13,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _buildLiveCard(
-    BuildContext context,
-    Color neonColor,
-    Map<String, dynamic> stream,
-  ) {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(16),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 10, sigmaY: 10),
-        child: Container(
-          decoration: BoxDecoration(
-            borderRadius: BorderRadius.circular(16),
-            gradient: LinearGradient(
-              begin: Alignment.topLeft,
-              end: Alignment.bottomRight,
-              colors: [
-                Colors.white.withOpacity(0.08),
-                Colors.white.withOpacity(0.03),
-              ],
-            ),
-            border: Border.all(color: Colors.white.withOpacity(0.15)),
-          ),
-          child: Material(
-            color: Colors.transparent,
-            child: InkWell(
-              borderRadius: BorderRadius.circular(16),
-              onTap: () => onOpenLive?.call(stream['id'] as String),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  Expanded(
-                    child: Container(
-                      width: double.infinity,
-                      decoration: BoxDecoration(
-                        color: neonColor.withOpacity(0.12),
-                        borderRadius: const BorderRadius.only(
-                          topLeft: Radius.circular(16),
-                          topRight: Radius.circular(16),
-                        ),
-                      ),
-                      child: Stack(
-                        children: [
-                          Center(
-                            child: Icon(
-                              Icons.play_circle_outline,
-                              size: 36,
-                              color: neonColor.withOpacity(0.9),
-                            ),
-                          ),
-                          Positioned(top: 8, left: 8, child: _liveBadge()),
-                        ],
-                      ),
-                    ),
-                  ),
-                  Padding(
-                    padding: const EdgeInsets.all(10),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          stream['title'] as String,
-                          maxLines: 1,
-                          overflow: TextOverflow.ellipsis,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontWeight: FontWeight.w600,
-                            fontSize: 13,
-                          ),
-                        ),
-                        const SizedBox(height: 4),
-                        Row(
-                          children: [
-                            Icon(
-                              Icons.visibility,
-                              size: 12,
-                              color: Colors.white.withOpacity(0.5),
-                            ),
-                            const SizedBox(width: 4),
-                            Text(
-                              '${stream['viewers']} viendo',
-                              style: TextStyle(
-                                color: Colors.white.withOpacity(0.5),
-                                fontSize: 11,
-                              ),
-                            ),
-                          ],
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
-              ),
-            ),
-          ),
-        ),
-      ),
-    );
-  }
-
-  Widget _liveBadge() {
-    return ClipRRect(
-      borderRadius: BorderRadius.circular(20),
-      child: BackdropFilter(
-        filter: ImageFilter.blur(sigmaX: 6, sigmaY: 6),
-        child: Container(
-          padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
-          decoration: BoxDecoration(
-            color: Colors.black.withOpacity(0.35),
-            borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: Colors.redAccent.withOpacity(0.6)),
-          ),
-          child: const Row(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Icon(Icons.circle, color: Colors.red, size: 8),
-              SizedBox(width: 4),
-              Text(
-                'EN VIVO',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 10,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-/// Punto rojo que parpadea suavemente, para el encabezado
-/// "En vivo ahora".
-class _PulsingLiveDot extends StatefulWidget {
-  const _PulsingLiveDot();
-
-  @override
-  State<_PulsingLiveDot> createState() => _PulsingLiveDotState();
-}
-
-class _PulsingLiveDotState extends State<_PulsingLiveDot>
-    with SingleTickerProviderStateMixin {
-  late final AnimationController _controller = AnimationController(
-    vsync: this,
-    duration: const Duration(milliseconds: 900),
-  )..repeat(reverse: true);
-
-  @override
-  void dispose() {
-    _controller.dispose();
-    super.dispose();
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return FadeTransition(
-      opacity: Tween(begin: 0.4, end: 1.0).animate(_controller),
-      child: const Icon(Icons.circle, color: Colors.red, size: 12),
     );
   }
 }

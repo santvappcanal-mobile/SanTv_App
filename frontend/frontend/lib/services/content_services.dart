@@ -155,6 +155,76 @@ class ContentService {
     }
   }
 
+  /// Crea contenido usando una URL de video externa (ya alojada en otro
+  /// servicio), sin pasar por la subida a Cloudinary. Útil para archivos
+  /// grandes que exceden el límite de Cloudinary, o links de YouTube.
+  Future<ContentUploadResult> crearConUrlExterna({
+    required String title,
+    required String description,
+    required String type,
+    required String videoUrl,
+    String genres = '',
+    String thumbnailUrl = '',
+    int? duration,
+    int? releaseYear,
+    bool isPremium = false,
+  }) async {
+    try {
+      final token = await authService.getToken();
+      if (token == null || token.isEmpty) {
+        return ContentUploadResult(
+          success: false,
+          errorMessage: 'No hay sesión activa. Vuelve a iniciar sesión.',
+        );
+      }
+
+      final genresList = genres
+          .split(',')
+          .map((g) => g.trim())
+          .where((g) => g.isNotEmpty)
+          .toList();
+
+      final response = await http.post(
+        _contentUrl,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'title': title,
+          'description': description,
+          'type': type,
+          'genres': genresList,
+          'videoUrl': videoUrl,
+          if (thumbnailUrl.isNotEmpty) 'thumbnailUrl': thumbnailUrl,
+          if (duration != null) 'duration': duration,
+          if (releaseYear != null) 'releaseYear': releaseYear,
+          'isPremium': isPremium,
+        }),
+      );
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return ContentUploadResult(success: true);
+      }
+
+      String mensajeError =
+          'No se pudo crear el contenido (${response.statusCode}).';
+      try {
+        final data = jsonDecode(response.body);
+        if (data is Map && data['message'] != null) {
+          mensajeError = data['message'];
+        }
+      } catch (_) {}
+
+      return ContentUploadResult(success: false, errorMessage: mensajeError);
+    } catch (e) {
+      return ContentUploadResult(
+        success: false,
+        errorMessage: 'Error de conexión con el servidor. Verifica tu red.',
+      );
+    }
+  }
+
   /// Consulta título, canal y thumbnail de un video de YouTube a partir del link.
   Future<YoutubePreviewResult> obtenerPreviewYoutube(String url) async {
     try {

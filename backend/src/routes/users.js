@@ -14,11 +14,13 @@ const {
   updateUser,
   deleteUser,
 } = require('../controllers/User');
+const { loginWithGoogle } = require('../controllers/google');
 const { protect, authorize } = require('../middleware/auth');
 
 // Rutas públicas
 router.post('/register', registerUser);
 router.post('/login', loginUser);
+router.post('/login-google', loginWithGoogle);
 router.post('/verify-code', verifyCode);
 router.post('/resend-code', resendCode);
 router.post('/forgot-password', forgotPassword);
