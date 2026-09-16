@@ -5,8 +5,8 @@ plugins {
 }
 
 android {
-    namespace = "com.example.santv_app"
-    compileSdk = flutter.compileSdkVersion
+    namespace = "com.example.frontend"
+    compileSdk = 36
     ndkVersion = flutter.ndkVersion
 
     compileOptions {

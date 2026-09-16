@@ -35,7 +35,8 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
 
   String _type = 'movie';
   bool _isPremium = false;
-  bool _usarUrlExterna = false; // NUEVO: alterna entre subir archivo o pegar link
+  bool _usarUrlExterna =
+      false; // NUEVO: alterna entre subir archivo o pegar link
   File? _videoFile;
   String? _videoFileName;
   bool _subiendo = false;
@@ -63,14 +64,12 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
   }
 
   Future<void> _elegirVideo() async {
-    final result = await FilePicker.platform.pickFiles(
-      type: FileType.video,
-    );
+    final files = await FilePicker.pickFiles(type: FileType.video);
 
-    if (result != null && result.files.single.path != null) {
+    if (files.isNotEmpty && files.first.path != null) {
       setState(() {
-        _videoFile = File(result.files.single.path!);
-        _videoFileName = result.files.single.name;
+        _videoFile = File(files.first.path!);
+        _videoFileName = files.first.name;
       });
     }
   }
@@ -107,9 +106,6 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
       _mensaje = null;
     });
 
-    // TODO: 'crearConUrlExterna' aún no existe en ContentService.
-    // Debe crear el Content directamente con el campo videoUrl,
-    // sin pasar por /api/uploads/video (sin Cloudinary de por medio).
     final result = _usarUrlExterna
         ? await _contentService.crearConUrlExterna(
             title: _titleController.text.trim(),
@@ -140,7 +136,8 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
       _subiendo = false;
       _mensaje = result.success
           ? 'Contenido guardado correctamente.'
-          : (result.errorMessage ?? 'Ocurrió un error al guardar el contenido.');
+          : (result.errorMessage ??
+                'Ocurrió un error al guardar el contenido.');
       _mensajeEsError = !result.success;
     });
 
@@ -170,7 +167,10 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B0B0B),
         iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Agregar contenido', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Agregar contenido',
+          style: TextStyle(color: Colors.white),
+        ),
       ),
       body: Form(
         key: _formKey,
@@ -229,7 +229,10 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
               value: _isPremium,
               onChanged: (value) => setState(() => _isPremium = value),
               activeThumbColor: neonGreen,
-              title: const Text('Contenido premium', style: TextStyle(color: Colors.white)),
+              title: const Text(
+                'Contenido premium',
+                style: TextStyle(color: Colors.white),
+              ),
               contentPadding: EdgeInsets.zero,
             ),
             const SizedBox(height: 8),
