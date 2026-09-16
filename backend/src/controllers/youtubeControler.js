@@ -114,7 +114,7 @@ const getContents = asyncHandler(async (req, res) => {
   const limit = parseInt(req.query.limit) || 20;
   const skip = (page - 1) * limit;
 
-  const filter = { isPublished: true };
+  const filter = { isActive: true };
   if (req.query.type) filter.type = req.query.type;
   if (req.query.category) filter.category = req.query.category;
   if (req.query.search) filter.$text = { $search: req.query.search };
