@@ -1,10 +1,10 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../common/glass_container.dart';
 import '../../models/content.dart';
 import '../../services/auth_service.dart';
 import '../../services/content_services.dart';
 import '../../pages/video_player_screen.dart';
+import '../../pages/youtube_player_screen.dart';
 
 /// Sección "Videos destacados": título + carrusel horizontal.
 /// Carga los videos con más vistas desde el backend.
@@ -47,10 +47,12 @@ class _FeaturedVideosCarouselState extends State<FeaturedVideosCarousel> {
 
   Future<void> _abrirVideo(ContentItem content) async {
     if (content.isYoutube) {
-      final uri = Uri.parse(content.videoUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => YoutubePlayerScreen(content: content),
+        ),
+      );
     } else {
       Navigator.push(
         context,
