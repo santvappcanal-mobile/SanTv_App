@@ -18,9 +18,9 @@ class _SplashScreenState extends State<SplashScreen>
   static const _tokenKey = 'auth_token';
 
   // Colorimetría verde del Home
-  static const Color _bg1 = Color(0xFF0B0B0B);
-  static const Color _bg2 = Color(0xFF10241A);
-  static const Color _bg3 = Color(0xFF0B0B0B);
+  static const Color _bg1 = Color.fromARGB(255, 255, 253, 253);
+  static const Color _bg2 = Color.fromARGB(255, 0, 241, 121);
+  static const Color _bg3 = Color.fromARGB(255, 206, 142, 142);
   static const Color _neonGreen = Color(0xFF39FF14);
 
   @override
@@ -32,14 +32,12 @@ class _SplashScreenState extends State<SplashScreen>
       duration: const Duration(milliseconds: 900),
     );
 
-    _fadeAnimation = CurvedAnimation(
-      parent: _controller,
-      curve: Curves.easeIn,
-    );
+    _fadeAnimation = CurvedAnimation(parent: _controller, curve: Curves.easeIn);
 
-    _scaleAnimation = Tween<double>(begin: 0.85, end: 1.0).animate(
-      CurvedAnimation(parent: _controller, curve: Curves.easeOutBack),
-    );
+    _scaleAnimation = Tween<double>(
+      begin: 0.85,
+      end: 1.0,
+    ).animate(CurvedAnimation(parent: _controller, curve: Curves.easeOutBack));
 
     _controller.forward();
     _redirect();
