@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:url_launcher/url_launcher.dart';
 import '../widgets/publicidad_section.dart';
 import '../widgets/explore/explore_search_bar.dart';
 import '../widgets/explore/category_chips_row.dart';
@@ -8,6 +7,7 @@ import '../models/content.dart';
 import '../services/auth_service.dart';
 import '../services/content_services.dart';
 import 'video_player_screen.dart';
+import 'youtube_player_screen.dart';
 
 /// Pestaña "Explorar". Se usa embebida dentro de [Home]
 /// (pages/home.dart), como uno de los ítems del IndexedStack.
@@ -67,10 +67,12 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   Future<void> _abrirVideo(ContentItem content) async {
     if (content.isYoutube) {
-      final uri = Uri.parse(content.videoUrl);
-      if (await canLaunchUrl(uri)) {
-        await launchUrl(uri, mode: LaunchMode.externalApplication);
-      }
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => YoutubePlayerScreen(content: content),
+        ),
+      );
     } else {
       Navigator.push(
         context,
