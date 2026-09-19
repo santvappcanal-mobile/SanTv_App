@@ -62,6 +62,87 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (agregado == true) _cargarStats(); // refresca el dashboard al volver
   }
 
+  // NUEVO: abre el diálogo de edición y guarda los cambios en el backend
+  Future<void> _editarContenido(TopContentItem item) async {
+    final data = await showDialog<Map<String, String>>(
+      context: context,
+      builder: (_) => _EditContentDialog(item: item),
+    );
+
+    if (data == null) return; // canceló
+
+    final result = await _adminService.updateContent(
+      id: item.id,
+      title: data['title']!,
+      description: data['description']!,
+    );
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.success
+              ? 'Contenido actualizado'
+              : (result.errorMessage ?? 'Error al actualizar'),
+        ),
+      ),
+    );
+
+    if (result.success) _cargarStats(); // refresca el Top 5
+  }
+
+  // NUEVO: pide confirmación y elimina el contenido en el backend
+  Future<void> _eliminarContenido(TopContentItem item) async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: cardBg,
+        title: const Text(
+          'Eliminar contenido',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          '¿Seguro que quieres eliminar "${item.title}"? '
+          'Esta acción no se puede deshacer.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white70),
+            ),
+          ),
+          ElevatedButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+          ),
+        ],
+      ),
+    );
+
+    if (confirmar != true) return; // canceló
+
+    final result = await _adminService.deleteContent(item.id);
+
+    if (!mounted) return;
+
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(
+          result.success
+              ? 'Contenido eliminado'
+              : (result.errorMessage ?? 'Error al eliminar'),
+        ),
+      ),
+    );
+
+    if (result.success) _cargarStats(); // refresca el Top 5
+  }
+
   @override
   Widget build(BuildContext context) {
     return Scaffold(
@@ -334,6 +415,24 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                 ],
               ),
+              // NUEVO: lápiz para editar el contenido
+              IconButton(
+                icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
+                tooltip: 'Editar',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _editarContenido(item),
+              ),
+              // NUEVO: papelera para eliminar el contenido
+              IconButton(
+                icon: const Icon(
+                  Icons.delete_outline,
+                  color: Colors.redAccent,
+                  size: 20,
+                ),
+                tooltip: 'Eliminar',
+                visualDensity: VisualDensity.compact,
+                onPressed: () => _eliminarContenido(item),
+              ),
             ],
           ),
         );
@@ -347,6 +446,118 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       height: 50,
       color: Colors.white12,
       child: const Icon(Icons.movie, color: Colors.white38, size: 20),
+    );
+  }
+}
+
+// NUEVO: diálogo de edición (título y descripción)
+class _EditContentDialog extends StatefulWidget {
+  const _EditContentDialog({required this.item});
+
+  final TopContentItem item;
+
+  @override
+  State<_EditContentDialog> createState() => _EditContentDialogState();
+}
+
+class _EditContentDialogState extends State<_EditContentDialog> {
+  late final TextEditingController _titleCtrl;
+  late final TextEditingController _descCtrl;
+  String? _validationError;
+
+  @override
+  void initState() {
+    super.initState();
+    _titleCtrl = TextEditingController(text: widget.item.title);
+    _descCtrl = TextEditingController(text: widget.item.description);
+  }
+
+  @override
+  void dispose() {
+    _titleCtrl.dispose();
+    _descCtrl.dispose();
+    super.dispose();
+  }
+
+  void _guardar() {
+    final title = _titleCtrl.text.trim();
+    final description = _descCtrl.text.trim();
+
+    if (title.isEmpty || description.isEmpty) {
+      setState(() {
+        _validationError = 'El título y la descripción no pueden estar vacíos';
+      });
+      return;
+    }
+
+    Navigator.pop(context, {'title': title, 'description': description});
+  }
+
+  InputDecoration _decoration(String label) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white70),
+      enabledBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: Colors.white24),
+      ),
+      focusedBorder: const OutlineInputBorder(
+        borderSide: BorderSide(color: AdminDashboardScreen.neonGreen),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return AlertDialog(
+      backgroundColor: _AdminDashboardScreenState.cardBg,
+      title: const Text(
+        'Editar contenido',
+        style: TextStyle(color: Colors.white),
+      ),
+      content: SingleChildScrollView(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            TextField(
+              controller: _titleCtrl,
+              style: const TextStyle(color: Colors.white),
+              cursorColor: AdminDashboardScreen.neonGreen,
+              decoration: _decoration('Título'),
+            ),
+            const SizedBox(height: 12),
+            TextField(
+              controller: _descCtrl,
+              maxLines: 4,
+              style: const TextStyle(color: Colors.white),
+              cursorColor: AdminDashboardScreen.neonGreen,
+              decoration: _decoration('Descripción'),
+            ),
+            if (_validationError != null) ...[
+              const SizedBox(height: 12),
+              Text(
+                _validationError!,
+                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
+              ),
+            ],
+          ],
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: () => Navigator.pop(context),
+          child: const Text(
+            'Cancelar',
+            style: TextStyle(color: Colors.white70),
+          ),
+        ),
+        ElevatedButton(
+          onPressed: _guardar,
+          style: ElevatedButton.styleFrom(
+            backgroundColor: AdminDashboardScreen.neonGreen,
+          ),
+          child: const Text('Guardar', style: TextStyle(color: Colors.black)),
+        ),
+      ],
     );
   }
 }
