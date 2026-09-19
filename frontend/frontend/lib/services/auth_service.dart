@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
+import 'package:google_sign_in/google_sign_in.dart'; // NUEVO
 import '../models/app_user.dart';
 
 /// Resultado de una operación de autenticación.
@@ -34,7 +35,22 @@ class AuthService {
   final _storage = const FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
 
+  // NUEVO ─ ID de cliente tipo "Web application" de Google Cloud Console.
+  // Debe ser el MISMO valor que GOOGLE_CLIENT_ID en el .env del backend.
+  static const _googleWebClientId = 'TU_ID_WEB.apps.googleusercontent.com';
+
+  // NUEVO ─ static porque AuthService se instancia varias veces y
+  // GoogleSignIn.instance.initialize() solo debe llamarse una vez.
+  static bool _googleReady = false;
+
   Uri _endpoint(String path) => Uri.parse('$baseUrl/api/users$path');
+
+  // NUEVO
+  Future<void> _initGoogle() async {
+    if (_googleReady) return;
+    await GoogleSignIn.instance.initialize(serverClientId: _googleWebClientId);
+    _googleReady = true;
+  }
 
   Future<AuthResult> register({
     required String name,
@@ -243,12 +259,70 @@ class AuthService {
     }
   }
 
-  /// Aún no configurado (requiere setup nativo de Google Sign-In).
+  /// Inicio de sesión con Google (google_sign_in 7.x).
+  /// Abre el selector de cuentas, obtiene el idToken y lo envía al backend
+  /// (POST /api/users/login-google). Guarda el token igual que login().
   Future<AuthResult> loginWithGoogle() async {
-    return const AuthResult(
-      success: false,
-      errorMessage: 'El inicio de sesión con Google todavía no está disponible.',
-    );
+    try {
+      await _initGoogle();
+
+      final account = await GoogleSignIn.instance.authenticate();
+      final idToken = account.authentication.idToken;
+
+      if (idToken == null) {
+        return const AuthResult(
+          success: false,
+          errorMessage:
+              'Google no devolvió el idToken. Revisa el serverClientId.',
+        );
+      }
+
+      final response = await http.post(
+        _endpoint('/login-google'),
+        headers: {'Content-Type': 'application/json'},
+        body: jsonEncode({'idToken': idToken}),
+      );
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && body['success'] == true) {
+        final data = body['data'] as Map<String, dynamic>?;
+        final token = data?['token']?.toString();
+        if (token != null) {
+          await _storage.write(key: _tokenKey, value: token);
+        }
+        return AuthResult(
+          success: true,
+          token: token,
+          user: data != null ? AppUser.fromJson(data) : null,
+        );
+      }
+
+      return AuthResult(
+        success: false,
+        errorMessage:
+            body['message']?.toString() ?? 'No se pudo iniciar sesión con Google',
+      );
+    } on GoogleSignInException catch (e) {
+      if (e.code == GoogleSignInExceptionCode.canceled) {
+        // OJO: en Android también aparece "canceled" cuando la configuración
+        // es incorrecta (SHA-1 / package name / serverClientId) o si el
+        // dispositivo no tiene una cuenta de Google.
+        return const AuthResult(
+          success: false,
+          errorMessage: 'Inicio de sesión cancelado',
+        );
+      }
+      return AuthResult(
+        success: false,
+        errorMessage: 'Error de Google: ${e.code.name}',
+      );
+    } catch (e) {
+      return AuthResult(
+        success: false,
+        errorMessage: 'No se pudo conectar con el servidor: $e',
+      );
+    }
   }
 
   /// Pide los datos del usuario logueado usando el token guardado.
@@ -336,5 +410,13 @@ class AuthService {
 
   Future<void> logout() async {
     await _storage.delete(key: _tokenKey);
+
+    // NUEVO ─ cierra también la sesión de Google para que la próxima vez
+    // vuelva a aparecer el selector de cuentas. Si Google no está
+    // configurado o no había sesión, el logout local ya se hizo arriba.
+    try {
+      await _initGoogle();
+      await GoogleSignIn.instance.signOut();
+    } catch (_) {}
   }
 }
