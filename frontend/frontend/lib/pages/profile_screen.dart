@@ -37,8 +37,13 @@ class ProfileScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    // Home usa extendBody: true, así que la barra de navegación flotante y el
+    // botón del chatbot quedan encima del contenido. Este espacio extra permite
+    // deslizar hasta que el botón de cerrar sesión quede visible por encima.
+    final bottomInset = MediaQuery.of(context).padding.bottom;
+
     return SingleChildScrollView(
-      padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
+      padding: EdgeInsets.fromLTRB(16, 16, 16, bottomInset + 96),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.stretch,
         children: [
