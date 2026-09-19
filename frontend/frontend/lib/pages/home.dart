@@ -25,7 +25,6 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home> {
   int _currentIndex = 0;
-  static const int _profileTabIndex = 3;
 
   AppUser? _currentUser;
   bool _loadingUser = true;
@@ -106,10 +105,6 @@ class _HomeState extends State<Home> {
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
-  void _goToProfileTab() {
-    setState(() => _currentIndex = _profileTabIndex);
-  }
-
   Future<void> _openEditProfile() async {
     if (_currentUser == null) return;
     await Navigator.push(
@@ -143,8 +138,6 @@ class _HomeState extends State<Home> {
         child: Column(
           children: [
             TopBar(
-              onProfileTap: _goToProfileTab,
-              onLogoutTap: _handleLogout,
               onNotificationsTap: _openNotifications,
               unreadCount: _unreadCount,
             ),
