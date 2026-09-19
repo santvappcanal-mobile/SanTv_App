@@ -17,6 +17,7 @@ class ContentByType {
 class TopContentItem {
   final String id;
   final String title;
+  final String description;
   final int views;
   final String type;
   final String thumbnailUrl;
@@ -24,6 +25,7 @@ class TopContentItem {
   const TopContentItem({
     required this.id,
     required this.title,
+    required this.description,
     required this.views,
     required this.type,
     required this.thumbnailUrl,
@@ -33,6 +35,7 @@ class TopContentItem {
     return TopContentItem(
       id: json['_id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
+      description: json['description']?.toString() ?? '',
       views: (json['views'] ?? 0) as int,
       type: json['type']?.toString() ?? '',
       thumbnailUrl: json['thumbnailUrl']?.toString() ?? '',

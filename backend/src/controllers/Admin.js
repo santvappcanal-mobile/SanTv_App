@@ -39,10 +39,11 @@ const getDashboardStats = asyncHandler(async (req, res) => {
   const totalViews = viewsAgg[0]?.totalViews || 0;
 
   // Top 5 contenido más visto, útil para el dashboard
+  // (incluye description para poder editarlo desde el lápiz del dashboard)
   const topContent = await Content.find({ isActive: true })
     .sort({ views: -1 })
     .limit(5)
-    .select('title views type thumbnailUrl');
+    .select('title description views type thumbnailUrl');
 
   res.json({
     success: true,
