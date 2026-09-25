@@ -8,6 +8,7 @@ import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import 'explore_screen.dart';
 import 'live_tab_screen.dart';
+import 'live_screen.dart';
 import 'profile_screen.dart';
 import 'edit_profile_screen.dart';
 import 'notifications_screen.dart';
@@ -73,6 +74,29 @@ class _HomeState extends State<Home> {
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
       builder: (_) => AssistantChatSheet(authService: widget.authService),
+    );
+  }
+
+  /// Abre la pantalla del canal en vivo (siempre activo, 24/7).
+  /// [liveId] permite reutilizar esto para otras transmisiones futuras;
+  /// para el canal permanente usamos un id fijo.
+  void _openLive([String liveId = 'canal-en-vivo']) {
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => LiveScreen(
+          liveId: liveId,
+          title: 'SAN TV en vivo',
+          description: 'Transmisión en vivo del canal SAN TV, 24/7.',
+          coverImageUrl:
+              'https://TU_IMAGEN_DE_PORTADA.jpg', // reemplaza con la portada real
+          currentUser: {
+            'id': _currentUser?.id ?? '',
+            'name': _currentUser?.name ?? 'Usuario',
+            'avatarUrl': _currentUser?.avatarUrl ?? '',
+          },
+        ),
+      ),
     );
   }
 
@@ -148,6 +172,7 @@ class _HomeState extends State<Home> {
                   HomeTabContent(
                     neonColor: neonColor,
                     onOpenAdvertising: _openAdvertising,
+                    onOpenLive: _openLive,
                     authService: widget.authService,
                   ),
                   ExploreScreen(
@@ -155,9 +180,7 @@ class _HomeState extends State<Home> {
                     authService: widget.authService,
                   ),
                   LiveTabScreen(
-                    onOpenLive: (liveId) {
-                      debugPrint('Abriendo transmisión: $liveId');
-                    },
+                    onOpenLive: (liveId) => _openLive(liveId),
                   ),
                   _loadingUser
                       ? const Center(

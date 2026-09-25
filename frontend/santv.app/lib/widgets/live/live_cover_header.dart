@@ -1,9 +1,10 @@
 import 'dart:ui';
 import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 
-/// Encabezado del live: imagen de portada, degradado, badge
+/// Encabezado del live: transmisión en vivo embebida, degradado, badge
 /// "TRANSMISIÓN EN VIVO" y botón de silencio, todo en vidrio.
-class LiveCoverHeader extends StatelessWidget {
+class LiveCoverHeader extends StatefulWidget {
   const LiveCoverHeader({
     super.key,
     required this.coverImageUrl,
@@ -15,37 +16,71 @@ class LiveCoverHeader extends StatelessWidget {
   final bool muted;
   final VoidCallback onToggleMute;
 
-  static const Color _neonGreen = Color(0xFF39FF14);
+  static const Color neonGreen = Color(0xFF39FF14);
+
+  @override
+  State<LiveCoverHeader> createState() => _LiveCoverHeaderState();
+}
+
+class _LiveCoverHeaderState extends State<LiveCoverHeader> {
+  static const String _liveUrl = 'https://streaminghd.co/user/produccionessantv';
+
+  late final WebViewController _controller;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.black)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) => setState(() => _loading = false),
+        ),
+      )
+      ..loadRequest(Uri.parse(_liveUrl));
+  }
 
   @override
   Widget build(BuildContext context) {
-    return Stack(
-      children: [
-        ClipRRect(
-          child: Image.network(
-            coverImageUrl,
-            height: 220,
-            width: double.infinity,
-            fit: BoxFit.cover,
+    return SizedBox(
+      height: 220,
+      child: Stack(
+        children: [
+          Positioned.fill(
+            child: _loading
+                ? Image.network(widget.coverImageUrl, fit: BoxFit.cover)
+                : WebViewWidget(controller: _controller),
           ),
-        ),
-        Container(
-          height: 220,
-          decoration: const BoxDecoration(
-            gradient: LinearGradient(
-              begin: Alignment.topCenter,
-              end: Alignment.bottomCenter,
-              colors: [Colors.transparent, Colors.black87],
+          if (_loading)
+            const Positioned.fill(
+              child: Center(
+                child: CircularProgressIndicator(color: LiveCoverHeader.neonGreen),
+              ),
+            ),
+          Container(
+            height: 220,
+            decoration: const BoxDecoration(
+              gradient: LinearGradient(
+                begin: Alignment.topCenter,
+                end: Alignment.bottomCenter,
+                colors: [Colors.transparent, Colors.black87],
+              ),
             ),
           ),
-        ),
-        const Positioned(top: 12, left: 12, child: _LiveBadge(neonGreen: _neonGreen)),
-        Positioned(
-          right: 12,
-          bottom: 12,
-          child: _MuteButton(muted: muted, onTap: onToggleMute),
-        ),
-      ],
+          const Positioned(
+            top: 12,
+            left: 12,
+            child: _LiveBadge(neonGreen: LiveCoverHeader.neonGreen),
+          ),
+          Positioned(
+            right: 12,
+            bottom: 12,
+            child: _MuteButton(muted: widget.muted, onTap: widget.onToggleMute),
+          ),
+        ],
+      ),
     );
   }
 }

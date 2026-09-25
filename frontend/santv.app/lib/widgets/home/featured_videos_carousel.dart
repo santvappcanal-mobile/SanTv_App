@@ -69,7 +69,7 @@ class _FeaturedVideosCarouselState extends State<FeaturedVideosCarousel> {
         const Text(
           'Videos destacados',
           style: TextStyle(
-            color: Colors.white,
+            color: Color.fromARGB(255, 248, 245, 245),
             fontSize: 20,
             fontWeight: FontWeight.bold,
           ),
@@ -152,7 +152,7 @@ class _VideoCard extends StatelessWidget {
                 maxLines: 2,
                 overflow: TextOverflow.ellipsis,
                 style: const TextStyle(
-                  color: Colors.white,
+                  color: Color.fromARGB(255, 170, 165, 165),
                   fontWeight: FontWeight.w600,
                   fontSize: 13,
                 ),

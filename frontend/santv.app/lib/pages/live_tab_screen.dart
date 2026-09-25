@@ -1,20 +1,22 @@
 import 'package:flutter/material.dart';
+import 'package:webview_flutter/webview_flutter.dart';
 import '../../widgets/live_tab/pulsing_live_dot.dart';
 import '../../widgets/live_tab/featured_live_card.dart';
 import '../../widgets/live_tab/live_grid_card.dart';
 
 /// Pestaña "En Vivo". Se usa embebida dentro de [Home]
 /// (pages/home.dart), como uno de los ítems del IndexedStack.
-/// Muestra el listado de transmisiones activas en este momento.
-/// Al tocar una tarjeta, se navega a LiveScreen con el detalle.
-class LiveTabScreen extends StatelessWidget {
+/// Muestra el canal en vivo permanente arriba (autoplay), y debajo
+/// un listado de otras transmisiones/eventos en vivo puntuales.
+class LiveTabScreen extends StatefulWidget {
   const LiveTabScreen({super.key, this.onOpenLive});
 
   /// Se llama con el id del live seleccionado, para que Home/el
   /// router navegue a LiveScreen con ese contenido.
   final void Function(String liveId)? onOpenLive;
 
-  // Datos de ejemplo. Reemplaza por tu lista real (backend/socket).
+  // Datos de ejemplo. Reemplaza por tu lista real (backend/socket) de
+  // eventos en vivo puntuales (LiveEvent), aparte del canal 24/7.
   static const _liveStreams = [
     {
       'id': 'live_1',
@@ -28,25 +30,38 @@ class LiveTabScreen extends StatelessWidget {
       'streamer': 'SAN TV Noticias',
       'viewers': 1288,
     },
-    {
-      'id': 'live_3',
-      'title': 'Torneo Gaming Regional',
-      'streamer': 'SAN Gaming',
-      'viewers': 942,
-    },
-    {
-      'id': 'live_4',
-      'title': 'Concierto en vivo',
-      'streamer': 'SAN Música',
-      'viewers': 610,
-    },
+
+
   ];
+
+  @override
+  State<LiveTabScreen> createState() => _LiveTabScreenState();
+}
+
+class _LiveTabScreenState extends State<LiveTabScreen> {
+  static const String _liveUrl = 'https://streaminghd.co/user/produccionessantv';
+
+  late final WebViewController _controller;
+  bool _loading = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller = WebViewController()
+      ..setJavaScriptMode(JavaScriptMode.unrestricted)
+      ..setBackgroundColor(Colors.black)
+      ..setNavigationDelegate(
+        NavigationDelegate(
+          onPageFinished: (_) => setState(() => _loading = false),
+        ),
+      )
+      ..loadRequest(Uri.parse(_liveUrl));
+  }
 
   @override
   Widget build(BuildContext context) {
     final neonColor = Theme.of(context).colorScheme.primary;
-    final featured = _liveStreams.first;
-    final rest = _liveStreams.skip(1).toList();
+    final rest = LiveTabScreen._liveStreams.skip(1).toList();
 
     return SingleChildScrollView(
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
@@ -58,7 +73,7 @@ class LiveTabScreen extends StatelessWidget {
               PulsingLiveDot(),
               SizedBox(width: 8),
               Text(
-                'En vivo ahora',
+                'Canal en vivo',
                 style: TextStyle(
                   color: Colors.white,
                   fontSize: 20,
@@ -67,15 +82,27 @@ class LiveTabScreen extends StatelessWidget {
               ),
             ],
           ),
-          const SizedBox(height: 16),
+          const SizedBox(height: 12),
 
-          // Transmisión destacada (la más vista)
-          FeaturedLiveCard(
-            title: featured['title'] as String,
-            streamer: featured['streamer'] as String,
-            viewers: featured['viewers'] as int,
-            neonColor: neonColor,
-            onTap: () => onOpenLive?.call(featured['id'] as String),
+          // Canal permanente de SAN TV, reproduciéndose en autoplay.
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: AspectRatio(
+              aspectRatio: 16 / 9,
+              child: Stack(
+                fit: StackFit.expand,
+                children: [
+                  WebViewWidget(controller: _controller),
+                  if (_loading)
+                    Container(
+                      color: Colors.black87,
+                      child: Center(
+                        child: CircularProgressIndicator(color: neonColor),
+                      ),
+                    ),
+                ],
+              ),
+            ),
           ),
 
           const SizedBox(height: 24),
@@ -105,7 +132,7 @@ class LiveTabScreen extends StatelessWidget {
                 title: stream['title'] as String,
                 viewers: stream['viewers'] as int,
                 neonColor: neonColor,
-                onTap: () => onOpenLive?.call(stream['id'] as String),
+                onTap: () => widget.onOpenLive?.call(stream['id'] as String),
               );
             },
           ),

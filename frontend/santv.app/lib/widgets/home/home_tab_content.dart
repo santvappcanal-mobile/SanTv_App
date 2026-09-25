@@ -10,11 +10,13 @@ class HomeTabContent extends StatelessWidget {
     required this.neonColor,
     required this.onOpenAdvertising,
     required this.authService,
+    required this.onOpenLive,
   });
 
   final Color neonColor;
   final VoidCallback onOpenAdvertising;
   final AuthService authService;
+  final void Function([String liveId]) onOpenLive;
 
   @override
   Widget build(BuildContext context) {
@@ -23,7 +25,10 @@ class HomeTabContent extends StatelessWidget {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          HomeHeroBanner(neonColor: neonColor),
+          GestureDetector(
+            onTap: () => onOpenLive(),
+            child: HomeHeroBanner(neonColor: neonColor),
+          ),
           const SizedBox(height: 24),
           PublicidadSection(onTap: onOpenAdvertising),
           const SizedBox(height: 24),
