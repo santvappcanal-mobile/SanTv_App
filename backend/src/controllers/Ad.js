@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const Ad = require('../models/Ad');
+const cloudinary = require('../config/cloudinary');
 
 // @desc    Crear anuncio
 // @route   POST /api/ads
@@ -60,6 +61,44 @@ const getAdsForContent = asyncHandler(async (req, res) => {
 const getAdPortfolio = asyncHandler(async (req, res) => {
   const ads = await Ad.find({ isActive: true, type: 'video' })
     .select('title mediaUrl duration createdAt')
+    .sort({ createdAt: -1 });
+
+  res.json({ success: true, count: ads.length, data: ads });
+});
+
+// @desc    Subir documento/reseña en PDF (crea el Ad con type: 'document')
+// @route   POST /api/ads/document
+// @access  Private/Admin
+const uploadAdDocument = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400);
+    throw new Error('No se recibió ningún archivo PDF');
+  }
+
+  const { title, targetUrl } = req.body;
+  if (!title) {
+    res.status(400);
+    throw new Error('El título es obligatorio');
+  }
+
+  const ad = await Ad.create({
+    title,
+    type: 'document',
+    mediaUrl: req.file.path, // URL de Cloudinary
+    mediaPublicId: req.file.filename, // public_id para poder eliminarlo luego
+    targetUrl,
+    startDate: new Date(),
+  });
+
+  res.status(201).json({ success: true, data: ad });
+});
+
+// @desc    Listar documentos/reseñas públicos (para la sección de Publicidad)
+// @route   GET /api/ads/documents
+// @access  Public
+const getAdDocuments = asyncHandler(async (req, res) => {
+  const ads = await Ad.find({ isActive: true, type: 'document' })
+    .select('title mediaUrl createdAt')
     .sort({ createdAt: -1 });
 
   res.json({ success: true, count: ads.length, data: ads });
@@ -135,6 +174,12 @@ const deleteAd = asyncHandler(async (req, res) => {
     throw new Error('Anuncio no encontrado');
   }
 
+  // Si el anuncio tiene un archivo asociado en Cloudinary, se elimina también
+  if (ad.mediaPublicId) {
+    const resourceType = ad.type === 'video' ? 'video' : ad.type === 'document' ? 'raw' : 'image';
+    await cloudinary.uploader.destroy(ad.mediaPublicId, { resource_type: resourceType });
+  }
+
   await ad.deleteOne();
   res.json({ success: true, message: 'Anuncio eliminado correctamente' });
 });
@@ -149,4 +194,6 @@ module.exports = {
   registerClick,
   updateAd,
   deleteAd,
+  uploadAdDocument,
+  getAdDocuments,
 };

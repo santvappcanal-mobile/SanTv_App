@@ -6,6 +6,7 @@ import '../widgets/home/glass_bottom_nav_bar.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
+import '../services/ad_service.dart';
 import 'explore_screen.dart';
 import 'live_tab_screen.dart';
 import 'profile_screen.dart';
@@ -32,6 +33,7 @@ class _HomeState extends State<Home> {
   late final NotificationService _notificationService = NotificationService(
     authService: widget.authService,
   );
+  late final AdService _adService = AdService(authService: widget.authService);
   int _unreadCount = 0;
 
   @override
@@ -77,14 +79,12 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _openAdvertising() async {
-    final token = await widget.authService.getToken();
-    if (!mounted) return;
     await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => PublicidadScreen(
           esAdmin: _currentUser?.isAdmin ?? false,
-          adminToken: token,
+          adService: _adService,
         ),
       ),
     );

@@ -20,6 +20,16 @@ const videoStorage = new CloudinaryStorage({
   },
 });
 
+// Los PDFs se suben a Cloudinary como resource_type: 'raw'
+const documentStorage = new CloudinaryStorage({
+  cloudinary,
+  params: {
+    folder: 'santv/documents',
+    resource_type: 'raw',
+    allowed_formats: ['pdf'],
+  },
+});
+
 const uploadImage = multer({
   storage: imageStorage,
   limits: { fileSize: 10 * 1024 * 1024 },
@@ -30,4 +40,9 @@ const uploadVideo = multer({
   limits: { fileSize: 200 * 1024 * 1024 },
 });
 
-module.exports = { uploadImage, uploadVideo };
+const uploadDocument = multer({
+  storage: documentStorage,
+  limits: { fileSize: 15 * 1024 * 1024 }, // 15MB
+});
+
+module.exports = { uploadImage, uploadVideo, uploadDocument };
