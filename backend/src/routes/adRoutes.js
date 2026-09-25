@@ -10,11 +10,15 @@ const {
   registerClick,
   updateAd,
   deleteAd,
+  uploadAdDocument,
+  getAdDocuments,
 } = require('../controllers/Ad');
 const { protect, authorize } = require('../middleware/auth');
+const { uploadDocument } = require('../middleware/upload');
 
 // Rutas públicas
 router.get('/portfolio', getAdPortfolio);
+router.get('/documents', getAdDocuments);
 router.get('/for-content', getAdsForContent);
 router.put('/:id/impression', registerImpression);
 router.put('/:id/click', registerClick);
@@ -23,6 +27,7 @@ router.put('/:id/click', registerClick);
 router.get('/', protect, authorize('admin'), getAds);
 router.get('/:id', protect, authorize('admin'), getAdById);
 router.post('/', protect, authorize('admin'), createAd);
+router.post('/document', protect, authorize('admin'), uploadDocument.single('archivo'), uploadAdDocument);
 router.put('/:id', protect, authorize('admin'), updateAd);
 router.delete('/:id', protect, authorize('admin'), deleteAd);
 
