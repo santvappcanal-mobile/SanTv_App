@@ -1,8 +1,11 @@
 require('dotenv').config();
 const express = require('express');
 const cors = require('cors');
+const http = require('http');
+const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
+const { initLiveSocket } = require('./sockets/liveSocket');
 
 const app = express();
 
@@ -24,13 +27,20 @@ app.use('/api/uploads', require('./routes/upload.routes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
 
-
 // Manejo de errores
 app.use(notFound);
 app.use(errorHandler);
 
+// Servidor HTTP + Socket.IO (necesario para el contador de EN VIVO)
+const server = http.createServer(app);
+const io = new Server(server, {
+  cors: { origin: '*' }, // ajusta esto a tu dominio real en producción
+});
+initLiveSocket(io);
+
 // Puerto de ejecución
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+server.listen(PORT, () => {
   console.log(`🚀 Servidor ejecutándose en el puerto ${PORT}`);
+  console.log(`🔴 Socket.IO listo para EN VIVO`);
 });
