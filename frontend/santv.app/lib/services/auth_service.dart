@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
-import 'package:google_sign_in/google_sign_in.dart'; // NUEVO
+import 'package:google_sign_in/google_sign_in.dart';
 import '../models/app_user.dart';
 
 /// Resultado de una operación de autenticación.
@@ -35,17 +35,18 @@ class AuthService {
   final _storage = const FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
 
-  // NUEVO ─ ID de cliente tipo "Web application" de Google Cloud Console.
+  // ID de cliente tipo "Web application" de Google Cloud Console.
   // Debe ser el MISMO valor que GOOGLE_CLIENT_ID en el .env del backend.
-  static const _googleWebClientId = 'TU_ID_WEB.apps.googleusercontent.com';
+  // El secreto del cliente NO va en la app.
+  static const _googleWebClientId =
+      '1057846858411-m66khkt1n9jh92pr57eggg4mtov2o9v6.apps.googleusercontent.com';
 
-  // NUEVO ─ static porque AuthService se instancia varias veces y
+  // static porque AuthService se instancia varias veces y
   // GoogleSignIn.instance.initialize() solo debe llamarse una vez.
   static bool _googleReady = false;
 
   Uri _endpoint(String path) => Uri.parse('$baseUrl/api/users$path');
 
-  // NUEVO
   Future<void> _initGoogle() async {
     if (_googleReady) return;
     await GoogleSignIn.instance.initialize(serverClientId: _googleWebClientId);
@@ -411,7 +412,7 @@ class AuthService {
   Future<void> logout() async {
     await _storage.delete(key: _tokenKey);
 
-    // NUEVO ─ cierra también la sesión de Google para que la próxima vez
+    // Cierra también la sesión de Google para que la próxima vez
     // vuelva a aparecer el selector de cuentas. Si Google no está
     // configurado o no había sesión, el logout local ya se hizo arriba.
     try {
