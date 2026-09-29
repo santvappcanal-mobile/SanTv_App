@@ -36,8 +36,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
     'Todo',
     'Deportes',
     'Noticias',
-    'Música',
-    'Gaming',
     'Educación',
   ];
 
