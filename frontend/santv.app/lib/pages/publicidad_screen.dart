@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart' as fp;
 import 'package:flutter/material.dart';
 
 import '../services/ad_service.dart';
+import 'pdf_viewer_page.dart';
 
 /// Pantalla de "Publicidad" a la que se accede desde el Perfil.
 /// Muestra planes de publicidad, documentos/brochures y el
@@ -177,7 +178,15 @@ class _PublicidadScreenState extends State<PublicidadScreen>
                               )
                             : const Icon(Icons.download, color: Colors.white54),
                         onTap: () {
-                          // TODO: abrir doc.mediaUrl (Cloudinary) con url_launcher
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (_) => PdfViewerPage(
+                                url: doc.mediaUrl,
+                                titulo: doc.title,
+                              ),
+                            ),
+                          );
                         },
                       );
                     },
