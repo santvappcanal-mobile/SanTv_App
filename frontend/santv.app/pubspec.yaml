@@ -1,4 +1,4 @@
-name: santv.app 
+name: santv_app
 description: "A new Flutter project."
 # The following line prevents the package from being accidentally published to
 # pub.dev using `flutter pub publish`. This is preferred for private packages.
@@ -46,7 +46,13 @@ dependencies:
   video_player: ^2.14.0
   url_launcher: ^6.3.2
   youtube_player_iframe: ^6.0.2
+
+  # WebView del canal en vivo (autoplay sin gesto del usuario).
+  # Las dos de plataforma se importan directo en live_tab_screen.dart.
   webview_flutter: ^4.14.1
+  webview_flutter_android: ^4.0.0
+  webview_flutter_wkwebview: ^3.0.0
+
   google_sign_in: ^7.2.0
 
   # Necesita estar aquí (no en dev_dependencies) porque
@@ -112,7 +118,7 @@ flutter:
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
 
-  # For details regarding adding assets from package dependencies, see
+  # For details regarding assets from package dependencies, see
   # https://flutter.dev/to/asset-from-package
 
   # To add custom fonts to your application, add a fonts section here,
