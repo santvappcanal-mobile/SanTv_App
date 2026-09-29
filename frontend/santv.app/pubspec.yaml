@@ -59,6 +59,7 @@ dependencies:
   # FlutterNativeSplash.preserve()/.remove() se llaman en tiempo
   # de ejecución dentro de main.dart, no solo en tiempo de build.
   flutter_native_splash: ^2.4.3
+  syncfusion_flutter_pdfviewer: ^34.2.9
 
 dev_dependencies:
   flutter_test:
