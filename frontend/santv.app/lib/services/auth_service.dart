@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
@@ -37,7 +38,10 @@ class AuthService {
 
   // ID de cliente tipo "Web application" de Google Cloud Console.
   // Debe ser el MISMO valor que GOOGLE_CLIENT_ID en el .env del backend.
+<<<<<<< HEAD
   // El secreto del cliente NO va en la app.
+=======
+>>>>>>> 287a439299b77d05a505bc5c1da5fc6f5f0098c4
   static const _googleWebClientId =
       '1057846858411-m66khkt1n9jh92pr57eggg4mtov2o9v6.apps.googleusercontent.com';
 
@@ -137,7 +141,8 @@ class AuthService {
 
       return AuthResult(
         success: false,
-        errorMessage: body['message']?.toString() ?? 'No se pudo reenviar el código',
+        errorMessage:
+            body['message']?.toString() ?? 'No se pudo reenviar el código',
       );
     } catch (e) {
       return AuthResult(
@@ -214,7 +219,8 @@ class AuthService {
       return AuthResult(
         success: false,
         errorMessage:
-            body['message']?.toString() ?? 'No se pudo enviar el código de recuperación',
+            body['message']?.toString() ??
+            'No se pudo enviar el código de recuperación',
       );
     } catch (e) {
       return AuthResult(
@@ -250,7 +256,8 @@ class AuthService {
       return AuthResult(
         success: false,
         errorMessage:
-            body['message']?.toString() ?? 'No se pudo restablecer la contraseña',
+            body['message']?.toString() ??
+            'No se pudo restablecer la contraseña',
       );
     } catch (e) {
       return AuthResult(
@@ -284,41 +291,59 @@ class AuthService {
         body: jsonEncode({'idToken': idToken}),
       );
 
+      debugPrint(
+        'LOGIN-GOOGLE backend -> ${response.statusCode}: ${response.body}',
+      );
+
       final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && body['success'] == true) {
+        // Tolera las dos formas de respuesta del backend:
+        //  A) { success, data: { token, ...usuario } }
+        //  B) { success, token, user: { ... } }
         final data = body['data'] as Map<String, dynamic>?;
-        final token = data?['token']?.toString();
+        final userJson = data ?? (body['user'] as Map<String, dynamic>?);
+        final token = (data?['token'] ?? body['token'])?.toString();
+
         if (token != null) {
           await _storage.write(key: _tokenKey, value: token);
         }
         return AuthResult(
           success: true,
           token: token,
-          user: data != null ? AppUser.fromJson(data) : null,
+          user: userJson != null ? AppUser.fromJson(userJson) : null,
         );
       }
 
       return AuthResult(
         success: false,
         errorMessage:
-            body['message']?.toString() ?? 'No se pudo iniciar sesión con Google',
+            body['message']?.toString() ??
+            'No se pudo iniciar sesión con Google',
       );
     } on GoogleSignInException catch (e) {
+      // Imprime el motivo real en la consola (flutter run / Debug Console).
+      debugPrint(
+        'GOOGLE ERROR -> code: ${e.code.name}, description: ${e.description}',
+      );
+
       if (e.code == GoogleSignInExceptionCode.canceled) {
         // OJO: en Android también aparece "canceled" cuando la configuración
         // es incorrecta (SHA-1 / package name / serverClientId) o si el
         // dispositivo no tiene una cuenta de Google.
-        return const AuthResult(
+        return AuthResult(
           success: false,
-          errorMessage: 'Inicio de sesión cancelado',
+          errorMessage:
+              'Inicio de sesión cancelado (${e.description ?? 'sin detalle'})',
         );
       }
       return AuthResult(
         success: false,
-        errorMessage: 'Error de Google: ${e.code.name}',
+        errorMessage: 'Error de Google: ${e.code.name} ${e.description ?? ''}'
+            .trim(),
       );
     } catch (e) {
+      debugPrint('LOGIN-GOOGLE error inesperado -> $e');
       return AuthResult(
         success: false,
         errorMessage: 'No se pudo conectar con el servidor: $e',
@@ -395,7 +420,8 @@ class AuthService {
 
       return AuthResult(
         success: false,
-        errorMessage: body['message']?.toString() ?? 'No se pudo actualizar el perfil',
+        errorMessage:
+            body['message']?.toString() ?? 'No se pudo actualizar el perfil',
       );
     } catch (e) {
       return AuthResult(

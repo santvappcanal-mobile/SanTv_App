@@ -183,10 +183,7 @@ class _LoginScreenState extends State<LoginScreen> {
             const SizedBox(height: 20),
             const OrDivider(),
             const SizedBox(height: 20),
-            GoogleSignInButton(
-              onTap: _handleGoogleLogin,
-              enabled: !_loading,
-            ),
+            GoogleSignInButton(onTap: _handleGoogleLogin, enabled: !_loading),
           ],
         ),
       ),

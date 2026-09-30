@@ -15,7 +15,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.santv.app"
+        applicationId = "com.santv_app"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode

@@ -20,9 +20,16 @@ const userSchema = new mongoose.Schema(
     },
     password: {
       type: String,
-      required: [true, 'La contraseña es obligatoria'],
+      required: function () {
+        return !this.googleId; // solo obligatoria si NO es cuenta de Google
+      },
       minlength: 6,
       select: false,
+    },
+    googleId: {
+      type: String,
+      unique: true,
+      sparse: true, // sin default: el campo simplemente no existe en usuarios locales
     },
     role: {
       type: String,
@@ -69,7 +76,7 @@ const userSchema = new mongoose.Schema(
 );
 
 userSchema.pre('save', async function (next) {
-  if (!this.isModified('password')) {
+  if (!this.isModified('password') || !this.password) {
     return next();
   }
 
@@ -79,6 +86,7 @@ userSchema.pre('save', async function (next) {
 });
 
 userSchema.methods.matchPassword = async function (enteredPassword) {
+  if (!this.password) return false; // cuenta de Google, no tiene password
   return await bcrypt.compare(enteredPassword, this.password);
 };
 

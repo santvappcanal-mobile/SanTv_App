@@ -20,8 +20,15 @@ class SanTvApp extends StatefulWidget {
 }
 
 class _SanTvAppState extends State<SanTvApp> {
+<<<<<<< HEAD
+=======
+  // URL del backend según dónde corras la app:
+  //  - Emulador Android:        http://10.0.2.2:3000
+  //  - Celular físico (USB):    http://localhost:3000 + `adb reverse tcp:3000 tcp:3000`
+  //  - Celular físico (WiFi):   http://IP_DE_TU_PC:3000 (ej: 192.168.1.151)
+>>>>>>> 287a439299b77d05a505bc5c1da5fc6f5f0098c4
   late final AuthService authService = AuthService(
-    baseUrl: 'http://10.0.2.2:3000',
+    baseUrl: 'http://localhost:3000',
   );
 
   @override
@@ -32,41 +39,39 @@ class _SanTvAppState extends State<SanTvApp> {
       theme: ThemeData(
         brightness: Brightness.dark,
         scaffoldBackgroundColor: Colors.black,
-        colorScheme: const ColorScheme.dark(
-          primary: Color(0xFF39FF14),
-        ),
+        colorScheme: const ColorScheme.dark(primary: Color(0xFF39FF14)),
         useMaterial3: true,
       ),
       initialRoute: '/',
       routes: {
         '/': (context) => _Bootstrap(authService: authService),
         '/login': (context) => AuthScreen(
-              authService: authService,
-              onLoggedIn: () {
-                Navigator.pushReplacementNamed(context, '/home');
-              },
-              onRegistered: (email) {
-                Navigator.push(
-                  context,
-                  MaterialPageRoute(
-                    builder: (_) => VerifyCodeScreen(
-                      authService: authService,
-                      email: email,
-                      onVerified: () {
-                        Navigator.pushNamedAndRemoveUntil(
-                          context,
-                          '/home',
-                          (route) => false,
-                        );
-                      },
-                      onCancel: () {
-                        Navigator.pop(context);
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
+          authService: authService,
+          onLoggedIn: () {
+            Navigator.pushReplacementNamed(context, '/home');
+          },
+          onRegistered: (email) {
+            Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => VerifyCodeScreen(
+                  authService: authService,
+                  email: email,
+                  onVerified: () {
+                    Navigator.pushNamedAndRemoveUntil(
+                      context,
+                      '/home',
+                      (route) => false,
+                    );
+                  },
+                  onCancel: () {
+                    Navigator.pop(context);
+                  },
+                ),
+              ),
+            );
+          },
+        ),
         '/home': (context) => Home(authService: authService),
       },
     );
@@ -110,4 +115,8 @@ class _BootstrapState extends State<_Bootstrap> {
 
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();
+<<<<<<< HEAD
 }
+=======
+}
+>>>>>>> 287a439299b77d05a505bc5c1da5fc6f5f0098c4
