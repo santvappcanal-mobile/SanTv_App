@@ -3,6 +3,7 @@ import 'package:file_picker/file_picker.dart' as fp;
 import 'package:flutter/material.dart';
 
 import '../services/ad_service.dart';
+import '../widgets/common/pdf_document_card.dart';
 import 'pdf_viewer_page.dart';
 
 /// Pantalla de "Publicidad" a la que se accede desde el Perfil.
@@ -163,33 +164,33 @@ class _PublicidadScreenState extends State<PublicidadScreen>
                       ),
                     ],
                   )
-                : ListView.builder(
+                : ListView.separated(
+                    physics: const AlwaysScrollableScrollPhysics(),
+                    padding: const EdgeInsets.all(12),
                     itemCount: _documentos.length,
+                    separatorBuilder: (_, __) => const SizedBox(height: 12),
                     itemBuilder: (context, index) {
                       final doc = _documentos[index];
-                      return ListTile(
-                        leading: const Icon(Icons.picture_as_pdf, color: neonGreen),
-                        title: Text(
-                          doc.title,
-                          style: const TextStyle(color: Colors.white),
-                        ),
-                        trailing: widget.esAdmin
-                            ? IconButton(
-                                icon: const Icon(Icons.delete, color: Colors.redAccent),
-                                onPressed: () => _confirmarEliminar(doc.id),
-                              )
-                            : const Icon(Icons.download, color: Colors.white54),
-                        onTap: () {
-                          Navigator.push(
-                            context,
-                            MaterialPageRoute(
-                              builder: (_) => PdfViewerPage(
-                                url: doc.mediaUrl,
-                                titulo: doc.title,
+                      return SizedBox(
+                        height: 220, // rectángulo de ancho completo
+                        child: PdfDocumentCard(
+                          titulo: doc.title,
+                          url: doc.mediaUrl,
+                          onDelete: widget.esAdmin
+                              ? () => _confirmarEliminar(doc.id)
+                              : null,
+                          onTap: () {
+                            Navigator.push(
+                              context,
+                              MaterialPageRoute(
+                                builder: (_) => PdfViewerPage(
+                                  url: doc.mediaUrl,
+                                  titulo: doc.title,
+                                ),
                               ),
-                            ),
-                          );
-                        },
+                            );
+                          },
+                        ),
                       );
                     },
                   ),
