@@ -49,6 +49,11 @@ dependencies:
   webview_flutter: ^4.14.1
   google_sign_in: ^7.2.0
 
+  # Necesita estar aquí (no en dev_dependencies) porque
+  # FlutterNativeSplash.preserve()/.remove() se llaman en tiempo
+  # de ejecución dentro de main.dart, no solo en tiempo de build.
+  flutter_native_splash: ^2.4.3
+
 dev_dependencies:
   flutter_test:
     sdk: flutter
@@ -60,7 +65,6 @@ dev_dependencies:
   # rules and activating additional ones.
   flutter_lints: ^6.0.0
   flutter_launcher_icons: ^0.14.4
-  flutter_native_splash: ^2.4.3
 
 # Fuerza versiones anteriores de material_ui/cupertino_ui: las versiones
 # 1.3.0 / 1.1.0 usan la anotación @awaitNotRequired, que solo existe
@@ -80,11 +84,12 @@ flutter_launcher_icons:
   adaptive_icon_foreground: "assets/img/logo.png"
 
 flutter_native_splash:
-  color: "#000000"
-  image: assets/img/logo.png
+  color: "#10241A"
+  background_image: assets/img/splash_background.png
+  image: assets/img/inicoapp.png
   android_12:
-    color: "#000000"
-    image: assets/img/logo.png
+    color: "#10241A"
+    image: assets/img/inicoapp.png
   fullscreen: true
 
 # For information on the generic Dart part of this file, see the
@@ -101,6 +106,8 @@ flutter:
   # To add assets to your application, add an assets section, like this:
   assets:
     - assets/img/original.png
+    - assets/img/inicoapp.png
+    - assets/img/splash_background.png
 
   # An image asset can refer to one or more resolution-specific "variants", see
   # https://flutter.dev/to/resolution-aware-images
