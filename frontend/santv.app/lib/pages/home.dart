@@ -26,7 +26,15 @@ class Home extends StatefulWidget {
 }
 
 class _HomeState extends State<Home> {
+  // Índice de la pestaña En vivo dentro del IndexedStack / barra inferior.
+  static const int _liveTabIndex = 2;
+
+  // Cambia a _liveTabIndex si quieres que la app abra directo en En vivo.
   int _currentIndex = 0;
+
+  // true mientras hay otra pantalla encima (ej. LiveScreen), para pausar
+  // el canal que sigue construido debajo en el IndexedStack.
+  bool _liveCovered = false;
 
   AppUser? _currentUser;
   bool _loadingUser = true;
@@ -82,8 +90,11 @@ class _HomeState extends State<Home> {
   /// Abre la pantalla del canal en vivo (siempre activo, 24/7).
   /// [liveId] permite reutilizar esto para otras transmisiones futuras;
   /// para el canal permanente usamos un id fijo.
-  void _openLive([String liveId = 'canal-en-vivo']) {
-    Navigator.push(
+  /// Mientras LiveScreen está abierta se pausa el canal de la pestaña
+  /// En vivo, y se reanuda al volver.
+  Future<void> _openLive([String liveId = 'canal-en-vivo']) async {
+    setState(() => _liveCovered = true);
+    await Navigator.push(
       context,
       MaterialPageRoute(
         builder: (_) => LiveScreen(
@@ -100,6 +111,8 @@ class _HomeState extends State<Home> {
         ),
       ),
     );
+    if (!mounted) return;
+    setState(() => _liveCovered = false);
   }
 
   Future<void> _openAdvertising() async {
@@ -180,6 +193,7 @@ class _HomeState extends State<Home> {
                     authService: widget.authService,
                   ),
                   LiveTabScreen(
+                    isActive: _currentIndex == _liveTabIndex && !_liveCovered,
                     onOpenLive: (liveId) => _openLive(liveId),
                   ),
                   _loadingUser

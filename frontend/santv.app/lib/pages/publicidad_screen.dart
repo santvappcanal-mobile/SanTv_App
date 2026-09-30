@@ -58,11 +58,13 @@ class _PublicidadScreenState extends State<PublicidadScreen>
     });
     try {
       final docs = await widget.adService.getDocuments();
+      if (!mounted) return;
       setState(() {
         _documentos = docs;
         _cargandoDocumentos = false;
       });
     } catch (e) {
+      if (!mounted) return;
       setState(() {
         _errorDocumentos = 'Error al cargar documentos';
         _cargandoDocumentos = false;
@@ -209,25 +211,40 @@ class _PublicidadScreenState extends State<PublicidadScreen>
     );
   }
 
+  /// Flujo: elegir PDF -> vista previa -> confirmar -> nombre -> subir.
   Future<void> _seleccionarYSubirPdf() async {
     final picked = await fp.FilePicker.pickFile(
       type: fp.FileType.custom,
       allowedExtensions: ['pdf'],
     );
-    if (picked == null) return;
+    if (picked == null || picked.path == null) return;
+    if (!mounted) return;
+
+    final file = File(picked.path!);
+
+    // Vista previa antes de subir
+    final confirmar = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => PdfViewerPage(
+          file: file,
+          titulo: picked.name,
+          confirmar: true,
+        ),
+      ),
+    );
+    if (confirmar != true || !mounted) return;
 
     final titulo = await _pedirTitulo();
     if (titulo == null || titulo.trim().isEmpty) return;
 
-    final exito = await widget.adService.uploadDocument(
-      File(picked.path!),
-      titulo.trim(),
-    );
+    final exito = await widget.adService.uploadDocument(file, titulo.trim());
 
     if (!mounted) return;
 
     if (exito) {
       await _cargarDocumentos();
+      if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Documento subido correctamente')),
       );

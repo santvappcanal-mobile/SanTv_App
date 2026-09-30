@@ -86,23 +86,21 @@ class AdService {
 
   /// Trae los documentos/reseñas en PDF (público)
   /// (Ad con isActive: true y type: 'document').
+  /// Lanza excepción si falla, para que la pantalla muestre
+  /// "Error al cargar documentos" y el botón Reintentar.
   Future<List<AdDocumentItem>> getDocuments() async {
-    try {
-      final response = await http.get(_documentsUrl);
+    final response = await http.get(_documentsUrl);
 
-      if (response.statusCode != 200) {
-        return [];
-      }
-
-      final data = jsonDecode(response.body);
-      final List<dynamic> items = data['data'] ?? [];
-
-      return items
-          .map((item) => AdDocumentItem.fromJson(item as Map<String, dynamic>))
-          .toList();
-    } catch (_) {
-      return [];
+    if (response.statusCode != 200) {
+      throw Exception('Error ${response.statusCode}');
     }
+
+    final data = jsonDecode(response.body);
+    final List<dynamic> items = data['data'] ?? [];
+
+    return items
+        .map((item) => AdDocumentItem.fromJson(item as Map<String, dynamic>))
+        .toList();
   }
 
   /// Sube un PDF nuevo como documento/reseña. Solo admin.
