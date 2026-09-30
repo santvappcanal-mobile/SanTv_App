@@ -2,19 +2,29 @@ import 'dart:ui';
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
-/// Encabezado del live: transmisión en vivo embebida, degradado, badge
+/// Reproductor del live: transmisión en vivo embebida, badge
 /// "TRANSMISIÓN EN VIVO" y botón de silencio, todo en vidrio.
+///
+/// Si [height] es null, ocupa todo el espacio disponible (pantalla completa).
 class LiveCoverHeader extends StatefulWidget {
   const LiveCoverHeader({
     super.key,
     required this.coverImageUrl,
     required this.muted,
     required this.onToggleMute,
+    this.height,
+    this.badgeLeft = 12,
   });
 
   final String coverImageUrl;
   final bool muted;
   final VoidCallback onToggleMute;
+
+  /// Alto fijo opcional. Null = se expande al máximo.
+  final double? height;
+
+  /// Distancia del badge al borde izquierdo (para dejar lugar a la flecha).
+  final double badgeLeft;
 
   static const Color neonGreen = Color(0xFF39FF14);
 
@@ -36,7 +46,9 @@ class _LiveCoverHeaderState extends State<LiveCoverHeader> {
       ..setBackgroundColor(Colors.black)
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageFinished: (_) => setState(() => _loading = false),
+          onPageFinished: (_) {
+            if (mounted) setState(() => _loading = false);
+          },
         ),
       )
       ..loadRequest(Uri.parse(_liveUrl));
@@ -44,44 +56,52 @@ class _LiveCoverHeaderState extends State<LiveCoverHeader> {
 
   @override
   Widget build(BuildContext context) {
-    return SizedBox(
-      height: 220,
-      child: Stack(
-        children: [
+    final stack = Stack(
+      children: [
+        Positioned.fill(
+          child: _loading
+              ? Image.network(widget.coverImageUrl, fit: BoxFit.cover)
+              : WebViewWidget(controller: _controller),
+        ),
+        if (_loading)
+          const Positioned.fill(
+            child: Center(
+              child: CircularProgressIndicator(color: LiveCoverHeader.neonGreen),
+            ),
+          ),
+        // Degradado solo cuando el reproductor tiene alto fijo;
+        // IgnorePointer para que no bloquee los toques al video.
+        if (widget.height != null)
           Positioned.fill(
-            child: _loading
-                ? Image.network(widget.coverImageUrl, fit: BoxFit.cover)
-                : WebViewWidget(controller: _controller),
-          ),
-          if (_loading)
-            const Positioned.fill(
-              child: Center(
-                child: CircularProgressIndicator(color: LiveCoverHeader.neonGreen),
-              ),
-            ),
-          Container(
-            height: 220,
-            decoration: const BoxDecoration(
-              gradient: LinearGradient(
-                begin: Alignment.topCenter,
-                end: Alignment.bottomCenter,
-                colors: [Colors.transparent, Colors.black87],
+            child: IgnorePointer(
+              child: Container(
+                decoration: const BoxDecoration(
+                  gradient: LinearGradient(
+                    begin: Alignment.topCenter,
+                    end: Alignment.bottomCenter,
+                    colors: [Colors.transparent, Colors.black87],
+                  ),
+                ),
               ),
             ),
           ),
-          const Positioned(
-            top: 12,
-            left: 12,
-            child: _LiveBadge(neonGreen: LiveCoverHeader.neonGreen),
-          ),
-          Positioned(
-            right: 12,
-            bottom: 12,
-            child: _MuteButton(muted: widget.muted, onTap: widget.onToggleMute),
-          ),
-        ],
-      ),
+        Positioned(
+          top: 12,
+          left: widget.badgeLeft,
+          child: const _LiveBadge(neonGreen: LiveCoverHeader.neonGreen),
+        ),
+        Positioned(
+          right: 12,
+          bottom: 12,
+          child: _MuteButton(muted: widget.muted, onTap: widget.onToggleMute),
+        ),
+      ],
     );
+
+    if (widget.height != null) {
+      return SizedBox(height: widget.height, child: stack);
+    }
+    return SizedBox.expand(child: stack);
   }
 }
 

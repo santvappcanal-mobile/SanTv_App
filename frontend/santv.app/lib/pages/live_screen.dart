@@ -1,13 +1,9 @@
 import 'package:flutter/material.dart';
 import '../services/live_viewer_service.dart';
 import '../widgets/live/live_cover_header.dart';
-import '../widgets/live/live_meta_row.dart';
-import '../widgets/live/live_action_buttons.dart';
 
-// import '../widgets/top_bar.dart'; // Reutiliza tu TopBar existente aquí
-
-/// Pantalla de transmisión EN VIVO, ahora compuesta por widgets
-/// separados (widgets/live/) en vez de tener todo el diseño inline.
+/// Pantalla de transmisión EN VIVO: muestra solo el en vivo ocupando
+/// toda la pantalla (sin ficha de título, rating, descripción ni botones).
 class LiveScreen extends StatefulWidget {
   const LiveScreen({
     super.key,
@@ -55,76 +51,30 @@ class _LiveScreenState extends State<LiveScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      body: Container(
-        width: double.infinity,
-        height: double.infinity,
-        decoration: const BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topLeft,
-            end: Alignment.bottomRight,
-            colors: [Color(0xFF0B0B0B), Color(0xFF10241A), Color(0xFF0B0B0B)],
-          ),
-        ),
-        child: SafeArea(
-          child: SingleChildScrollView(
-            child: ConstrainedBox(
-              constraints: BoxConstraints(
-                minHeight: MediaQuery.of(context).size.height -
-                    MediaQuery.of(context).padding.top,
-              ),
-              child: Column(
-                crossAxisAlignment: CrossAxisAlignment.start,
-                children: [
-                  // const TopBar(), // tu barra superior existente
-
-                  LiveCoverHeader(
-                    coverImageUrl: widget.coverImageUrl,
-                    muted: _muted,
-                    onToggleMute: () => setState(() => _muted = !_muted),
-                  ),
-
-                  Padding(
-                    padding: const EdgeInsets.all(20),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          widget.title,
-                          style: const TextStyle(
-                            color: Colors.white,
-                            fontSize: 26,
-                            fontWeight: FontWeight.bold,
-                            height: 1.15,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        LiveMetaRow(
-                          rating: 9.1,
-                          year: DateTime.now().year,
-                          viewerService: _viewerService,
-                        ),
-                        const SizedBox(height: 18),
-                        Text(
-                          widget.description,
-                          style: const TextStyle(
-                            color: Colors.white70,
-                            fontSize: 14,
-                            height: 1.4,
-                          ),
-                        ),
-                        const SizedBox(height: 28),
-                        LiveActionButtons(
-                          onJoin: () {},
-                          onAddToList: () {},
-                          onInfo: () {},
-                        ),
-                      ],
-                    ),
-                  ),
-                ],
+      backgroundColor: Colors.black,
+      body: SafeArea(
+        child: Stack(
+          children: [
+            // El en vivo ocupa toda la pantalla
+            Positioned.fill(
+              child: LiveCoverHeader(
+                coverImageUrl: widget.coverImageUrl,
+                muted: _muted,
+                onToggleMute: () => setState(() => _muted = !_muted),
+                badgeLeft: 64,
               ),
             ),
-          ),
+
+            // Flecha para volver
+            Positioned(
+              top: 8,
+              left: 8,
+              child: IconButton(
+                icon: const Icon(Icons.arrow_back, color: Colors.white),
+                onPressed: () => Navigator.pop(context),
+              ),
+            ),
+          ],
         ),
       ),
     );
