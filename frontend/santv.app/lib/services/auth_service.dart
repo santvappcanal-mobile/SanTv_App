@@ -36,6 +36,12 @@ class AuthService {
   final _storage = const FlutterSecureStorage();
   static const _tokenKey = 'auth_token';
 
+  /// Tiempo máximo de espera para peticiones normales.
+  static const _timeout = Duration(seconds: 15);
+
+  /// Tiempo máximo para validar la sesión al arrancar la app.
+  static const _profileTimeout = Duration(seconds: 8);
+
   // ID de cliente tipo "Web application" de Google Cloud Console.
   // Debe ser el MISMO valor que GOOGLE_CLIENT_ID en el .env del backend.
   // El secreto del cliente NO va en la app.
@@ -46,27 +52,30 @@ class AuthService {
   // GoogleSignIn.instance.initialize() solo debe llamarse una vez.
   static bool _googleReady = false;
 
-  Uri _endpoint(String path) => Uri.parse('\(baseUrl/api/users\)path');
+  Uri _endpoint(String path) => Uri.parse('$baseUrl/api/users$path');
 
-  Future _initGoogle() async {
+  Future<void> _initGoogle() async {
     if (_googleReady) return;
     await GoogleSignIn.instance.initialize(serverClientId: _googleWebClientId);
     _googleReady = true;
   }
 
-  Future register({
+  Future<AuthResult> register({
     required String name,
     required String email,
     required String password,
   }) async {
     try {
-      final response = await http.post(
-        _endpoint('/register'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'name': name, 'email': email, 'password': password}),
-      );
+      final response = await http
+          .post(
+            _endpoint('/register'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode(
+                {'name': name, 'email': email, 'password': password}),
+          )
+          .timeout(_timeout);
 
-      final body = jsonDecode(response.body) as Map;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 201 && body['success'] == true) {
         return const AuthResult(success: true, pendingVerification: true);
@@ -84,18 +93,20 @@ class AuthService {
     }
   }
 
-  Future verifyCode({
+  Future<AuthResult> verifyCode({
     required String email,
     required String code,
   }) async {
     try {
-      final response = await http.post(
-        _endpoint('/verify-code'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'code': code}),
-      );
+      final response = await http
+          .post(
+            _endpoint('/verify-code'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'code': code}),
+          )
+          .timeout(_timeout);
 
-      final body = jsonDecode(response.body) as Map;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && body['success'] == true) {
         final data = body['data']; // dynamic
@@ -107,7 +118,9 @@ class AuthService {
           success: true,
           token: token,
           // Casting seguro para evitar el error de Map
-          user: data != null ? AppUser.fromJson(Map.from(data)) : null,
+          user: data != null
+              ? AppUser.fromJson(Map<String, dynamic>.from(data))
+              : null,
         );
       }
 
@@ -123,15 +136,17 @@ class AuthService {
     }
   }
 
-  Future resendCode({required String email}) async {
+  Future<AuthResult> resendCode({required String email}) async {
     try {
-      final response = await http.post(
-        _endpoint('/resend-code'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      );
+      final response = await http
+          .post(
+            _endpoint('/resend-code'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(_timeout);
 
-      final body = jsonDecode(response.body) as Map;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && body['success'] == true) {
         return const AuthResult(success: true);
@@ -150,18 +165,20 @@ class AuthService {
     }
   }
 
-  Future login({
+  Future<AuthResult> login({
     required String email,
     required String password,
   }) async {
     try {
-      final response = await http.post(
-        _endpoint('/login'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email, 'password': password}),
-      );
+      final response = await http
+          .post(
+            _endpoint('/login'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email, 'password': password}),
+          )
+          .timeout(_timeout);
 
-      final body = jsonDecode(response.body) as Map;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 403 && body['pendingVerification'] == true) {
         return AuthResult(
@@ -181,7 +198,9 @@ class AuthService {
           success: true,
           token: token,
           // Casting seguro
-          user: data != null ? AppUser.fromJson(Map.from(data)) : null,
+          user: data != null
+              ? AppUser.fromJson(Map<String, dynamic>.from(data))
+              : null,
         );
       }
 
@@ -197,15 +216,17 @@ class AuthService {
     }
   }
 
-  Future forgotPassword({required String email}) async {
+  Future<AuthResult> forgotPassword({required String email}) async {
     try {
-      final response = await http.post(
-        _endpoint('/forgot-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'email': email}),
-      );
+      final response = await http
+          .post(
+            _endpoint('/forgot-password'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'email': email}),
+          )
+          .timeout(_timeout);
 
-      final body = jsonDecode(response.body) as Map;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && body['success'] == true) {
         return const AuthResult(success: true);
@@ -225,23 +246,25 @@ class AuthService {
     }
   }
 
-  Future resetPassword({
+  Future<AuthResult> resetPassword({
     required String email,
     required String code,
     required String newPassword,
   }) async {
     try {
-      final response = await http.post(
-        _endpoint('/reset-password'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({
-          'email': email,
-          'code': code,
-          'newPassword': newPassword,
-        }),
-      );
+      final response = await http
+          .post(
+            _endpoint('/reset-password'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({
+              'email': email,
+              'code': code,
+              'newPassword': newPassword,
+            }),
+          )
+          .timeout(_timeout);
 
-      final body = jsonDecode(response.body) as Map;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && body['success'] == true) {
         return const AuthResult(success: true);
@@ -261,12 +284,12 @@ class AuthService {
     }
   }
 
-  Future loginWithGoogle() async {
+  Future<AuthResult> loginWithGoogle() async {
     try {
       await _initGoogle();
 
       final account = await GoogleSignIn.instance.authenticate();
-      final idToken = account?.authentication.idToken;
+      final idToken = account.authentication.idToken;
 
       if (idToken == null) {
         return const AuthResult(
@@ -276,17 +299,19 @@ class AuthService {
         );
       }
 
-      final response = await http.post(
-        _endpoint('/login-google'),
-        headers: {'Content-Type': 'application/json'},
-        body: jsonEncode({'idToken': idToken}),
-      );
+      final response = await http
+          .post(
+            _endpoint('/login-google'),
+            headers: {'Content-Type': 'application/json'},
+            body: jsonEncode({'idToken': idToken}),
+          )
+          .timeout(_timeout);
 
       debugPrint(
-        'LOGIN-GOOGLE backend -> \({response.statusCode}:\){response.body}',
+        'LOGIN-GOOGLE backend -> ${response.statusCode}:${response.body}',
       );
 
-      final body = jsonDecode(response.body) as Map;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && body['success'] == true) {
         final data = body['data'];
@@ -300,7 +325,9 @@ class AuthService {
           success: true,
           token: token,
           // Casting seguro
-          user: userJson != null ? AppUser.fromJson(Map.from(userJson)) : null,
+          user: userJson != null
+              ? AppUser.fromJson(Map<String, dynamic>.from(userJson))
+              : null,
         );
       }
 
@@ -312,7 +339,7 @@ class AuthService {
       );
     } on GoogleSignInException catch (e) {
       debugPrint(
-        'GOOGLE ERROR -> code: \({e.code.name}, description:\){e.description}',
+        'GOOGLE ERROR -> code: ${e.code.name}, description: ${e.description}',
       );
 
       if (e.code == GoogleSignInExceptionCode.canceled) {
@@ -324,7 +351,7 @@ class AuthService {
       }
       return AuthResult(
         success: false,
-        errorMessage: 'Error de Google: \({e.code.name}\){e.description ?? ''}'
+        errorMessage: 'Error de Google: ${e.code.name} ${e.description ?? ''}'
             .trim(),
       );
     } catch (e) {
@@ -336,7 +363,7 @@ class AuthService {
     }
   }
 
-  Future getProfile() async {
+  Future<AppUser?> getProfile() async {
     try {
       final token = await getToken();
       if (token == null) return null;
@@ -347,20 +374,22 @@ class AuthService {
           'Content-Type': 'application/json',
           'Authorization': 'Bearer $token',
         },
-      );
+      ).timeout(_profileTimeout);
 
-      final body = jsonDecode(response.body) as Map;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
       if (response.statusCode == 200 && body['success'] == true) {
         // Casting seguro
-        return AppUser.fromJson(Map.from(body['data']));
+        return AppUser.fromJson(Map<String, dynamic>.from(body['data']));
       }
       return null;
     } catch (_) {
+      // Incluye TimeoutException: si el backend no responde, se trata como
+      // "sin sesión válida" para que la app no se quede cargando.
       return null;
     }
   }
 
-  Future updateProfile({
+  Future<AuthResult> updateProfile({
     String? name,
     String? email,
     String? avatarUrl,
@@ -375,28 +404,32 @@ class AuthService {
         );
       }
 
-      final response = await http.put(
-        _endpoint('/profile'),
-        headers: {
-          'Content-Type': 'application/json',
-          'Authorization': 'Bearer $token',
-        },
-        body: jsonEncode({
-          if (name != null) 'name': name,
-          if (email != null) 'email': email,
-          if (avatarUrl != null) 'avatar': avatarUrl,
-          if (password != null) 'password': password,
-        }),
-      );
+      final response = await http
+          .put(
+            _endpoint('/profile'),
+            headers: {
+              'Content-Type': 'application/json',
+              'Authorization': 'Bearer $token',
+            },
+            body: jsonEncode({
+              if (name != null) 'name': name,
+              if (email != null) 'email': email,
+              if (avatarUrl != null) 'avatar': avatarUrl,
+              if (password != null) 'password': password,
+            }),
+          )
+          .timeout(_timeout);
 
-      final body = jsonDecode(response.body) as Map;
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
 
       if (response.statusCode == 200 && body['success'] == true) {
         final data = body['data'];
         return AuthResult(
           success: true,
           // Casting seguro
-          user: data != null ? AppUser.fromJson(Map.from(data)) : null,
+          user: data != null
+              ? AppUser.fromJson(Map<String, dynamic>.from(data))
+              : null,
         );
       }
 
@@ -413,11 +446,11 @@ class AuthService {
     }
   }
 
-  Future getToken() async => _storage.read(key: _tokenKey);
+  Future<String?> getToken() async => _storage.read(key: _tokenKey);
 
-  Future get isLoggedIn async => (await getToken()) != null;
+  Future<bool> get isLoggedIn async => (await getToken()) != null;
 
-  Future logout() async {
+  Future<void> logout() async {
     await _storage.delete(key: _tokenKey);
 
     try {
