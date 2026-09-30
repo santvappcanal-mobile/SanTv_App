@@ -16,17 +16,14 @@ class SanTvApp extends StatefulWidget {
   const SanTvApp({super.key});
 
   @override
-  State<SanTvApp> createState() => _SanTvAppState();
+  State createState() => _SanTvAppState();
 }
 
-class _SanTvAppState extends State<SanTvApp> {
-<<<<<<< HEAD
-=======
+class _SanTvAppState extends State {
   // URL del backend según dónde corras la app:
   //  - Emulador Android:        http://10.0.2.2:3000
   //  - Celular físico (USB):    http://localhost:3000 + `adb reverse tcp:3000 tcp:3000`
   //  - Celular físico (WiFi):   http://IP_DE_TU_PC:3000 (ej: 192.168.1.151)
->>>>>>> 287a439299b77d05a505bc5c1da5fc6f5f0098c4
   late final AuthService authService = AuthService(
     baseUrl: 'http://localhost:3000',
   );
@@ -100,7 +97,7 @@ class _BootstrapState extends State<_Bootstrap> {
     _decide();
   }
 
-  Future<void> _decide() async {
+  Future _decide() async {
     final token = await _storage.read(key: _tokenKey);
 
     FlutterNativeSplash.remove();
@@ -115,8 +112,4 @@ class _BootstrapState extends State<_Bootstrap> {
 
   @override
   Widget build(BuildContext context) => const SizedBox.shrink();
-<<<<<<< HEAD
 }
-=======
-}
->>>>>>> 287a439299b77d05a505bc5c1da5fc6f5f0098c4

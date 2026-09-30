@@ -38,10 +38,7 @@ class AuthService {
 
   // ID de cliente tipo "Web application" de Google Cloud Console.
   // Debe ser el MISMO valor que GOOGLE_CLIENT_ID en el .env del backend.
-<<<<<<< HEAD
   // El secreto del cliente NO va en la app.
-=======
->>>>>>> 287a439299b77d05a505bc5c1da5fc6f5f0098c4
   static const _googleWebClientId =
       '1057846858411-m66khkt1n9jh92pr57eggg4mtov2o9v6.apps.googleusercontent.com';
 
@@ -49,15 +46,15 @@ class AuthService {
   // GoogleSignIn.instance.initialize() solo debe llamarse una vez.
   static bool _googleReady = false;
 
-  Uri _endpoint(String path) => Uri.parse('$baseUrl/api/users$path');
+  Uri _endpoint(String path) => Uri.parse('\(baseUrl/api/users\)path');
 
-  Future<void> _initGoogle() async {
+  Future _initGoogle() async {
     if (_googleReady) return;
     await GoogleSignIn.instance.initialize(serverClientId: _googleWebClientId);
     _googleReady = true;
   }
 
-  Future<AuthResult> register({
+  Future register({
     required String name,
     required String email,
     required String password,
@@ -69,7 +66,7 @@ class AuthService {
         body: jsonEncode({'name': name, 'email': email, 'password': password}),
       );
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body) as Map;
 
       if (response.statusCode == 201 && body['success'] == true) {
         return const AuthResult(success: true, pendingVerification: true);
@@ -87,7 +84,7 @@ class AuthService {
     }
   }
 
-  Future<AuthResult> verifyCode({
+  Future verifyCode({
     required String email,
     required String code,
   }) async {
@@ -98,10 +95,10 @@ class AuthService {
         body: jsonEncode({'email': email, 'code': code}),
       );
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body) as Map;
 
       if (response.statusCode == 200 && body['success'] == true) {
-        final data = body['data'] as Map<String, dynamic>?;
+        final data = body['data']; // dynamic
         final token = data?['token']?.toString();
         if (token != null) {
           await _storage.write(key: _tokenKey, value: token);
@@ -109,7 +106,8 @@ class AuthService {
         return AuthResult(
           success: true,
           token: token,
-          user: data != null ? AppUser.fromJson(data) : null,
+          // Casting seguro para evitar el error de Map
+          user: data != null ? AppUser.fromJson(Map.from(data)) : null,
         );
       }
 
@@ -125,7 +123,7 @@ class AuthService {
     }
   }
 
-  Future<AuthResult> resendCode({required String email}) async {
+  Future resendCode({required String email}) async {
     try {
       final response = await http.post(
         _endpoint('/resend-code'),
@@ -133,7 +131,7 @@ class AuthService {
         body: jsonEncode({'email': email}),
       );
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body) as Map;
 
       if (response.statusCode == 200 && body['success'] == true) {
         return const AuthResult(success: true);
@@ -152,7 +150,7 @@ class AuthService {
     }
   }
 
-  Future<AuthResult> login({
+  Future login({
     required String email,
     required String password,
   }) async {
@@ -163,11 +161,8 @@ class AuthService {
         body: jsonEncode({'email': email, 'password': password}),
       );
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body) as Map;
 
-      // Cuenta creada pero no verificada: el backend responde 403
-      // con pendingVerification para que el frontend mande al usuario
-      // a la pantalla de código en vez de mostrar un error genérico.
       if (response.statusCode == 403 && body['pendingVerification'] == true) {
         return AuthResult(
           success: false,
@@ -177,7 +172,7 @@ class AuthService {
       }
 
       if (response.statusCode == 200 && body['success'] == true) {
-        final data = body['data'] as Map<String, dynamic>?;
+        final data = body['data'];
         final token = data?['token']?.toString();
         if (token != null) {
           await _storage.write(key: _tokenKey, value: token);
@@ -185,7 +180,8 @@ class AuthService {
         return AuthResult(
           success: true,
           token: token,
-          user: data != null ? AppUser.fromJson(data) : null,
+          // Casting seguro
+          user: data != null ? AppUser.fromJson(Map.from(data)) : null,
         );
       }
 
@@ -201,8 +197,7 @@ class AuthService {
     }
   }
 
-  /// Solicita el envío del código de recuperación al correo del usuario.
-  Future<AuthResult> forgotPassword({required String email}) async {
+  Future forgotPassword({required String email}) async {
     try {
       final response = await http.post(
         _endpoint('/forgot-password'),
@@ -210,7 +205,7 @@ class AuthService {
         body: jsonEncode({'email': email}),
       );
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body) as Map;
 
       if (response.statusCode == 200 && body['success'] == true) {
         return const AuthResult(success: true);
@@ -230,8 +225,7 @@ class AuthService {
     }
   }
 
-  /// Confirma el código recibido por correo y establece la nueva contraseña.
-  Future<AuthResult> resetPassword({
+  Future resetPassword({
     required String email,
     required String code,
     required String newPassword,
@@ -247,7 +241,7 @@ class AuthService {
         }),
       );
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body) as Map;
 
       if (response.statusCode == 200 && body['success'] == true) {
         return const AuthResult(success: true);
@@ -267,15 +261,12 @@ class AuthService {
     }
   }
 
-  /// Inicio de sesión con Google (google_sign_in 7.x).
-  /// Abre el selector de cuentas, obtiene el idToken y lo envía al backend
-  /// (POST /api/users/login-google). Guarda el token igual que login().
-  Future<AuthResult> loginWithGoogle() async {
+  Future loginWithGoogle() async {
     try {
       await _initGoogle();
 
       final account = await GoogleSignIn.instance.authenticate();
-      final idToken = account.authentication.idToken;
+      final idToken = account?.authentication.idToken;
 
       if (idToken == null) {
         return const AuthResult(
@@ -292,17 +283,14 @@ class AuthService {
       );
 
       debugPrint(
-        'LOGIN-GOOGLE backend -> ${response.statusCode}: ${response.body}',
+        'LOGIN-GOOGLE backend -> \({response.statusCode}:\){response.body}',
       );
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body) as Map;
 
       if (response.statusCode == 200 && body['success'] == true) {
-        // Tolera las dos formas de respuesta del backend:
-        //  A) { success, data: { token, ...usuario } }
-        //  B) { success, token, user: { ... } }
-        final data = body['data'] as Map<String, dynamic>?;
-        final userJson = data ?? (body['user'] as Map<String, dynamic>?);
+        final data = body['data'];
+        final userJson = data ?? body['user'];
         final token = (data?['token'] ?? body['token'])?.toString();
 
         if (token != null) {
@@ -311,7 +299,8 @@ class AuthService {
         return AuthResult(
           success: true,
           token: token,
-          user: userJson != null ? AppUser.fromJson(userJson) : null,
+          // Casting seguro
+          user: userJson != null ? AppUser.fromJson(Map.from(userJson)) : null,
         );
       }
 
@@ -322,15 +311,11 @@ class AuthService {
             'No se pudo iniciar sesión con Google',
       );
     } on GoogleSignInException catch (e) {
-      // Imprime el motivo real en la consola (flutter run / Debug Console).
       debugPrint(
-        'GOOGLE ERROR -> code: ${e.code.name}, description: ${e.description}',
+        'GOOGLE ERROR -> code: \({e.code.name}, description:\){e.description}',
       );
 
       if (e.code == GoogleSignInExceptionCode.canceled) {
-        // OJO: en Android también aparece "canceled" cuando la configuración
-        // es incorrecta (SHA-1 / package name / serverClientId) o si el
-        // dispositivo no tiene una cuenta de Google.
         return AuthResult(
           success: false,
           errorMessage:
@@ -339,7 +324,7 @@ class AuthService {
       }
       return AuthResult(
         success: false,
-        errorMessage: 'Error de Google: ${e.code.name} ${e.description ?? ''}'
+        errorMessage: 'Error de Google: \({e.code.name}\){e.description ?? ''}'
             .trim(),
       );
     } catch (e) {
@@ -351,10 +336,7 @@ class AuthService {
     }
   }
 
-  /// Pide los datos del usuario logueado usando el token guardado.
-  /// Úsalo al iniciar Home (o tras el login) para llenar el perfil
-  /// con datos siempre frescos desde el backend.
-  Future<AppUser?> getProfile() async {
+  Future getProfile() async {
     try {
       final token = await getToken();
       if (token == null) return null;
@@ -367,9 +349,10 @@ class AuthService {
         },
       );
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body) as Map;
       if (response.statusCode == 200 && body['success'] == true) {
-        return AppUser.fromJson(body['data'] as Map<String, dynamic>);
+        // Casting seguro
+        return AppUser.fromJson(Map.from(body['data']));
       }
       return null;
     } catch (_) {
@@ -377,9 +360,7 @@ class AuthService {
     }
   }
 
-  /// Actualiza nombre/email/avatar/password del usuario logueado.
-  /// Usa el endpoint PUT /api/users/profile (protegido con el token).
-  Future<AuthResult> updateProfile({
+  Future updateProfile({
     String? name,
     String? email,
     String? avatarUrl,
@@ -401,20 +382,21 @@ class AuthService {
           'Authorization': 'Bearer $token',
         },
         body: jsonEncode({
-          'name': ?name,
-          'email': ?email,
-          'avatar': ?avatarUrl,
-          'password': ?password,
+          if (name != null) 'name': name,
+          if (email != null) 'email': email,
+          if (avatarUrl != null) 'avatar': avatarUrl,
+          if (password != null) 'password': password,
         }),
       );
 
-      final body = jsonDecode(response.body) as Map<String, dynamic>;
+      final body = jsonDecode(response.body) as Map;
 
       if (response.statusCode == 200 && body['success'] == true) {
-        final data = body['data'] as Map<String, dynamic>?;
+        final data = body['data'];
         return AuthResult(
           success: true,
-          user: data != null ? AppUser.fromJson(data) : null,
+          // Casting seguro
+          user: data != null ? AppUser.fromJson(Map.from(data)) : null,
         );
       }
 
@@ -431,16 +413,13 @@ class AuthService {
     }
   }
 
-  Future<String?> getToken() async => _storage.read(key: _tokenKey);
+  Future getToken() async => _storage.read(key: _tokenKey);
 
-  Future<bool> get isLoggedIn async => (await getToken()) != null;
+  Future get isLoggedIn async => (await getToken()) != null;
 
-  Future<void> logout() async {
+  Future logout() async {
     await _storage.delete(key: _tokenKey);
 
-    // Cierra también la sesión de Google para que la próxima vez
-    // vuelva a aparecer el selector de cuentas. Si Google no está
-    // configurado o no había sesión, el logout local ya se hizo arriba.
     try {
       await _initGoogle();
       await GoogleSignIn.instance.signOut();
