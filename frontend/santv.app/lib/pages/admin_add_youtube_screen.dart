@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
+import '../models/categories.dart';
 import '../services/auth_service.dart';
 import '../services/content_services.dart';
+import '../widgets/common/category_chips.dart';
 
 class AdminAddYoutubeScreen extends StatefulWidget {
   const AdminAddYoutubeScreen({super.key, required this.authService});
@@ -18,10 +20,10 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
 
   final _urlController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _genresController = TextEditingController();
   final _releaseYearController = TextEditingController();
 
   String _type = 'movie';
+  String? _category; // Deportes / Noticias / Educación
   bool _isPremium = false;
 
   bool _cargandoPreview = false;
@@ -43,7 +45,6 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
   void dispose() {
     _urlController.dispose();
     _descriptionController.dispose();
-    _genresController.dispose();
     _releaseYearController.dispose();
     super.dispose();
   }
@@ -75,6 +76,11 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
   Future<void> _guardar() async {
     if (_preview == null) return;
 
+    if (_category == null) {
+      setState(() => _error = 'Selecciona una categoría');
+      return;
+    }
+
     setState(() {
       _guardando = true;
       _error = null;
@@ -85,7 +91,7 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
       title: _preview!.title ?? 'Sin título',
       description: _descriptionController.text.trim(),
       type: _type,
-      genres: _genresController.text.trim(),
+      genres: _category!,
       releaseYear: int.tryParse(_releaseYearController.text.trim()),
       isPremium: _isPremium,
     );
@@ -240,21 +246,21 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
                 ),
               ),
             ),
-            const SizedBox(height: 14),
-            TextField(
-              controller: _genresController,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Géneros (separados por coma)',
-                labelStyle: const TextStyle(color: Colors.white70),
-                filled: true,
-                fillColor: cardBg,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
+            const SizedBox(height: 18),
+            const Text(
+              'Categoría',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
+            CategoryChips(
+              categories: kAssignableCategories,
+              selected: _category,
+              onSelected: (c) => setState(() {
+                _category = c;
+                _error = null;
+              }),
+            ),
+            const SizedBox(height: 18),
             TextField(
               controller: _releaseYearController,
               keyboardType: TextInputType.number,

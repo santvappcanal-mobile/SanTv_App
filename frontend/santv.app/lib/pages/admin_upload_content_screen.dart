@@ -1,6 +1,7 @@
 import 'dart:io';
 import 'package:file_picker/file_picker.dart';
 import 'package:flutter/material.dart';
+import '../models/categories.dart';
 import '../services/auth_service.dart';
 import '../services/content_services.dart';
 import '../widgets/admin/custom_text_field.dart';
@@ -8,6 +9,7 @@ import '../widgets/admin/content_type_dropdown.dart';
 import '../widgets/admin/video_picker_field.dart';
 import '../widgets/admin/upload_status_message.dart';
 import '../widgets/admin/upload_submit_button.dart';
+import '../widgets/common/category_chips.dart';
 
 class AdminUploadContentScreen extends StatefulWidget {
   const AdminUploadContentScreen({super.key, required this.authService});
@@ -27,16 +29,15 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
 
   final _titleController = TextEditingController();
   final _descriptionController = TextEditingController();
-  final _genresController = TextEditingController();
   final _thumbnailUrlController = TextEditingController();
   final _durationController = TextEditingController();
   final _releaseYearController = TextEditingController();
-  final _videoUrlController = TextEditingController(); // NUEVO
+  final _videoUrlController = TextEditingController();
 
   String _type = 'movie';
+  String? _category; // Deportes / Noticias / Educación
   bool _isPremium = false;
-  bool _usarUrlExterna =
-      false; // NUEVO: alterna entre subir archivo o pegar link
+  bool _usarUrlExterna = false; // alterna entre subir archivo o pegar link
   File? _videoFile;
   String? _videoFileName;
   bool _subiendo = false;
@@ -55,11 +56,10 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
   void dispose() {
     _titleController.dispose();
     _descriptionController.dispose();
-    _genresController.dispose();
     _thumbnailUrlController.dispose();
     _durationController.dispose();
     _releaseYearController.dispose();
-    _videoUrlController.dispose(); // NUEVO
+    _videoUrlController.dispose();
     super.dispose();
   }
 
@@ -83,6 +83,14 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
 
   Future<void> _enviar() async {
     if (!_formKey.currentState!.validate()) return;
+
+    if (_category == null) {
+      setState(() {
+        _mensaje = 'Selecciona una categoría.';
+        _mensajeEsError = true;
+      });
+      return;
+    }
 
     if (_usarUrlExterna) {
       final url = _videoUrlController.text.trim();
@@ -112,7 +120,7 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
             description: _descriptionController.text.trim(),
             type: _type,
             videoUrl: _videoUrlController.text.trim(),
-            genres: _genresController.text.trim(),
+            genres: _category!,
             thumbnailUrl: _thumbnailUrlController.text.trim(),
             duration: int.tryParse(_durationController.text.trim()),
             releaseYear: int.tryParse(_releaseYearController.text.trim()),
@@ -123,7 +131,7 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
             description: _descriptionController.text.trim(),
             type: _type,
             videoFile: _videoFile!,
-            genres: _genresController.text.trim(),
+            genres: _category!,
             thumbnailUrl: _thumbnailUrlController.text.trim(),
             duration: int.tryParse(_durationController.text.trim()),
             releaseYear: int.tryParse(_releaseYearController.text.trim()),
@@ -145,7 +153,6 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
       _formKey.currentState!.reset();
       _titleController.clear();
       _descriptionController.clear();
-      _genresController.clear();
       _thumbnailUrlController.clear();
       _durationController.clear();
       _releaseYearController.clear();
@@ -154,6 +161,7 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
         _videoFile = null;
         _videoFileName = null;
         _type = 'movie';
+        _category = null;
         _isPremium = false;
         _usarUrlExterna = false;
       });
@@ -194,12 +202,21 @@ class _AdminUploadContentScreenState extends State<AdminUploadContentScreen> {
               value: _type,
               onChanged: (value) => setState(() => _type = value),
             ),
-            const SizedBox(height: 14),
-            CustomTextField(
-              controller: _genresController,
-              label: 'Géneros (separados por coma, ej: Acción, Drama)',
+            const SizedBox(height: 18),
+            const Text(
+              'Categoría',
+              style: TextStyle(color: Colors.white70, fontSize: 14),
             ),
-            const SizedBox(height: 14),
+            const SizedBox(height: 8),
+            CategoryChips(
+              categories: kAssignableCategories,
+              selected: _category,
+              onSelected: (c) => setState(() {
+                _category = c;
+                _mensaje = null;
+              }),
+            ),
+            const SizedBox(height: 18),
             CustomTextField(
               controller: _thumbnailUrlController,
               label: 'URL de miniatura (opcional)',

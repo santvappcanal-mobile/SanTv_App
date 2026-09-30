@@ -62,7 +62,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (agregado == true) _cargarStats(); // refresca el dashboard al volver
   }
 
-  // NUEVO: abre el diálogo de edición y guarda los cambios en el backend
+  // Abre el diálogo de edición y guarda los cambios en el backend
   Future<void> _editarContenido(TopContentItem item) async {
     final data = await showDialog<Map<String, String>>(
       context: context,
@@ -92,7 +92,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (result.success) _cargarStats(); // refresca el Top 5
   }
 
-  // NUEVO: pide confirmación y elimina el contenido en el backend
+  // Pide confirmación y elimina el contenido en el backend
   Future<void> _eliminarContenido(TopContentItem item) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -415,14 +415,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
                   ),
                 ],
               ),
-              // NUEVO: lápiz para editar el contenido
+              // Lápiz para editar el contenido
               IconButton(
                 icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
                 tooltip: 'Editar',
                 visualDensity: VisualDensity.compact,
                 onPressed: () => _editarContenido(item),
               ),
-              // NUEVO: papelera para eliminar el contenido
+              // Papelera para eliminar el contenido
               IconButton(
                 icon: const Icon(
                   Icons.delete_outline,
@@ -450,7 +450,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
-// NUEVO: diálogo de edición (título y descripción)
+// Diálogo de edición (título obligatorio, descripción opcional)
 class _EditContentDialog extends StatefulWidget {
   const _EditContentDialog({required this.item});
 
@@ -483,9 +483,11 @@ class _EditContentDialogState extends State<_EditContentDialog> {
     final title = _titleCtrl.text.trim();
     final description = _descCtrl.text.trim();
 
-    if (title.isEmpty || description.isEmpty) {
+    // Solo el título es obligatorio: hay videos sin descripción
+    // (en el formulario de YouTube es opcional).
+    if (title.isEmpty) {
       setState(() {
-        _validationError = 'El título y la descripción no pueden estar vacíos';
+        _validationError = 'El título no puede estar vacío';
       });
       return;
     }
@@ -530,7 +532,7 @@ class _EditContentDialogState extends State<_EditContentDialog> {
               maxLines: 4,
               style: const TextStyle(color: Colors.white),
               cursorColor: AdminDashboardScreen.neonGreen,
-              decoration: _decoration('Descripción'),
+              decoration: _decoration('Descripción (opcional)'),
             ),
             if (_validationError != null) ...[
               const SizedBox(height: 12),

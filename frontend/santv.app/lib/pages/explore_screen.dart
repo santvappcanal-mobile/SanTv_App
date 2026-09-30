@@ -3,6 +3,7 @@ import '../widgets/publicidad_section.dart';
 import '../widgets/explore/explore_search_bar.dart';
 import '../widgets/explore/category_chips_row.dart';
 import '../widgets/explore/explore_card.dart';
+import '../models/categories.dart';
 import '../models/content.dart';
 import '../services/auth_service.dart';
 import '../services/content_services.dart';
@@ -32,13 +33,6 @@ class _ExploreScreenState extends State<ExploreScreen> {
   bool _cargando = true;
   List<ContentItem> _allContent = [];
 
-  final List<String> _categories = const [
-    'Todo',
-    'Deportes',
-    'Noticias',
-    'Educación',
-  ];
-
   @override
   void initState() {
     super.initState();
@@ -57,9 +51,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   List<ContentItem> get _filteredContent {
     if (_selectedCategory == 0) return _allContent; // "Todo"
-    final category = _categories[_selectedCategory].toLowerCase();
+    final category = normalizeCategory(kCategories[_selectedCategory]);
     return _allContent
-        .where((c) => c.genres.any((g) => g.toLowerCase() == category))
+        .where((c) => c.genres.any((g) => normalizeCategory(g) == category))
         .toList();
   }
 
@@ -92,7 +86,7 @@ class _ExploreScreenState extends State<ExploreScreen> {
           ExploreSearchBar(accentColor: neonColor),
           const SizedBox(height: 20),
           CategoryChipsRow(
-            categories: _categories,
+            categories: kCategories,
             selectedIndex: _selectedCategory,
             onSelected: (index) => setState(() => _selectedCategory = index),
             accentColor: neonColor,
