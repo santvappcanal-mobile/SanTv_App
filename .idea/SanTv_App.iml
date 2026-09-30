@@ -9,6 +9,9 @@
       <excludeFolder url="file://$MODULE_DIR$/frontend/frontend/.dart_tool" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/frontend/.pub" />
       <excludeFolder url="file://$MODULE_DIR$/frontend/frontend/build" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/santv.app/.dart_tool" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/santv.app/.pub" />
+      <excludeFolder url="file://$MODULE_DIR$/frontend/santv.app/build" />
     </content>
     <orderEntry type="inheritedJdk" />
     <orderEntry type="sourceFolder" forTests="false" />
