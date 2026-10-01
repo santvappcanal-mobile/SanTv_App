@@ -36,7 +36,7 @@ dependencies:
   cupertino_icons: ^1.0.8
 
   # Cliente HTTP para hablar con el backend (registro, login, etc.)
-  http: ^1.2.2
+  http: ^1.6.0
 
   # Almacenamiento seguro del token de sesión (JWT)
   flutter_secure_storage: ^11.1.1
@@ -60,6 +60,7 @@ dependencies:
   # de ejecución dentro de main.dart, no solo en tiempo de build.
   flutter_native_splash: ^2.4.3
   syncfusion_flutter_pdfviewer: ^34.2.9
+  pdfx: ^2.11.0
 
 dev_dependencies:
   flutter_test:
