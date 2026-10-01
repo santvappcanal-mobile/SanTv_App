@@ -6,17 +6,21 @@ import '../../services/content_services.dart';
 import '../../pages/video_player_screen.dart';
 import '../../pages/youtube_player_screen.dart';
 
-/// Sección "Videos destacados": título + carrusel horizontal.
+/// Sección "Videos destacados": título + cuadrícula en bloque.
 /// Carga los videos con más vistas desde el backend.
 class FeaturedVideosCarousel extends StatefulWidget {
   const FeaturedVideosCarousel({
     super.key,
     required this.authService,
     this.itemCount = 6,
+    this.columnas = 2,
   });
 
   final AuthService authService;
   final int itemCount;
+
+  /// Número de columnas de la cuadrícula.
+  final int columnas;
 
   @override
   State<FeaturedVideosCarousel> createState() => _FeaturedVideosCarouselState();
@@ -75,31 +79,39 @@ class _FeaturedVideosCarouselState extends State<FeaturedVideosCarousel> {
           ),
         ),
         const SizedBox(height: 12),
-        SizedBox(
-          height: 120,
-          child: _cargando
-              ? const Center(
-                  child: CircularProgressIndicator(color: Color(0xFF39FF14)),
-                )
-              : _videos.isEmpty
-              ? const Center(
-                  child: Text(
-                    'Aún no hay videos destacados',
-                    style: TextStyle(color: Colors.white54),
-                  ),
-                )
-              : ListView.builder(
-                  scrollDirection: Axis.horizontal,
-                  itemCount: _videos.length,
-                  itemBuilder: (context, index) => Padding(
-                    padding: const EdgeInsets.only(right: 12),
-                    child: _VideoCard(
-                      content: _videos[index],
-                      onTap: () => _abrirVideo(_videos[index]),
-                    ),
-                  ),
-                ),
-        ),
+        if (_cargando)
+          const SizedBox(
+            height: 120,
+            child: Center(
+              child: CircularProgressIndicator(color: Color(0xFF39FF14)),
+            ),
+          )
+        else if (_videos.isEmpty)
+          const SizedBox(
+            height: 120,
+            child: Center(
+              child: Text(
+                'Aún no hay videos destacados',
+                style: TextStyle(color: Colors.white54),
+              ),
+            ),
+          )
+        else
+          GridView.builder(
+            shrinkWrap: true,
+            physics: const NeverScrollableScrollPhysics(),
+            itemCount: _videos.length,
+            gridDelegate: SliverGridDelegateWithFixedCrossAxisCount(
+              crossAxisCount: widget.columnas,
+              crossAxisSpacing: 12,
+              mainAxisSpacing: 12,
+              childAspectRatio: 16 / 10,
+            ),
+            itemBuilder: (context, index) => _VideoCard(
+              content: _videos[index],
+              onTap: () => _abrirVideo(_videos[index]),
+            ),
+          ),
       ],
     );
   }
@@ -116,7 +128,6 @@ class _VideoCard extends StatelessWidget {
     return GestureDetector(
       onTap: onTap,
       child: GlassContainer(
-        width: 140,
         blurSigma: 10,
         child: Stack(
           fit: StackFit.expand,
