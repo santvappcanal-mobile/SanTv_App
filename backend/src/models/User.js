@@ -50,6 +50,15 @@ const userSchema = new mongoose.Schema(
       default: 'free',
     },
 
+    // --- PRESENCIA (activo / inactivo dentro de la app) ---
+    isOnline: {
+      type: Boolean,
+      default: false,
+    },
+    lastSeen: {
+      type: Date,
+    },
+
     // --- VERIFICACIÓN DE CUENTA ---
     isVerified: {
       type: Boolean,

@@ -446,11 +446,36 @@ class AuthService {
     }
   }
 
+  /// Avisa al backend que el usuario sigue dentro de la app.
+  Future<void> ping() async {
+    try {
+      final token = await getToken();
+      if (token == null) return;
+      await http.put(
+        _endpoint('/ping'),
+        headers: {'Authorization': 'Bearer $token'},
+      ).timeout(_timeout);
+    } catch (_) {}
+  }
+
+  /// Avisa al backend que el usuario salió (segundo plano / logout).
+  Future<void> setOffline() async {
+    try {
+      final token = await getToken();
+      if (token == null) return;
+      await http.put(
+        _endpoint('/offline'),
+        headers: {'Authorization': 'Bearer $token'},
+      ).timeout(_timeout);
+    } catch (_) {}
+  }
+
   Future<String?> getToken() async => _storage.read(key: _tokenKey);
 
   Future<bool> get isLoggedIn async => (await getToken()) != null;
 
   Future<void> logout() async {
+    await setOffline(); // debe ir antes de borrar el token
     await _storage.delete(key: _tokenKey);
 
     try {

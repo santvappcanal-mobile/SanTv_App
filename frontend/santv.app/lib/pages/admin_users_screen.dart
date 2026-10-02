@@ -114,7 +114,8 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
       );
     }
 
-    final activos = _usuarios.where((u) => u.isActive).length;
+    // Activo = el usuario está dentro de la app ahora mismo
+    final activos = _usuarios.where((u) => u.isOnline).length;
     final inactivos = _usuarios.length - activos;
 
     return RefreshIndicator(
@@ -223,7 +224,7 @@ class _AdminUsersScreenState extends State<AdminUsersScreen> {
             ),
           ),
           const SizedBox(width: 8),
-          _EstadoChip(activo: user.isActive),
+          _EstadoChip(activo: user.isOnline),
         ],
       ),
     );

@@ -1,3 +1,5 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/assistant_chat_sheet.dart';
@@ -25,7 +27,7 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with WidgetsBindingObserver {
   // Índice de la pestaña En vivo dentro del IndexedStack / barra inferior.
   static const int _liveTabIndex = 2;
 
@@ -45,11 +47,48 @@ class _HomeState extends State<Home> {
   late final AdService _adService = AdService(authService: widget.authService);
   int _unreadCount = 0;
 
+  // Presencia: avisa al backend que el usuario está dentro de la app.
+  Timer? _presenceTimer;
+
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startPresence();
     _loadUser();
     _loadUnreadCount();
+  }
+
+  void _startPresence() {
+    _presenceTimer?.cancel();
+    widget.authService.ping();
+    _presenceTimer = Timer.periodic(
+      const Duration(seconds: 60),
+      (_) => widget.authService.ping(),
+    );
+  }
+
+  void _stopPresence() {
+    _presenceTimer?.cancel();
+    _presenceTimer = null;
+    widget.authService.setOffline();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    if (state == AppLifecycleState.resumed) {
+      _startPresence();
+    } else if (state == AppLifecycleState.paused ||
+        state == AppLifecycleState.detached) {
+      _stopPresence();
+    }
+  }
+
+  @override
+  void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _presenceTimer?.cancel();
+    super.dispose();
   }
 
   Future<void> _loadUser() async {
@@ -137,6 +176,7 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _handleLogout() async {
+    _presenceTimer?.cancel(); // evita un ping después de cerrar sesión
     await widget.authService.logout();
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
