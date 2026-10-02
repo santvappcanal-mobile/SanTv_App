@@ -373,6 +373,43 @@ const updateUserProfile = asyncHandler(async (req, res) => {
   });
 });
 
+// ---------------------------------------------------------------
+// PRESENCIA: activo / inactivo dentro de la app
+// ---------------------------------------------------------------
+
+// Un usuario cuenta como "en la app" si avisó hace menos de 2 minutos
+const ONLINE_WINDOW_MS = 2 * 60 * 1000;
+const calcOnline = (u) =>
+  Boolean(
+    u.isOnline &&
+      u.lastSeen &&
+      Date.now() - new Date(u.lastSeen).getTime() < ONLINE_WINDOW_MS
+  );
+
+// @desc    La app avisa que el usuario sigue dentro
+// @route   PUT /api/users/ping
+// @access  Private
+const pingUser = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    { isOnline: true, lastSeen: new Date() },
+    { timestamps: false }
+  );
+  res.json({ success: true });
+});
+
+// @desc    La app avisa que el usuario salió (segundo plano / logout)
+// @route   PUT /api/users/offline
+// @access  Private
+const setOffline = asyncHandler(async (req, res) => {
+  await User.findByIdAndUpdate(
+    req.user._id,
+    { isOnline: false, lastSeen: new Date() },
+    { timestamps: false }
+  );
+  res.json({ success: true });
+});
+
 // @desc    Obtener todos los usuarios (con filtros y búsqueda)
 // @route   GET /api/users?role=admin&isActive=true&isVerified=true&search=juan
 // @access  Private/Admin
@@ -393,7 +430,13 @@ const getUsers = asyncHandler(async (req, res) => {
     ];
   }
 
-  const users = await User.find(filter).skip(skip).limit(limit).sort({ createdAt: -1 });
+  const users = await User.find(filter)
+    .select(
+      '-codigoVerificacion -codigoVerificacionExpiracion -codigoRecuperacion -codigoRecuperacionExpiracion'
+    )
+    .skip(skip)
+    .limit(limit)
+    .sort({ createdAt: -1 });
   const total = await User.countDocuments(filter);
 
   res.json({
@@ -402,7 +445,7 @@ const getUsers = asyncHandler(async (req, res) => {
     total,
     page,
     pages: Math.ceil(total / limit),
-    data: users,
+    data: users.map((u) => ({ ...u.toObject(), online: calcOnline(u) })),
   });
 });
 
@@ -471,6 +514,8 @@ module.exports = {
   resetPassword,
   getUserProfile,
   updateUserProfile,
+  pingUser,
+  setOffline,
   getUsers,
   getUserById,
   updateUser,

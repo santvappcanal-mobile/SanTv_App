@@ -5,6 +5,10 @@ class AdminUser {
   final String role;
   final bool isActive;
   final bool isVerified;
+
+  /// true si el usuario está dentro de la app ahora mismo
+  /// (calculado por el backend con ping / lastSeen).
+  final bool isOnline;
   final DateTime? createdAt;
 
   const AdminUser({
@@ -14,6 +18,7 @@ class AdminUser {
     required this.role,
     required this.isActive,
     required this.isVerified,
+    this.isOnline = false,
     this.createdAt,
   });
 
@@ -25,6 +30,7 @@ class AdminUser {
       role: json['role']?.toString() ?? 'user',
       isActive: json['isActive'] as bool? ?? true,
       isVerified: json['isVerified'] as bool? ?? false,
+      isOnline: json['online'] as bool? ?? false,
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? ''),
     );
   }

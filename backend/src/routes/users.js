@@ -9,6 +9,8 @@ const {
   resetPassword,
   getUserProfile,
   updateUserProfile,
+  pingUser,
+  setOffline,
   getUsers,
   getUserById,
   updateUser,
@@ -27,8 +29,11 @@ router.post('/forgot-password', forgotPassword);
 router.post('/reset-password', resetPassword);
 
 // Rutas privadas (usuario autenticado)
+// OJO: /ping y /offline deben ir ANTES de las rutas '/:id'
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);
+router.put('/ping', protect, pingUser);
+router.put('/offline', protect, setOffline);
 
 // Rutas privadas (solo admin)
 router.get('/', protect, authorize('admin'), getUsers);
