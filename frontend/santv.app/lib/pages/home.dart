@@ -1,8 +1,10 @@
+import 'dart:math';
 import 'package:flutter/material.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/assistant_chat_sheet.dart';
 import '../widgets/home/home_tab_content.dart';
 import '../widgets/home/glass_bottom_nav_bar.dart';
+import '../widgets/ads/ad_popup_dialog.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
@@ -57,6 +59,7 @@ class _HomeState extends State<Home> {
     _loadUser();
     _loadUnreadCount();
     _liveStatusService.connect(onLiveStarted: _onLiveStarted);
+    _mostrarAnuncioAleatorio();
   }
 
   @override
@@ -78,6 +81,21 @@ class _HomeState extends State<Home> {
     final result = await _notificationService.getNotifications();
     if (!mounted || !result.success) return;
     setState(() => _unreadCount = result.unreadCount);
+  }
+
+  /// Trae los anuncios activos, elige uno al azar y lo muestra en un
+  /// modal cerrable. Se llama una vez al entrar al Home (cada sesión).
+  Future<void> _mostrarAnuncioAleatorio() async {
+    final ads = await _adService.obtenerAdsActivos();
+    if (!mounted || ads.isEmpty) return;
+
+    final anuncio = ads[Random().nextInt(ads.length)];
+
+    // pequeño delay para que el Home ya esté construido antes del modal
+    await Future.delayed(const Duration(milliseconds: 400));
+    if (!mounted) return;
+
+    await AdPopupDialog.showAd(context, ad: anuncio, adService: _adService);
   }
 
   /// El canal acaba de pasar a EN VIVO: refresca el contador de
