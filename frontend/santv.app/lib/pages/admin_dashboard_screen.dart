@@ -3,7 +3,8 @@ import '../services/auth_service.dart';
 import '../services/admin_service.dart';
 import '../models/admin_stats.dart';
 import 'admin_add_youtube_screen.dart';
-import 'admin_users_screen.dart'; // NUEVO
+import 'admin_users_screen.dart';
+import 'admin_content_screen.dart'; // NUEVO: pantalla con todos los videos
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key, required this.authService});
@@ -23,9 +24,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String? _error;
   AdminStats? _stats;
 
-  // NUEVO: lista completa de videos
-  List<TopContentItem> _todos = [];
-
   static const Color neonGreen = AdminDashboardScreen.neonGreen;
   static const Color cardBg = Color(0xFF1A1A1A);
 
@@ -36,7 +34,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _cargarStats();
   }
 
-  // CAMBIADO: ahora también carga la lista completa de videos
   Future<void> _cargarStats() async {
     setState(() {
       _cargando = true;
@@ -44,7 +41,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     });
 
     final result = await _adminService.getDashboardStats();
-    final contentResult = await _adminService.getAllContent();
 
     if (!mounted) return;
 
@@ -52,7 +48,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _cargando = false;
       if (result.success) {
         _stats = result.stats;
-        if (contentResult.success) _todos = contentResult.items;
       } else {
         _error = result.errorMessage;
       }
@@ -66,10 +61,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         builder: (_) => AdminAddYoutubeScreen(authService: widget.authService),
       ),
     );
-    if (agregado == true) _cargarStats(); // refresca el dashboard al volver
+    if (agregado == true) _cargarStats();
   }
 
-  // NUEVO: abre la lista de usuarios registrados
   Future<void> _abrirUsuarios() async {
     await Navigator.push(
       context,
@@ -77,17 +71,27 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         builder: (_) => AdminUsersScreen(authService: widget.authService),
       ),
     );
-    if (mounted) _cargarStats(); // refresca el conteo al volver
+    if (mounted) _cargarStats();
   }
 
-  // Abre el diálogo de edición y guarda los cambios en el backend
+  // NUEVO: abre la pantalla con todos los videos
+  Future<void> _abrirContenido() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminContentScreen(authService: widget.authService),
+      ),
+    );
+    if (mounted) _cargarStats(); // refresca contadores y Top 5 al volver
+  }
+
   Future<void> _editarContenido(TopContentItem item) async {
     final data = await showDialog<Map<String, String>>(
       context: context,
-      builder: (_) => _EditContentDialog(item: item),
+      builder: (_) => EditContentDialog(item: item), // CAMBIADO: diálogo público
     );
 
-    if (data == null) return; // canceló
+    if (data == null) return;
 
     final result = await _adminService.updateContent(
       id: item.id,
@@ -107,10 +111,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
 
-    if (result.success) _cargarStats(); // refresca Top 5 y lista completa
+    if (result.success) _cargarStats();
   }
 
-  // Pide confirmación y elimina el contenido en el backend
   Future<void> _eliminarContenido(TopContentItem item) async {
     final confirmar = await showDialog<bool>(
       context: context,
@@ -142,7 +145,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
 
-    if (confirmar != true) return; // canceló
+    if (confirmar != true) return;
 
     final result = await _adminService.deleteContent(item.id);
 
@@ -158,7 +161,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
 
-    if (result.success) _cargarStats(); // refresca Top 5 y lista completa
+    if (result.success) _cargarStats();
   }
 
   @override
@@ -248,14 +251,8 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           _buildSectionTitle('Top 5 contenido más visto'),
           const SizedBox(height: 12),
           _buildTopContent(stats.topContent),
-          // NUEVO: sección con todos los videos
-          const SizedBox(height: 24),
-          _buildSectionTitle('Todos mis videos (${_todos.length})'),
-          const SizedBox(height: 12),
-          _buildAllContent(),
-          const SizedBox(
-            height: 80,
-          ), // espacio para que el FAB no tape el último item
+          // La lista "Todos mis videos" ya no va aquí: está en la tarjeta Contenido
+          const SizedBox(height: 80),
         ],
       ),
     );
@@ -268,13 +265,14 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         '${stats.totalUsers}',
         '${stats.activeUsers} activos',
         Icons.people,
-        onTap: _abrirUsuarios, // NUEVO
+        onTap: _abrirUsuarios,
       ),
       _StatCardData(
         'Contenido',
         '${stats.totalContent}',
         '${stats.activeContent} activo',
         Icons.movie,
+        onTap: _abrirContenido, // NUEVO
       ),
       _StatCardData(
         'Vistas totales',
@@ -373,7 +371,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
-  // CAMBIADO: ahora usa _buildContentCard
   Widget _buildTopContent(List<TopContentItem> topContent) {
     if (topContent.isEmpty) {
       return const Text(
@@ -385,19 +382,6 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     return Column(children: topContent.map(_buildContentCard).toList());
   }
 
-  // NUEVO: lista con todos los videos
-  Widget _buildAllContent() {
-    if (_todos.isEmpty) {
-      return const Text(
-        'Aún no hay videos subidos',
-        style: TextStyle(color: Colors.white54),
-      );
-    }
-
-    return Column(children: _todos.map(_buildContentCard).toList());
-  }
-
-  // NUEVO: tarjeta reutilizada por el Top 5 y por la lista completa
   Widget _buildContentCard(TopContentItem item) {
     return Container(
       margin: const EdgeInsets.only(bottom: 10),
@@ -449,14 +433,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
               Text('${item.views}', style: const TextStyle(color: neonGreen)),
             ],
           ),
-          // Lápiz para editar el contenido
           IconButton(
             icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
             tooltip: 'Editar',
             visualDensity: VisualDensity.compact,
             onPressed: () => _editarContenido(item),
           ),
-          // Papelera para eliminar el contenido
           IconButton(
             icon: const Icon(
               Icons.delete_outline,
@@ -482,126 +464,12 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   }
 }
 
-// Diálogo de edición (título obligatorio, descripción opcional)
-class _EditContentDialog extends StatefulWidget {
-  const _EditContentDialog({required this.item});
-
-  final TopContentItem item;
-
-  @override
-  State<_EditContentDialog> createState() => _EditContentDialogState();
-}
-
-class _EditContentDialogState extends State<_EditContentDialog> {
-  late final TextEditingController _titleCtrl;
-  late final TextEditingController _descCtrl;
-  String? _validationError;
-
-  @override
-  void initState() {
-    super.initState();
-    _titleCtrl = TextEditingController(text: widget.item.title);
-    _descCtrl = TextEditingController(text: widget.item.description);
-  }
-
-  @override
-  void dispose() {
-    _titleCtrl.dispose();
-    _descCtrl.dispose();
-    super.dispose();
-  }
-
-  void _guardar() {
-    final title = _titleCtrl.text.trim();
-    final description = _descCtrl.text.trim();
-
-    // Solo el título es obligatorio: hay videos sin descripción
-    // (en el formulario de YouTube es opcional).
-    if (title.isEmpty) {
-      setState(() {
-        _validationError = 'El título no puede estar vacío';
-      });
-      return;
-    }
-
-    Navigator.pop(context, {'title': title, 'description': description});
-  }
-
-  InputDecoration _decoration(String label) {
-    return InputDecoration(
-      labelText: label,
-      labelStyle: const TextStyle(color: Colors.white70),
-      enabledBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: Colors.white24),
-      ),
-      focusedBorder: const OutlineInputBorder(
-        borderSide: BorderSide(color: AdminDashboardScreen.neonGreen),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return AlertDialog(
-      backgroundColor: _AdminDashboardScreenState.cardBg,
-      title: const Text(
-        'Editar contenido',
-        style: TextStyle(color: Colors.white),
-      ),
-      content: SingleChildScrollView(
-        child: Column(
-          mainAxisSize: MainAxisSize.min,
-          children: [
-            TextField(
-              controller: _titleCtrl,
-              style: const TextStyle(color: Colors.white),
-              cursorColor: AdminDashboardScreen.neonGreen,
-              decoration: _decoration('Título'),
-            ),
-            const SizedBox(height: 12),
-            TextField(
-              controller: _descCtrl,
-              maxLines: 4,
-              style: const TextStyle(color: Colors.white),
-              cursorColor: AdminDashboardScreen.neonGreen,
-              decoration: _decoration('Descripción (opcional)'),
-            ),
-            if (_validationError != null) ...[
-              const SizedBox(height: 12),
-              Text(
-                _validationError!,
-                style: const TextStyle(color: Colors.redAccent, fontSize: 12),
-              ),
-            ],
-          ],
-        ),
-      ),
-      actions: [
-        TextButton(
-          onPressed: () => Navigator.pop(context),
-          child: const Text(
-            'Cancelar',
-            style: TextStyle(color: Colors.white70),
-          ),
-        ),
-        ElevatedButton(
-          onPressed: _guardar,
-          style: ElevatedButton.styleFrom(
-            backgroundColor: AdminDashboardScreen.neonGreen,
-          ),
-          child: const Text('Guardar', style: TextStyle(color: Colors.black)),
-        ),
-      ],
-    );
-  }
-}
-
 class _StatCardData {
   final String label;
   final String value;
   final String subtitle;
   final IconData icon;
-  final VoidCallback? onTap; // NUEVO
+  final VoidCallback? onTap;
 
   const _StatCardData(
     this.label,
@@ -638,7 +506,6 @@ class _StatCard extends StatelessWidget {
                     color: AdminDashboardScreen.neonGreen,
                     size: 22,
                   ),
-                  // Flechita para indicar que la tarjeta se puede tocar
                   if (data.onTap != null)
                     const Icon(
                       Icons.chevron_right,
