@@ -1,6 +1,6 @@
 const express = require('express');
 const router = express.Router();
-const { uploadImage, uploadVideo } = require('../middleware/upload');
+const { uploadImage, uploadVideo, uploadDocument } = require('../middleware/upload');
 const cloudinary = require('../config/cloudinary');
 const { protect, authorize } = require('../middleware/auth');
 
@@ -36,6 +36,25 @@ router.post(
         .json({ success: false, message: 'No se envió ningún archivo' });
     }
     console.log('✅ Video subido:', req.file.filename);
+    res.status(200).json({
+      url: req.file.path,
+      publicId: req.file.filename,
+    });
+  }
+);
+
+// POST /api/uploads/document  (form-data, campo: "file") — PDFs
+router.post(
+  '/document',
+  protect,
+  authorize('editor', 'admin'),
+  uploadDocument.single('file'),
+  (req, res) => {
+    if (!req.file) {
+      return res
+        .status(400)
+        .json({ success: false, message: 'No se envió ningún archivo' });
+    }
     res.status(200).json({
       url: req.file.path,
       publicId: req.file.filename,
