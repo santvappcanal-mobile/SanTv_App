@@ -2,6 +2,10 @@ import 'dart:io';
 import 'package:file_picker/file_picker.dart' as fp;
 import 'package:flutter/material.dart';
 
+// Ocultamos AdDocumentItem de ad.dart para evitar el conflicto
+import '../models/ad.dart' hide AdDocumentItem;
+import '../models/ad_document_item.dart';
+
 import '../services/ad_service.dart';
 import '../widgets/common/pdf_document_card.dart';
 import 'pdf_viewer_page.dart';
@@ -30,8 +34,10 @@ class PublicidadScreen extends StatefulWidget {
 
 class _PublicidadScreenState extends State<PublicidadScreen>
     with SingleTickerProviderStateMixin {
-  late final TabController _tabController =
-      TabController(length: 3, vsync: this);
+  late final TabController _tabController = TabController(
+    length: 3,
+    vsync: this,
+  );
 
   static const Color neonGreen = Color(0xFF39FF14);
 
@@ -123,9 +129,7 @@ class _PublicidadScreenState extends State<PublicidadScreen>
   // ---------------------------------------------------------------
   Widget _buildDocumentosTab() {
     if (_cargandoDocumentos) {
-      return const Center(
-        child: CircularProgressIndicator(color: neonGreen),
-      );
+      return const Center(child: CircularProgressIndicator(color: neonGreen));
     }
 
     if (_errorDocumentos != null) {
@@ -133,11 +137,17 @@ class _PublicidadScreenState extends State<PublicidadScreen>
         child: Column(
           mainAxisSize: MainAxisSize.min,
           children: [
-            Text(_errorDocumentos!, style: const TextStyle(color: Colors.white54)),
+            Text(
+              _errorDocumentos!,
+              style: const TextStyle(color: Colors.white54),
+            ),
             const SizedBox(height: 12),
             TextButton(
               onPressed: _cargarDocumentos,
-              child: const Text('Reintentar', style: TextStyle(color: neonGreen)),
+              child: const Text(
+                'Reintentar',
+                style: TextStyle(color: neonGreen),
+              ),
             ),
           ],
         ),
@@ -227,11 +237,8 @@ class _PublicidadScreenState extends State<PublicidadScreen>
     final confirmar = await Navigator.push<bool>(
       context,
       MaterialPageRoute(
-        builder: (_) => PdfViewerPage(
-          file: file,
-          titulo: picked.name,
-          confirmar: true,
-        ),
+        builder: (_) =>
+            PdfViewerPage(file: file, titulo: picked.name, confirmar: true),
       ),
     );
     if (confirmar != true || !mounted) return;
@@ -262,7 +269,10 @@ class _PublicidadScreenState extends State<PublicidadScreen>
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('Nombre del documento', style: TextStyle(color: Colors.white)),
+        title: const Text(
+          'Nombre del documento',
+          style: TextStyle(color: Colors.white),
+        ),
         content: TextField(
           controller: controller,
           autofocus: true,
@@ -291,10 +301,19 @@ class _PublicidadScreenState extends State<PublicidadScreen>
       context: context,
       builder: (_) => AlertDialog(
         backgroundColor: const Color(0xFF1A1A1A),
-        title: const Text('Eliminar documento', style: TextStyle(color: Colors.white)),
-        content: const Text('¿Seguro que deseas eliminarlo?', style: TextStyle(color: Colors.white54)),
+        title: const Text(
+          'Eliminar documento',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          '¿Seguro que deseas eliminarlo?',
+          style: TextStyle(color: Colors.white54),
+        ),
         actions: [
-          TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancelar')),
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
           TextButton(
             onPressed: () async {
               Navigator.pop(context);
@@ -304,11 +323,16 @@ class _PublicidadScreenState extends State<PublicidadScreen>
                 await _cargarDocumentos();
               } else {
                 ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(content: Text('Error al eliminar el documento')),
+                  const SnackBar(
+                    content: Text('Error al eliminar el documento'),
+                  ),
                 );
               }
             },
-            child: const Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.redAccent),
+            ),
           ),
         ],
       ),

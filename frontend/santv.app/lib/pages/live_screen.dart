@@ -1,9 +1,10 @@
 import 'package:flutter/material.dart';
 import '../services/live_viewer_service.dart';
 import '../widgets/live/live_cover_header.dart';
+import '../widgets/live_viewers_bar.dart';
 
 /// Pantalla de transmisión EN VIVO: muestra solo el en vivo ocupando
-/// toda la pantalla (sin ficha de título, rating, descripción ni botones).
+/// toda la pantalla, con el contador de espectadores en tiempo real.
 class LiveScreen extends StatefulWidget {
   const LiveScreen({
     super.key,
@@ -12,6 +13,7 @@ class LiveScreen extends StatefulWidget {
     required this.description,
     required this.coverImageUrl,
     required this.currentUser,
+    required this.baseUrl,
   });
 
   final String liveId;
@@ -22,14 +24,17 @@ class LiveScreen extends StatefulWidget {
   /// Usuario actual de la app: { id, name, avatarUrl }
   final Map<String, dynamic> currentUser;
 
+  /// URL del backend (la misma de AuthService), ej: http://10.0.2.2:3000.
+  /// Por ahí también corre el servidor Socket.IO del en vivo.
+  final String baseUrl;
+
   @override
   State<LiveScreen> createState() => _LiveScreenState();
 }
 
 class _LiveScreenState extends State<LiveScreen> {
-  // TODO: reemplaza por la URL real de tu servidor Socket.IO
   late final LiveViewerService _viewerService = LiveViewerService(
-    baseUrl: 'https://TU_BACKEND_SOCKET_IO',
+    baseUrl: widget.baseUrl,
   );
 
   bool _muted = true;
@@ -72,6 +77,20 @@ class _LiveScreenState extends State<LiveScreen> {
               child: IconButton(
                 icon: const Icon(Icons.arrow_back, color: Colors.white),
                 onPressed: () => Navigator.pop(context),
+              ),
+            ),
+
+            // Espectadores en tiempo real (avatares + "N viendo")
+            Positioned(
+              top: 12,
+              right: 12,
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 2),
+                decoration: BoxDecoration(
+                  color: Colors.black54,
+                  borderRadius: BorderRadius.circular(20),
+                ),
+                child: LiveViewersBar(service: _viewerService),
               ),
             ),
           ],
