@@ -9,6 +9,7 @@ import '../models/app_user.dart';
 import '../services/auth_service.dart';
 import '../services/notification_service.dart';
 import '../services/ad_service.dart';
+import '../services/live_status_service.dart';
 import 'explore_screen.dart';
 import 'live_tab_screen.dart';
 import 'live_screen.dart';
@@ -27,16 +28,23 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
+<<<<<<< Updated upstream
 class _HomeState extends State<Home> with WidgetsBindingObserver {
   // Índice de la pestaña En vivo dentro del IndexedStack / barra inferior.
+=======
+class _HomeState extends State<Home> {
+  // Índices de las pestañas dentro del IndexedStack / barra inferior.
+  static const int _homeTabIndex = 0;
+>>>>>>> Stashed changes
   static const int _liveTabIndex = 2;
 
   // Cambia a _liveTabIndex si quieres que la app abra directo en En vivo.
-  int _currentIndex = 0;
+  int _currentIndex = _homeTabIndex;
 
-  // true mientras hay otra pantalla encima (ej. LiveScreen), para pausar
-  // el canal que sigue construido debajo en el IndexedStack.
-  bool _liveCovered = false;
+  // Cuántas pantallas hay encima del Home (LiveScreen, notificaciones,
+  // etc.). Mientras sea > 0 se pausan los reproductores que siguen
+  // construidos debajo en el IndexedStack.
+  int _covers = 0;
 
   AppUser? _currentUser;
   bool _loadingUser = true;
@@ -45,6 +53,9 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     authService: widget.authService,
   );
   late final AdService _adService = AdService(authService: widget.authService);
+  late final LiveStatusService _liveStatusService = LiveStatusService(
+    baseUrl: widget.authService.baseUrl,
+  );
   int _unreadCount = 0;
 
   // Presencia: avisa al backend que el usuario está dentro de la app.
@@ -57,6 +68,13 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     _startPresence();
     _loadUser();
     _loadUnreadCount();
+    _liveStatusService.connect(onLiveStarted: _onLiveStarted);
+  }
+
+  @override
+  void dispose() {
+    _liveStatusService.dispose();
+    super.dispose();
   }
 
   void _startPresence() {
@@ -106,9 +124,57 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     setState(() => _unreadCount = result.unreadCount);
   }
 
+  /// El canal acaba de pasar a EN VIVO: refresca el contador de
+  /// notificaciones y muestra un aviso con acceso directo.
+  void _onLiveStarted(String title, String message) {
+    if (!mounted) return;
+    _loadUnreadCount();
+
+    final messenger = ScaffoldMessenger.of(context);
+    messenger.hideCurrentSnackBar();
+    messenger.showSnackBar(
+      SnackBar(
+        backgroundColor: const Color(0xFF1A1A1A),
+        duration: const Duration(seconds: 8),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text(
+              title,
+              style: const TextStyle(
+                color: Colors.white,
+                fontWeight: FontWeight.bold,
+              ),
+            ),
+            Text(message, style: const TextStyle(color: Colors.white70)),
+          ],
+        ),
+        action: SnackBarAction(
+          label: 'VER',
+          textColor: const Color(0xFF39FF14),
+          onPressed: () {
+            if (!mounted) return;
+            setState(() => _currentIndex = _liveTabIndex);
+          },
+        ),
+      ),
+    );
+  }
+
+  /// Abre una pantalla encima del Home y mientras tanto marca el Home
+  /// como "cubierto" para que los videos se pausen.
+  Future<T?> _pushCovered<T>(Route<T> route) async {
+    setState(() => _covers++);
+    try {
+      return await Navigator.push<T>(context, route);
+    } finally {
+      if (mounted) setState(() => _covers--);
+    }
+  }
+
   Future<void> _openNotifications() async {
-    await Navigator.push(
-      context,
+    await _pushCovered(
       MaterialPageRoute(
         builder: (_) =>
             NotificationsScreen(notificationService: _notificationService),
@@ -129,12 +195,8 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   /// Abre la pantalla del canal en vivo (siempre activo, 24/7).
   /// [liveId] permite reutilizar esto para otras transmisiones futuras;
   /// para el canal permanente usamos un id fijo.
-  /// Mientras LiveScreen está abierta se pausa el canal de la pestaña
-  /// En vivo, y se reanuda al volver.
   Future<void> _openLive([String liveId = 'canal-en-vivo']) async {
-    setState(() => _liveCovered = true);
-    await Navigator.push(
-      context,
+    await _pushCovered(
       MaterialPageRoute(
         builder: (_) => LiveScreen(
           liveId: liveId,
@@ -150,13 +212,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         ),
       ),
     );
-    if (!mounted) return;
-    setState(() => _liveCovered = false);
   }
 
   Future<void> _openAdvertising() async {
-    await Navigator.push(
-      context,
+    await _pushCovered(
       MaterialPageRoute(
         builder: (_) => PublicidadScreen(
           esAdmin: _currentUser?.isAdmin ?? false,
@@ -167,8 +226,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   }
 
   Future<void> _openAdminPanel() async {
-    await Navigator.push(
-      context,
+    await _pushCovered(
       MaterialPageRoute(
         builder: (_) => AdminDashboardScreen(authService: widget.authService),
       ),
@@ -184,8 +242,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
 
   Future<void> _openEditProfile() async {
     if (_currentUser == null) return;
-    await Navigator.push(
-      context,
+    await _pushCovered(
       MaterialPageRoute(
         builder: (_) => EditProfileScreen(
           authService: widget.authService,
@@ -201,6 +258,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   @override
   Widget build(BuildContext context) {
     final neonColor = Theme.of(context).colorScheme.primary;
+    final notCovered = _covers == 0;
 
     return Scaffold(
       extendBody: true,
@@ -225,15 +283,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   HomeTabContent(
                     neonColor: neonColor,
                     onOpenAdvertising: _openAdvertising,
-                    onOpenLive: _openLive,
                     authService: widget.authService,
+                    isActive: _currentIndex == _homeTabIndex && notCovered,
+                    onOpenLiveTab: () =>
+                        setState(() => _currentIndex = _liveTabIndex),
                   ),
                   ExploreScreen(
                     onOpenAdvertising: _openAdvertising,
                     authService: widget.authService,
                   ),
                   LiveTabScreen(
-                    isActive: _currentIndex == _liveTabIndex && !_liveCovered,
+                    isActive: _currentIndex == _liveTabIndex && notCovered,
                     onOpenLive: (liveId) => _openLive(liveId),
                   ),
                   _loadingUser

@@ -20,12 +20,14 @@ app.use(express.json());
 app.use('/api/users', require('./routes/users'));
 app.use('/api/content', require('./routes/contentRoutes'));
 app.use('/api/live-events', require('./routes/liveEventRoutes'));
+app.use('/api/live-channel', require('./routes/liveChannelRoutes'));
 app.use('/api/ads', require('./routes/adRoutes'));
 app.use('/api/notifications', require('./routes/notificationRoutes'));
 app.use('/api/watchlist', require('./routes/watchlistRoutes'));
 app.use('/api/uploads', require('./routes/upload.routes'));
 app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
+app.use('/api/youtube', require('./routes/youtubeRoutes'));
 
 // Manejo de errores
 app.use(notFound);
@@ -36,6 +38,10 @@ const server = http.createServer(app);
 const io = new Server(server, {
   cors: { origin: '*' }, // ajusta esto a tu dominio real en producción
 });
+
+// Permite emitir eventos de socket desde los controladores (req.app.get('io'))
+app.set('io', io);
+
 initLiveSocket(io);
 
 // Puerto de ejecución

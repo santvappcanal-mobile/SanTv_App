@@ -2,3 +2,4 @@
 .dart_tool/
 *.g.dart
 .gradle/
+.idea/

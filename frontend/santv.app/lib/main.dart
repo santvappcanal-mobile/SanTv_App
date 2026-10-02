@@ -1,15 +1,41 @@
+import 'dart:async';
+
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
+import 'package:http/http.dart' as http;
 
 import 'pages/auth_screen.dart';
 import 'pages/home.dart';
 import 'pages/verify_code_screen.dart';
 import 'services/auth_service.dart';
 
-/// URL del backend. 10.0.2.2 = localhost de tu PC visto desde el
-/// emulador de Android.
-const String kBaseUrl = 'http://10.0.2.2:3000';
+/// IP de tu PC en la red WiFi (opcional, para el teléfono sin cable).
+/// Cámbiala si tu IP cambia: ejecuta `ipconfig` y copia la IPv4.
+const String kLanUrl = 'http://192.168.1.X:3000';
+
+/// Direcciones que se prueban en orden. La primera que responda se usa.
+const List<String> kCandidateUrls = [
+  'http://localhost:3000', // PC/Chrome, o móvil con `adb reverse`
+  'http://10.0.2.2:3000', // emulador de Android sin adb reverse
+  kLanUrl, // teléfono físico por WiFi
+];
+
+/// Prueba cada dirección y devuelve la primera donde el backend responda.
+Future<String> resolveBaseUrl() async {
+  for (final url in kCandidateUrls) {
+    try {
+      // Cualquier respuesta (200, 401, 404) significa que el servidor existe.
+      await http
+          .get(Uri.parse('$url/api/content'))
+          .timeout(const Duration(seconds: 2));
+      return url;
+    } catch (_) {
+      // Sigue con la siguiente.
+    }
+  }
+  return kCandidateUrls.first;
+}
 
 Future<void> main() async {
   final binding = WidgetsFlutterBinding.ensureInitialized();
@@ -17,10 +43,14 @@ Future<void> main() async {
   // Mantiene el splash nativo hasta saber a qué pantalla ir.
   FlutterNativeSplash.preserve(widgetsBinding: binding);
 
-  final authService = AuthService(baseUrl: kBaseUrl);
   String initialRoute = '/login';
+  late final AuthService authService;
 
   try {
+    final baseUrl = await resolveBaseUrl();
+    debugPrint('Backend en: $baseUrl');
+    authService = AuthService(baseUrl: baseUrl);
+
     // getProfile() devuelve null si no hay token, si el token ya no es
     // válido o si el backend no responde en 8 segundos.
     final user = await authService.getProfile();

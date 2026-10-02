@@ -19,12 +19,22 @@ const getYoutubePreview = asyncHandler(async (req, res) => {
     throw new Error('No se pudo reconocer un link válido de YouTube');
   }
 
-  const oembedUrl = `https://www.youtube.com/oembed?url=https://www.youtube.com/watch?v=${videoId}&format=json`;
+  // El link interno va codificado para que "?" y "=" no rompan la URL
+  const oembedUrl =
+    'https://www.youtube.com/oembed?url=' +
+    encodeURIComponent(`https://www.youtube.com/watch?v=${videoId}`) +
+    '&format=json';
 
   let response;
   try {
     response = await fetch(oembedUrl);
   } catch (error) {
+    // Log con la causa real (fetch is not defined, ENOTFOUND, ETIMEDOUT...)
+    console.error(
+      'Error consultando YouTube oEmbed:',
+      error.message,
+      error.cause || ''
+    );
     res.status(502);
     throw new Error('No se pudo conectar con YouTube. Verifica la conexión del servidor.');
   }
