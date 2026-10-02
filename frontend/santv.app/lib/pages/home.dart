@@ -1,5 +1,3 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import '../widgets/top_bar.dart';
 import '../widgets/assistant_chat_sheet.dart';
@@ -28,14 +26,9 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-<<<<<<< Updated upstream
-class _HomeState extends State<Home> with WidgetsBindingObserver {
-  // Índice de la pestaña En vivo dentro del IndexedStack / barra inferior.
-=======
 class _HomeState extends State<Home> {
   // Índices de las pestañas dentro del IndexedStack / barra inferior.
   static const int _homeTabIndex = 0;
->>>>>>> Stashed changes
   static const int _liveTabIndex = 2;
 
   // Cambia a _liveTabIndex si quieres que la app abra directo en En vivo.
@@ -58,14 +51,9 @@ class _HomeState extends State<Home> {
   );
   int _unreadCount = 0;
 
-  // Presencia: avisa al backend que el usuario está dentro de la app.
-  Timer? _presenceTimer;
-
   @override
   void initState() {
     super.initState();
-    WidgetsBinding.instance.addObserver(this);
-    _startPresence();
     _loadUser();
     _loadUnreadCount();
     _liveStatusService.connect(onLiveStarted: _onLiveStarted);
@@ -74,38 +62,6 @@ class _HomeState extends State<Home> {
   @override
   void dispose() {
     _liveStatusService.dispose();
-    super.dispose();
-  }
-
-  void _startPresence() {
-    _presenceTimer?.cancel();
-    widget.authService.ping();
-    _presenceTimer = Timer.periodic(
-      const Duration(seconds: 60),
-      (_) => widget.authService.ping(),
-    );
-  }
-
-  void _stopPresence() {
-    _presenceTimer?.cancel();
-    _presenceTimer = null;
-    widget.authService.setOffline();
-  }
-
-  @override
-  void didChangeAppLifecycleState(AppLifecycleState state) {
-    if (state == AppLifecycleState.resumed) {
-      _startPresence();
-    } else if (state == AppLifecycleState.paused ||
-        state == AppLifecycleState.detached) {
-      _stopPresence();
-    }
-  }
-
-  @override
-  void dispose() {
-    WidgetsBinding.instance.removeObserver(this);
-    _presenceTimer?.cancel();
     super.dispose();
   }
 
@@ -234,7 +190,6 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _handleLogout() async {
-    _presenceTimer?.cancel(); // evita un ping después de cerrar sesión
     await widget.authService.logout();
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
