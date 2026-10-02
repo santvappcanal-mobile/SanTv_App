@@ -390,6 +390,7 @@ const calcOnline = (u) =>
 // @route   PUT /api/users/ping
 // @access  Private
 const pingUser = asyncHandler(async (req, res) => {
+  console.log('PING de', req.user._id.toString()); // temporal: quitar al terminar de probar
   await User.findByIdAndUpdate(
     req.user._id,
     { isOnline: true, lastSeen: new Date() },
