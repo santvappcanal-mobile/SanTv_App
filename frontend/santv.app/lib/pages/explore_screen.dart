@@ -28,6 +28,7 @@ class ExploreScreen extends StatefulWidget {
 
 class _ExploreScreenState extends State<ExploreScreen> {
   int _selectedCategory = 0;
+  String _query = ''; // NUEVO: texto de búsqueda
   late final ContentService _contentService;
 
   bool _cargando = true;
@@ -49,12 +50,34 @@ class _ExploreScreenState extends State<ExploreScreen> {
     });
   }
 
+  /// Minúsculas y sin tildes, para que "Educación" coincida con "educacion".
+  String _normalize(String s) {
+    const from = 'áàäâéèëêíìïîóòöôúùüûñ';
+    const to = 'aaaaeeeeiiiioooouuuun';
+    var out = s.toLowerCase().trim();
+    for (var i = 0; i < from.length; i++) {
+      out = out.replaceAll(from[i], to[i]);
+    }
+    return out;
+  }
+
+  // CAMBIADO: filtra por categoría Y por texto de búsqueda
   List<ContentItem> get _filteredContent {
-    if (_selectedCategory == 0) return _allContent; // "Todo"
-    final category = normalizeCategory(kCategories[_selectedCategory]);
-    return _allContent
-        .where((c) => c.genres.any((g) => normalizeCategory(g) == category))
-        .toList();
+    Iterable<ContentItem> result = _allContent;
+
+    if (_selectedCategory != 0) {
+      final category = normalizeCategory(kCategories[_selectedCategory]);
+      result = result.where(
+        (c) => c.genres.any((g) => normalizeCategory(g) == category),
+      );
+    }
+
+    final q = _normalize(_query);
+    if (q.isNotEmpty) {
+      result = result.where((c) => _normalize(c.title).contains(q));
+    }
+
+    return result.toList();
   }
 
   Future<void> _abrirVideo(ContentItem content) async {
@@ -77,13 +100,18 @@ class _ExploreScreenState extends State<ExploreScreen> {
   Widget build(BuildContext context) {
     final neonColor = Theme.of(context).colorScheme.primary;
     final filtered = _filteredContent;
+    final buscando = _query.trim().isNotEmpty;
 
     return SingleChildScrollView(
+      keyboardDismissBehavior: ScrollViewKeyboardDismissBehavior.onDrag,
       padding: const EdgeInsets.fromLTRB(16, 16, 16, 32),
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-          ExploreSearchBar(accentColor: neonColor),
+          ExploreSearchBar(
+            accentColor: neonColor,
+            onChanged: (value) => setState(() => _query = value),
+          ),
           const SizedBox(height: 20),
           CategoryChipsRow(
             categories: kCategories,
@@ -96,9 +124,9 @@ class _ExploreScreenState extends State<ExploreScreen> {
           PublicidadSection(onTap: widget.onOpenAdvertising),
           const SizedBox(height: 24),
 
-          const Text(
-            'Contenido para ti',
-            style: TextStyle(
+          Text(
+            buscando ? 'Resultados' : 'Contenido para ti',
+            style: const TextStyle(
               color: Colors.white,
               fontSize: 20,
               fontWeight: FontWeight.bold,
@@ -114,12 +142,15 @@ class _ExploreScreenState extends State<ExploreScreen> {
               ),
             )
           else if (filtered.isEmpty)
-            const Padding(
-              padding: EdgeInsets.symmetric(vertical: 40),
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 40),
               child: Center(
                 child: Text(
-                  'No hay contenido en esta categoría todavía',
-                  style: TextStyle(color: Colors.white54),
+                  buscando
+                      ? 'Sin resultados para "${_query.trim()}"'
+                      : 'No hay contenido en esta categoría todavía',
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(color: Colors.white54),
                 ),
               ),
             )
