@@ -87,7 +87,7 @@ class _PublicidadScreenState extends State<PublicidadScreen>
           labelColor: neonGreen,
           unselectedLabelColor: Colors.white54,
           tabs: const [
-            Tab(text: 'Planes'),
+            Tab(text: 'Referencias'),
             Tab(text: 'Documentos'),
             Tab(text: 'Portafolio'),
           ],

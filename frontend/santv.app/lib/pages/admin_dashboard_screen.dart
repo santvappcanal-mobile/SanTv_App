@@ -261,9 +261,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   Widget _buildStatsGrid(AdminStats stats) {
     final cards = [
       _StatCardData(
-        'Usuarios',
+        'Usuarios registrados', // CAMBIADO: antes 'Usuarios'
         '${stats.totalUsers}',
-        '${stats.activeUsers} activos',
+        '', // CAMBIADO: sin línea de "activos"
         Icons.people,
         onTap: _abrirUsuarios,
       ),
