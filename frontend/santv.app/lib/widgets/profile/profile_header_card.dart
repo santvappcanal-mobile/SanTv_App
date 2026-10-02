@@ -1,23 +1,19 @@
 import 'package:flutter/material.dart';
 import '../common/glass_container.dart';
-import '../common/glass_button.dart';
 
-/// Encabezado del perfil: avatar con borde neón, nombre, correo
-/// y botón de "Editar perfil".
-/// Antes era _buildHeaderCard() dentro de profile_screen.dart.
+/// Encabezado del perfil: avatar con borde neón, nombre y correo.
+/// (El botón "Editar perfil" se movió a Configuración.)
 class ProfileHeaderCard extends StatelessWidget {
   const ProfileHeaderCard({
     super.key,
     required this.userName,
     required this.userEmail,
     this.avatarUrl,
-    this.onEditProfile,
   });
 
   final String userName;
   final String userEmail;
   final String? avatarUrl;
-  final VoidCallback? onEditProfile;
 
   static const Color _neonGreen = Color(0xFF39FF14);
 
@@ -75,12 +71,6 @@ class ProfileHeaderCard extends StatelessWidget {
           Text(
             userEmail,
             style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
-          ),
-          const SizedBox(height: 16),
-          GlassButton(
-            label: 'Editar perfil',
-            icon: Icons.edit_outlined,
-            onTap: onEditProfile,
           ),
         ],
       ),

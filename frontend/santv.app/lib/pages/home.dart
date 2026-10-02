@@ -15,10 +15,10 @@ import 'explore_screen.dart';
 import 'live_tab_screen.dart';
 import 'live_screen.dart';
 import 'profile_screen.dart';
-import 'edit_profile_screen.dart';
 import 'notifications_screen.dart';
 import 'publicidad_screen.dart';
 import 'admin_dashboard_screen.dart';
+import 'settings_screen.dart'; // NUEVO
 
 class Home extends StatefulWidget {
   const Home({super.key, required this.authService});
@@ -267,16 +267,18 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
-  Future<void> _openEditProfile() async {
+  // NUEVO: abre la pantalla de Configuración
+  Future<void> _openSettings() async {
     if (_currentUser == null) return;
     await _pushCovered(
       MaterialPageRoute(
-        builder: (_) => EditProfileScreen(
+        builder: (_) => SettingsScreen(
           authService: widget.authService,
           user: _currentUser!,
-          onSaved: (updatedUser) {
+          onUserUpdated: (updatedUser) {
             setState(() => _currentUser = updatedUser);
           },
+          onLogout: _handleLogout,
         ),
       ),
     );
@@ -334,14 +336,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                           userEmail: _currentUser?.email ?? '',
                           avatarUrl: _currentUser?.avatarUrl,
                           isAdmin: _currentUser?.isAdmin ?? false,
-                          onEditProfile: _openEditProfile,
                           onMyList: () {
                             // TODO: navega a "Mi Lista"
                           },
                           onAdvertising: _openAdvertising,
-                          onSettings: () {
-                            // TODO: navega a configuración
-                          },
+                          onSettings: _openSettings, // CAMBIADO
                           onHelp: () {
                             // TODO: navega a ayuda y soporte
                           },

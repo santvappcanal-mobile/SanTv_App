@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../models/content.dart';
+import '../services/settings_service.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
   const VideoPlayerScreen({super.key, required this.content});
@@ -21,10 +22,11 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
     _controller =
         VideoPlayerController.networkUrl(Uri.parse(widget.content.videoUrl))
           ..initialize()
-              .then((_) {
+              .then((_) async {
+                final autoplay = await SettingsService.getAutoplay();
                 if (!mounted) return;
                 setState(() {});
-                _controller.play();
+                if (autoplay) _controller.play();
               })
               .catchError((_) {
                 if (!mounted) return;
