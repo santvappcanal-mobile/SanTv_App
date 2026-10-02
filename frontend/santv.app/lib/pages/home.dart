@@ -211,6 +211,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           description: 'Transmisión en vivo del canal SAN TV, 24/7.',
           coverImageUrl:
               'https://TU_IMAGEN_DE_PORTADA.jpg', // reemplaza con la portada real
+          baseUrl: widget.authService.baseUrl,
           currentUser: {
             'id': _currentUser?.id ?? '',
             'name': _currentUser?.name ?? 'Usuario',
