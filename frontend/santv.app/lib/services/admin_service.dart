@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'package:http/http.dart' as http;
 import 'auth_service.dart';
 import '../models/admin_stats.dart';
+import '../models/admin_user.dart'; // NUEVO
 
 class AdminStatsResult {
   final bool success;
@@ -20,6 +21,32 @@ class AdminActionResult {
   final String? errorMessage;
 
   const AdminActionResult({required this.success, this.errorMessage});
+}
+
+// Resultado de traer la lista completa de videos
+class AdminContentListResult {
+  final bool success;
+  final List<TopContentItem> items;
+  final String? errorMessage;
+
+  const AdminContentListResult({
+    required this.success,
+    this.items = const [],
+    this.errorMessage,
+  });
+}
+
+// NUEVO: resultado de traer la lista de usuarios
+class AdminUsersResult {
+  final bool success;
+  final List<AdminUser> users;
+  final String? errorMessage;
+
+  const AdminUsersResult({
+    required this.success,
+    this.users = const [],
+    this.errorMessage,
+  });
 }
 
 class AdminService {
@@ -64,6 +91,103 @@ class AdminService {
       );
     } catch (e) {
       return const AdminStatsResult(
+        success: false,
+        errorMessage: 'Error de conexión con el servidor. Verifica tu red.',
+      );
+    }
+  }
+
+  /// Trae todo el contenido (activo o no) para la lista del dashboard.
+  /// Usa GET /api/content/admin?limit=1000 (protegido: editor / admin).
+  Future<AdminContentListResult> getAllContent({int limit = 1000}) async {
+    try {
+      final token = await authService.getToken();
+      if (token == null || token.isEmpty) {
+        return const AdminContentListResult(
+          success: false,
+          errorMessage: 'No hay sesión activa. Vuelve a iniciar sesión.',
+        );
+      }
+
+      final uri = Uri.parse(
+        '${authService.baseUrl}/api/content/admin',
+      ).replace(queryParameters: {'limit': '$limit'});
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 &&
+          body['success'] == true &&
+          body['data'] is List) {
+        final items = (body['data'] as List)
+            .map((e) => TopContentItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+        return AdminContentListResult(success: true, items: items);
+      }
+
+      return AdminContentListResult(
+        success: false,
+        errorMessage:
+            body['message']?.toString() ?? 'No se pudo cargar el contenido.',
+      );
+    } catch (e) {
+      return const AdminContentListResult(
+        success: false,
+        errorMessage: 'Error de conexión con el servidor. Verifica tu red.',
+      );
+    }
+  }
+
+  /// NUEVO: trae todos los usuarios registrados.
+  /// Usa GET /api/users?limit=1000 (protegido: solo admin).
+  Future<AdminUsersResult> getAllUsers({int limit = 1000}) async {
+    try {
+      final token = await authService.getToken();
+      if (token == null || token.isEmpty) {
+        return const AdminUsersResult(
+          success: false,
+          errorMessage: 'No hay sesión activa. Vuelve a iniciar sesión.',
+        );
+      }
+
+      final uri = Uri.parse(
+        '${authService.baseUrl}/api/users',
+      ).replace(queryParameters: {'limit': '$limit'});
+
+      final response = await http.get(
+        uri,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+      );
+
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 &&
+          body['success'] == true &&
+          body['data'] is List) {
+        final users = (body['data'] as List)
+            .map((e) => AdminUser.fromJson(e as Map<String, dynamic>))
+            .toList();
+        return AdminUsersResult(success: true, users: users);
+      }
+
+      return AdminUsersResult(
+        success: false,
+        errorMessage:
+            body['message']?.toString() ??
+            'No se pudieron cargar los usuarios.',
+      );
+    } catch (e) {
+      return const AdminUsersResult(
         success: false,
         errorMessage: 'Error de conexión con el servidor. Verifica tu red.',
       );

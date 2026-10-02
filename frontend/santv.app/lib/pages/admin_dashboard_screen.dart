@@ -3,6 +3,7 @@ import '../services/auth_service.dart';
 import '../services/admin_service.dart';
 import '../models/admin_stats.dart';
 import 'admin_add_youtube_screen.dart';
+import 'admin_users_screen.dart'; // NUEVO
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key, required this.authService});
@@ -22,6 +23,9 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
   String? _error;
   AdminStats? _stats;
 
+  // NUEVO: lista completa de videos
+  List<TopContentItem> _todos = [];
+
   static const Color neonGreen = AdminDashboardScreen.neonGreen;
   static const Color cardBg = Color(0xFF1A1A1A);
 
@@ -32,6 +36,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     _cargarStats();
   }
 
+  // CAMBIADO: ahora también carga la lista completa de videos
   Future<void> _cargarStats() async {
     setState(() {
       _cargando = true;
@@ -39,6 +44,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     });
 
     final result = await _adminService.getDashboardStats();
+    final contentResult = await _adminService.getAllContent();
 
     if (!mounted) return;
 
@@ -46,6 +52,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _cargando = false;
       if (result.success) {
         _stats = result.stats;
+        if (contentResult.success) _todos = contentResult.items;
       } else {
         _error = result.errorMessage;
       }
@@ -60,6 +67,17 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
     if (agregado == true) _cargarStats(); // refresca el dashboard al volver
+  }
+
+  // NUEVO: abre la lista de usuarios registrados
+  Future<void> _abrirUsuarios() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminUsersScreen(authService: widget.authService),
+      ),
+    );
+    if (mounted) _cargarStats(); // refresca el conteo al volver
   }
 
   // Abre el diálogo de edición y guarda los cambios en el backend
@@ -89,7 +107,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
 
-    if (result.success) _cargarStats(); // refresca el Top 5
+    if (result.success) _cargarStats(); // refresca Top 5 y lista completa
   }
 
   // Pide confirmación y elimina el contenido en el backend
@@ -140,7 +158,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       ),
     );
 
-    if (result.success) _cargarStats(); // refresca el Top 5
+    if (result.success) _cargarStats(); // refresca Top 5 y lista completa
   }
 
   @override
@@ -230,6 +248,11 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           _buildSectionTitle('Top 5 contenido más visto'),
           const SizedBox(height: 12),
           _buildTopContent(stats.topContent),
+          // NUEVO: sección con todos los videos
+          const SizedBox(height: 24),
+          _buildSectionTitle('Todos mis videos (${_todos.length})'),
+          const SizedBox(height: 12),
+          _buildAllContent(),
           const SizedBox(
             height: 80,
           ), // espacio para que el FAB no tape el último item
@@ -245,6 +268,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         '${stats.totalUsers}',
         '${stats.activeUsers} activos',
         Icons.people,
+        onTap: _abrirUsuarios, // NUEVO
       ),
       _StatCardData(
         'Contenido',
@@ -349,6 +373,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     );
   }
 
+  // CAMBIADO: ahora usa _buildContentCard
   Widget _buildTopContent(List<TopContentItem> topContent) {
     if (topContent.isEmpty) {
       return const Text(
@@ -357,86 +382,93 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       );
     }
 
-    return Column(
-      children: topContent.map((item) {
-        return Container(
-          margin: const EdgeInsets.only(bottom: 10),
-          padding: const EdgeInsets.all(12),
-          decoration: BoxDecoration(
-            color: cardBg,
-            borderRadius: BorderRadius.circular(10),
+    return Column(children: topContent.map(_buildContentCard).toList());
+  }
+
+  // NUEVO: lista con todos los videos
+  Widget _buildAllContent() {
+    if (_todos.isEmpty) {
+      return const Text(
+        'Aún no hay videos subidos',
+        style: TextStyle(color: Colors.white54),
+      );
+    }
+
+    return Column(children: _todos.map(_buildContentCard).toList());
+  }
+
+  // NUEVO: tarjeta reutilizada por el Top 5 y por la lista completa
+  Widget _buildContentCard(TopContentItem item) {
+    return Container(
+      margin: const EdgeInsets.only(bottom: 10),
+      padding: const EdgeInsets.all(12),
+      decoration: BoxDecoration(
+        color: cardBg,
+        borderRadius: BorderRadius.circular(10),
+      ),
+      child: Row(
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(6),
+            child: item.thumbnailUrl.isNotEmpty
+                ? Image.network(
+                    item.thumbnailUrl,
+                    width: 50,
+                    height: 50,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, _, _) => _placeholderThumb(),
+                  )
+                : _placeholderThumb(),
           ),
-          child: Row(
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(6),
-                child: item.thumbnailUrl.isNotEmpty
-                    ? Image.network(
-                        item.thumbnailUrl,
-                        width: 50,
-                        height: 50,
-                        fit: BoxFit.cover,
-                        errorBuilder: (_, _, _) => _placeholderThumb(),
-                      )
-                    : _placeholderThumb(),
-              ),
-              const SizedBox(width: 12),
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: [
-                    Text(
-                      item.title,
-                      style: const TextStyle(
-                        color: Colors.white,
-                        fontWeight: FontWeight.w600,
-                      ),
-                      maxLines: 1,
-                      overflow: TextOverflow.ellipsis,
-                    ),
-                    const SizedBox(height: 2),
-                    Text(
-                      item.type,
-                      style: const TextStyle(
-                        color: Colors.white54,
-                        fontSize: 12,
-                      ),
-                    ),
-                  ],
-                ),
-              ),
-              Row(
-                children: [
-                  const Icon(Icons.remove_red_eye, color: neonGreen, size: 16),
-                  const SizedBox(width: 4),
-                  Text(
-                    '${item.views}',
-                    style: const TextStyle(color: neonGreen),
+          const SizedBox(width: 12),
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  item.title,
+                  style: const TextStyle(
+                    color: Colors.white,
+                    fontWeight: FontWeight.w600,
                   ),
-                ],
-              ),
-              // Lápiz para editar el contenido
-              IconButton(
-                icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
-                tooltip: 'Editar',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => _editarContenido(item),
-              ),
-              // Papelera para eliminar el contenido
-              IconButton(
-                icon: const Icon(
-                  Icons.delete_outline,
-                  color: Colors.redAccent,
-                  size: 20,
+                  maxLines: 1,
+                  overflow: TextOverflow.ellipsis,
                 ),
-                tooltip: 'Eliminar',
-                visualDensity: VisualDensity.compact,
-                onPressed: () => _eliminarContenido(item),
-              ),
+                const SizedBox(height: 2),
+                Text(
+                  item.type,
+                  style: const TextStyle(color: Colors.white54, fontSize: 12),
+                ),
+              ],
+            ),
+          ),
+          Row(
+            children: [
+              const Icon(Icons.remove_red_eye, color: neonGreen, size: 16),
+              const SizedBox(width: 4),
+              Text('${item.views}', style: const TextStyle(color: neonGreen)),
             ],
           ),
-        );
-      }).toList(),
+          // Lápiz para editar el contenido
+          IconButton(
+            icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
+            tooltip: 'Editar',
+            visualDensity: VisualDensity.compact,
+            onPressed: () => _editarContenido(item),
+          ),
+          // Papelera para eliminar el contenido
+          IconButton(
+            icon: const Icon(
+              Icons.delete_outline,
+              color: Colors.redAccent,
+              size: 20,
+            ),
+            tooltip: 'Eliminar',
+            visualDensity: VisualDensity.compact,
+            onPressed: () => _eliminarContenido(item),
+          ),
+        ],
+      ),
     );
   }
 
@@ -569,8 +601,15 @@ class _StatCardData {
   final String value;
   final String subtitle;
   final IconData icon;
+  final VoidCallback? onTap; // NUEVO
 
-  const _StatCardData(this.label, this.value, this.subtitle, this.icon);
+  const _StatCardData(
+    this.label,
+    this.value,
+    this.subtitle,
+    this.icon, {
+    this.onTap,
+  });
 }
 
 class _StatCard extends StatelessWidget {
@@ -580,35 +619,55 @@ class _StatCard extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Container(
-      padding: const EdgeInsets.all(14),
-      decoration: BoxDecoration(
-        color: _AdminDashboardScreenState.cardBg,
+    return Material(
+      color: _AdminDashboardScreenState.cardBg,
+      borderRadius: BorderRadius.circular(12),
+      child: InkWell(
         borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          Icon(data.icon, color: AdminDashboardScreen.neonGreen, size: 22),
-          const Spacer(),
-          Text(
-            data.value,
-            style: const TextStyle(
-              color: Colors.white,
-              fontSize: 22,
-              fontWeight: FontWeight.bold,
-            ),
+        onTap: data.onTap,
+        child: Padding(
+          padding: const EdgeInsets.all(14),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Row(
+                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                children: [
+                  Icon(
+                    data.icon,
+                    color: AdminDashboardScreen.neonGreen,
+                    size: 22,
+                  ),
+                  // Flechita para indicar que la tarjeta se puede tocar
+                  if (data.onTap != null)
+                    const Icon(
+                      Icons.chevron_right,
+                      color: Colors.white38,
+                      size: 20,
+                    ),
+                ],
+              ),
+              const Spacer(),
+              Text(
+                data.value,
+                style: const TextStyle(
+                  color: Colors.white,
+                  fontSize: 22,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                data.label,
+                style: const TextStyle(color: Colors.white70, fontSize: 12),
+              ),
+              if (data.subtitle.isNotEmpty)
+                Text(
+                  data.subtitle,
+                  style: const TextStyle(color: Colors.white38, fontSize: 11),
+                ),
+            ],
           ),
-          Text(
-            data.label,
-            style: const TextStyle(color: Colors.white70, fontSize: 12),
-          ),
-          if (data.subtitle.isNotEmpty)
-            Text(
-              data.subtitle,
-              style: const TextStyle(color: Colors.white38, fontSize: 11),
-            ),
-        ],
+        ),
       ),
     );
   }
