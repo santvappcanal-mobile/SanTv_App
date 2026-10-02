@@ -3,3 +3,5 @@
 *.g.dart
 .gradle/
 .idea/
+node_modules/
+.idea/
