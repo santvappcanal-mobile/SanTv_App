@@ -28,10 +28,14 @@ class Home extends StatefulWidget {
   State<Home> createState() => _HomeState();
 }
 
-class _HomeState extends State<Home> {
+class _HomeState extends State<Home> with WidgetsBindingObserver {
   // Índices de las pestañas dentro del IndexedStack / barra inferior.
   static const int _homeTabIndex = 0;
   static const int _liveTabIndex = 2;
+
+  // Cada cuánto se avisa al backend que el usuario sigue en la app.
+  // Debe ser menor que la ventana de "activo" del backend (~2 min).
+  static const Duration _pingInterval = Duration(seconds: 30);
 
   // Cambia a _liveTabIndex si quieres que la app abra directo en En vivo.
   int _currentIndex = _homeTabIndex;
@@ -43,6 +47,8 @@ class _HomeState extends State<Home> {
 
   AppUser? _currentUser;
   bool _loadingUser = true;
+
+  Timer? _presenceTimer;
 
   late final NotificationService _notificationService = NotificationService(
     authService: widget.authService,
@@ -56,6 +62,8 @@ class _HomeState extends State<Home> {
   @override
   void initState() {
     super.initState();
+    WidgetsBinding.instance.addObserver(this);
+    _startPresence();
     _loadUser();
     _loadUnreadCount();
     _liveStatusService.connect(onLiveStarted: _onLiveStarted);
@@ -64,9 +72,50 @@ class _HomeState extends State<Home> {
 
   @override
   void dispose() {
+    WidgetsBinding.instance.removeObserver(this);
+    _presenceTimer?.cancel();
     _liveStatusService.dispose();
     super.dispose();
   }
+
+  // ───────────────────────── Presencia ─────────────────────────
+
+  /// Avisa que el usuario está dentro de la app y sigue avisando cada
+  /// [_pingInterval] mientras la app esté en primer plano.
+  void _startPresence() {
+    _presenceTimer?.cancel();
+    widget.authService.ping();
+    _presenceTimer = Timer.periodic(
+      _pingInterval,
+      (_) => widget.authService.ping(),
+    );
+  }
+
+  /// Deja de avisar y marca al usuario como fuera de la app.
+  void _stopPresence() {
+    _presenceTimer?.cancel();
+    _presenceTimer = null;
+    widget.authService.setOffline();
+  }
+
+  @override
+  void didChangeAppLifecycleState(AppLifecycleState state) {
+    switch (state) {
+      case AppLifecycleState.resumed:
+        _startPresence();
+        break;
+      case AppLifecycleState.paused:
+      case AppLifecycleState.detached:
+        _stopPresence();
+        break;
+      default:
+        // inactive / hidden son transitorios (diálogos del sistema,
+        // cambio de app): no se marca como desconectado todavía.
+        break;
+    }
+  }
+
+  // ───────────────────────── Datos ─────────────────────────
 
   Future<void> _loadUser() async {
     final user = await widget.authService.getProfile();
@@ -208,7 +257,10 @@ class _HomeState extends State<Home> {
   }
 
   Future<void> _handleLogout() async {
-    await widget.authService.logout();
+    // Evita que un ping pendiente marque al usuario como activo otra vez.
+    _presenceTimer?.cancel();
+    _presenceTimer = null;
+    await widget.authService.logout(); // ya llama a setOffline()
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }

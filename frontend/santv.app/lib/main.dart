@@ -21,6 +21,15 @@ const List<String> kCandidateUrls = [
   kLanUrl, // teléfono físico por WiFi
 ];
 
+/// URL que se usa si ninguna responde (por ejemplo, backend apagado).
+/// En Android apunta al localhost de la PC; en el resto, a localhost.
+String defaultBaseUrl() {
+  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
+    return 'http://10.0.2.2:3000';
+  }
+  return 'http://localhost:3000';
+}
+
 /// Prueba cada dirección y devuelve la primera donde el backend responda.
 Future<String> resolveBaseUrl() async {
   for (final url in kCandidateUrls) {
@@ -34,7 +43,7 @@ Future<String> resolveBaseUrl() async {
       // Sigue con la siguiente.
     }
   }
-  return kCandidateUrls.first;
+  return defaultBaseUrl();
 }
 
 Future<void> main() async {
@@ -44,13 +53,12 @@ Future<void> main() async {
   FlutterNativeSplash.preserve(widgetsBinding: binding);
 
   String initialRoute = '/login';
-  late final AuthService authService;
+
+  final baseUrl = await resolveBaseUrl();
+  debugPrint('Backend en: $baseUrl');
+  final authService = AuthService(baseUrl: baseUrl);
 
   try {
-    final baseUrl = await resolveBaseUrl();
-    debugPrint('Backend en: $baseUrl');
-    authService = AuthService(baseUrl: baseUrl);
-
     // getProfile() devuelve null si no hay token, si el token ya no es
     // válido o si el backend no responde en 8 segundos.
     final user = await authService.getProfile();
