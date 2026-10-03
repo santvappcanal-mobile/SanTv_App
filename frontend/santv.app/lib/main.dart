@@ -9,6 +9,7 @@ import 'pages/auth_screen.dart';
 import 'pages/home.dart';
 import 'pages/verify_code_screen.dart';
 import 'services/auth_service.dart';
+import 'services/settings_service.dart'; // NUEVO
 
 /// IP de tu PC en la red WiFi (opcional, para el teléfono sin cable).
 /// Cámbiala si tu IP cambia: ejecuta `ipconfig` y copia la IPv4.
@@ -51,6 +52,9 @@ Future<void> main() async {
 
   // Mantiene el splash nativo hasta saber a qué pantalla ir.
   FlutterNativeSplash.preserve(widgetsBinding: binding);
+
+  // NUEVO: carga el tamaño de letra guardado antes de dibujar la app.
+  await SettingsService.init();
 
   String initialRoute = '/login';
 
@@ -99,6 +103,20 @@ class SanTvApp extends StatelessWidget {
         colorScheme: const ColorScheme.dark(primary: _neonGreen),
         useMaterial3: true,
       ),
+      // NUEVO: aplica el tamaño de letra elegido a TODA la app.
+      builder: (context, child) {
+        return ValueListenableBuilder<double>(
+          valueListenable: SettingsService.textScale,
+          builder: (context, scale, _) {
+            return MediaQuery(
+              data: MediaQuery.of(context).copyWith(
+                textScaler: TextScaler.linear(scale),
+              ),
+              child: child!,
+            );
+          },
+        );
+      },
       initialRoute: initialRoute,
       routes: {
         '/login': (context) => AuthScreen(

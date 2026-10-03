@@ -34,6 +34,7 @@ class _SettingsScreenState extends State<SettingsScreen> {
   static const Color _card = Color(0xFF1A1A1A);
 
   bool _autoplay = true;
+  int _scaleIndex = SettingsService.textScaleIndex;
   late AppUser _user;
 
   @override
@@ -171,6 +172,72 @@ class _SettingsScreenState extends State<SettingsScreen> {
               'Cerrar sesión',
               color: Colors.redAccent,
               onTap: _confirmLogout,
+            ),
+          ]),
+          _section('Apariencia', [
+            Padding(
+              padding: const EdgeInsets.fromLTRB(16, 14, 16, 14),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  Row(
+                    children: [
+                      const Icon(Icons.text_fields, color: _neonGreen),
+                      const SizedBox(width: 16),
+                      const Expanded(
+                        child: Text(
+                          'Tamaño de letra',
+                          style: TextStyle(color: Colors.white, fontSize: 16),
+                        ),
+                      ),
+                      Text(
+                        SettingsService.textScaleLabels[_scaleIndex],
+                        style: const TextStyle(color: _neonGreen),
+                      ),
+                    ],
+                  ),
+                  Row(
+                    children: [
+                      const Text('A',
+                          style: TextStyle(color: Colors.white54, fontSize: 12)),
+                      Expanded(
+                        child: Slider(
+                          value: _scaleIndex.toDouble(),
+                          min: 0,
+                          max: (SettingsService.textScaleSteps.length - 1)
+                              .toDouble(),
+                          divisions: SettingsService.textScaleSteps.length - 1,
+                          activeColor: _neonGreen,
+                          inactiveColor: Colors.white24,
+                          // Mientras arrastras solo se mueve el control y la
+                          // vista previa; la app se reescala al soltar.
+                          onChanged: (v) =>
+                              setState(() => _scaleIndex = v.round()),
+                          onChangeEnd: (v) =>
+                              SettingsService.setTextScaleIndex(v.round()),
+                        ),
+                      ),
+                      const Text('A',
+                          style: TextStyle(color: Colors.white54, fontSize: 24)),
+                    ],
+                  ),
+                  Container(
+                    width: double.infinity,
+                    padding: const EdgeInsets.all(12),
+                    decoration: BoxDecoration(
+                      color: Colors.white.withValues(alpha: 0.05),
+                      borderRadius: BorderRadius.circular(10),
+                    ),
+                    child: Text(
+                      'Así se verá el texto en SAN TV',
+                      textScaler: TextScaler.linear(
+                        SettingsService.textScaleSteps[_scaleIndex],
+                      ),
+                      style: const TextStyle(color: Colors.white70),
+                    ),
+                  ),
+                ],
+              ),
             ),
           ]),
           _section('Reproducción', [
