@@ -10,10 +10,7 @@ import '../services/ad_service.dart';
 import '../widgets/common/pdf_document_card.dart';
 import 'pdf_viewer_page.dart';
 
-/// Pantalla de "Publicidad" a la que se accede desde el Perfil.
-/// Muestra planes de publicidad, documentos/brochures y el
-/// portafolio de videos publicitarios ya hechos.
-///
+
 /// [esAdmin] controla si se muestran las acciones de administración
 /// (subir/eliminar documentos).
 /// [adService] es la instancia ya creada con el AuthService del usuario
