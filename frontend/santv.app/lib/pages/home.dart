@@ -20,6 +20,7 @@ import 'publicidad_screen.dart';
 import 'admin_dashboard_screen.dart';
 import 'settings_screen.dart';
 import 'edit_profile_screen.dart';
+import 'my_list_screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key, required this.authService});
@@ -34,6 +35,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   // Índices de las pestañas dentro del IndexedStack / barra inferior.
   static const int _homeTabIndex = 0;
   static const int _liveTabIndex = 2;
+  static const int _profileTabIndex = 3;
 
   // Cada cuánto se avisa al backend que el usuario sigue en la app.
   // Debe ser menor que la ventana de "activo" del backend (~2 min).
@@ -46,6 +48,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   // etc.). Mientras sea > 0 se pausan los reproductores que siguen
   // construidos debajo en el IndexedStack.
   int _covers = 0;
+
+  // Se incrementa para que ProfileScreen vuelva a cargar los contadores
+  // de Favoritos y Vistos (al entrar a la pestaña Perfil o volver de Mi Lista).
+  int _profileRefresh = 0;
 
   AppUser? _currentUser;
   bool _loadingUser = true;
@@ -267,6 +273,17 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     );
   }
 
+  /// Abre "Mi Lista" y, al volver, refresca los contadores del Perfil.
+  Future<void> _openMyList() async {
+    await _pushCovered(
+      MaterialPageRoute(
+        builder: (_) => MyListScreen(authService: widget.authService),
+      ),
+    );
+    if (!mounted) return;
+    setState(() => _profileRefresh++);
+  }
+
   Future<void> _handleLogout() async {
     // Evita que un ping pendiente marque al usuario como activo otra vez.
     _presenceTimer?.cancel();
@@ -305,6 +322,15 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
         ),
       ),
     );
+  }
+
+  /// Cambio de pestaña desde la barra inferior. Al entrar al Perfil se
+  /// refrescan los contadores (el IndexedStack no reconstruye la pantalla).
+  void _onTabTap(int index) {
+    setState(() {
+      _currentIndex = index;
+      if (index == _profileTabIndex) _profileRefresh++;
+    });
   }
 
   @override
@@ -359,10 +385,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                           userEmail: _currentUser?.email ?? '',
                           avatarUrl: _currentUser?.avatarUrl,
                           isAdmin: _currentUser?.isAdmin ?? false,
+                          authService: widget.authService,
+                          refreshKey: _profileRefresh,
                           onEditProfile: _openEditProfile,
-                          onMyList: () {
-                            // TODO: navega a "Mi Lista"
-                          },
+                          onMyList: _openMyList,
                           onAdvertising: _openAdvertising,
                           onSettings: _openSettings,
                           onHelp: () {
@@ -384,7 +410,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
       ),
       bottomNavigationBar: GlassBottomNavBar(
         currentIndex: _currentIndex,
-        onTap: (index) => setState(() => _currentIndex = index),
+        onTap: _onTabTap,
         neonColor: neonColor,
       ),
     );
