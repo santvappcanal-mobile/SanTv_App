@@ -157,11 +157,13 @@ class _ExploreScreenState extends State<ExploreScreen> {
         builder: (_) => content.isYoutube
             ? YoutubePlayerScreen(
                 content: content,
+                authService: widget.authService,
                 watchlistService: _watchlistService,
                 initialSaved: _savedIds.contains(content.id),
               )
             : VideoPlayerScreen(
                 content: content,
+                authService: widget.authService,
                 watchlistService: _watchlistService,
                 initialSaved: _savedIds.contains(content.id),
               ),

@@ -73,11 +73,13 @@ class _MyListScreenState extends State<MyListScreen> {
         builder: (_) => content.isYoutube
             ? YoutubePlayerScreen(
                 content: content,
+                authService: widget.authService,
                 watchlistService: _watchlistService,
                 initialSaved: true,
               )
             : VideoPlayerScreen(
                 content: content,
+                authService: widget.authService,
                 watchlistService: _watchlistService,
                 initialSaved: true,
               ),
