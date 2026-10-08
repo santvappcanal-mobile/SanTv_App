@@ -9,6 +9,7 @@ const {
   resetPassword,
   getUserProfile,
   updateUserProfile,
+  uploadProfilePhoto,
   pingUser,
   setOffline,
   getUsers,
@@ -18,6 +19,7 @@ const {
 } = require('../controllers/User');
 const { loginWithGoogle } = require('../controllers/google');
 const { protect, authorize } = require('../middleware/auth');
+const uploadAvatar = require('../middleware/uploadAvatar');
 
 // Rutas públicas
 router.post('/register', registerUser);
@@ -32,6 +34,8 @@ router.post('/reset-password', resetPassword);
 // OJO: /ping y /offline deben ir ANTES de las rutas '/:id'
 router.get('/profile', protect, getUserProfile);
 router.put('/profile', protect, updateUserProfile);
+// protect va antes de uploadAvatar porque el nombre del archivo usa req.user
+router.post('/profile/photo', protect, uploadAvatar, uploadProfilePhoto);
 router.put('/ping', protect, pingUser);
 router.put('/offline', protect, setOffline);
 

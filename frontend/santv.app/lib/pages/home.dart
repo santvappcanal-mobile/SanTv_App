@@ -18,7 +18,8 @@ import 'profile_screen.dart';
 import 'notifications_screen.dart';
 import 'publicidad_screen.dart';
 import 'admin_dashboard_screen.dart';
-import 'settings_screen.dart'; // NUEVO
+import 'settings_screen.dart';
+import 'edit_profile_screen.dart';
 
 class Home extends StatefulWidget {
   const Home({super.key, required this.authService});
@@ -223,6 +224,11 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   /// [liveId] permite reutilizar esto para otras transmisiones futuras;
   /// para el canal permanente usamos un id fijo.
   Future<void> _openLive([String liveId = 'canal-en-vivo']) async {
+    // Solo se manda al chat una URL real; los avatares prediseñados
+    // ("avatar:3") no son URLs y el chat los mostraría rotos.
+    final avatar = _currentUser?.avatarUrl ?? '';
+    final chatAvatarUrl = avatar.startsWith('http') ? avatar : '';
+
     await _pushCovered(
       MaterialPageRoute(
         builder: (_) => LiveScreen(
@@ -235,7 +241,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
           currentUser: {
             'id': _currentUser?.id ?? '',
             'name': _currentUser?.name ?? 'Usuario',
-            'avatarUrl': _currentUser?.avatarUrl ?? '',
+            'avatarUrl': chatAvatarUrl,
           },
         ),
       ),
@@ -270,7 +276,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
   }
 
-  // NUEVO: abre la pantalla de Configuración
+  /// Abre la pantalla de Configuración.
   Future<void> _openSettings() async {
     if (_currentUser == null) return;
     await _pushCovered(
@@ -282,6 +288,20 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
             setState(() => _currentUser = updatedUser);
           },
           onLogout: _handleLogout,
+        ),
+      ),
+    );
+  }
+
+  /// Abre Editar perfil directo desde el círculo del avatar.
+  Future<void> _openEditProfile() async {
+    if (_currentUser == null) return;
+    await _pushCovered(
+      MaterialPageRoute(
+        builder: (_) => EditProfileScreen(
+          authService: widget.authService,
+          user: _currentUser!,
+          onSaved: (updated) => setState(() => _currentUser = updated),
         ),
       ),
     );
@@ -339,11 +359,12 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                           userEmail: _currentUser?.email ?? '',
                           avatarUrl: _currentUser?.avatarUrl,
                           isAdmin: _currentUser?.isAdmin ?? false,
+                          onEditProfile: _openEditProfile,
                           onMyList: () {
                             // TODO: navega a "Mi Lista"
                           },
                           onAdvertising: _openAdvertising,
-                          onSettings: _openSettings, // CAMBIADO
+                          onSettings: _openSettings,
                           onHelp: () {
                             // TODO: navega a ayuda y soporte
                           },

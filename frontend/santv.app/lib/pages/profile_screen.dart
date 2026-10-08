@@ -13,6 +13,7 @@ class ProfileScreen extends StatelessWidget {
     required this.userEmail,
     this.avatarUrl,
     this.isAdmin = false,
+    this.onEditProfile,
     this.onMyList,
     this.onAdvertising,
     this.onSettings,
@@ -25,6 +26,9 @@ class ProfileScreen extends StatelessWidget {
   final String userEmail;
   final String? avatarUrl;
   final bool isAdmin;
+
+  /// Se llama al tocar el círculo del avatar (abre Editar perfil).
+  final VoidCallback? onEditProfile;
 
   final VoidCallback? onMyList;
   final VoidCallback? onAdvertising;
@@ -49,6 +53,7 @@ class ProfileScreen extends StatelessWidget {
             userName: userName,
             userEmail: userEmail,
             avatarUrl: avatarUrl,
+            onAvatarTap: onEditProfile,
           ),
           const SizedBox(height: 18),
           const ProfileStatsRow(),
