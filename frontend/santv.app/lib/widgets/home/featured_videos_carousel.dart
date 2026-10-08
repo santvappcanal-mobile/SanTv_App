@@ -54,13 +54,21 @@ class _FeaturedVideosCarouselState extends State<FeaturedVideosCarousel> {
       Navigator.push(
         context,
         MaterialPageRoute(
-          builder: (_) => YoutubePlayerScreen(content: content),
+          builder: (_) => YoutubePlayerScreen(
+            content: content,
+            authService: widget.authService,
+          ),
         ),
       );
     } else {
       Navigator.push(
         context,
-        MaterialPageRoute(builder: (_) => VideoPlayerScreen(content: content)),
+        MaterialPageRoute(
+          builder: (_) => VideoPlayerScreen(
+            content: content,
+            authService: widget.authService,
+          ),
+        ),
       );
     }
   }

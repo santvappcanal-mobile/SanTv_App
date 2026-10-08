@@ -63,4 +63,9 @@ const contentSchema = new mongoose.Schema(
   }
 );
 
+// Al eliminar un video (content.deleteOne()) también se borran sus comentarios.
+contentSchema.post('deleteOne', { document: true, query: false }, async function () {
+  await mongoose.model('Comment').deleteMany({ content: this._id });
+});
+
 module.exports = mongoose.model('Content', contentSchema);

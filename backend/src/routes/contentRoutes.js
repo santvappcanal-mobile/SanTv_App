@@ -12,6 +12,11 @@ const {
   updateContent,
   deleteContent,
 } = require('../controllers/Content');
+const {
+  getComments,
+  createComment,
+  deleteComment,
+} = require('../controllers/Comment');
 const { protect, authorize } = require('../middleware/auth');
 
 // ---------------------------------------------------------------
@@ -31,6 +36,11 @@ router.get('/youtube-preview', protect, authorize('editor', 'admin'), getYoutube
 
 // Crear contenido directo desde un link de YouTube
 router.post('/from-youtube', protect, authorize('editor', 'admin'), createContentFromYoutube);
+
+// Comentarios de un video: ver (público), comentar y borrar (con sesión)
+router.get('/:id/comments', getComments);
+router.post('/:id/comments', protect, createComment);
+router.delete('/:id/comments/:commentId', protect, deleteComment);
 
 // Rutas con /:id
 router.get('/:id', getContentById);
