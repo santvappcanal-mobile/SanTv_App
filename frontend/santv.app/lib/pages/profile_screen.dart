@@ -17,6 +17,7 @@ class ProfileScreen extends StatefulWidget {
     this.isAdmin = false,
     this.authService,
     this.refreshKey = 0,
+    this.onEditProfile,
     this.onMyList,
     this.onAdvertising,
     this.onSettings,
@@ -37,6 +38,9 @@ class ProfileScreen extends StatefulWidget {
   /// Cada vez que este número cambia, se vuelven a cargar los contadores.
   /// Home lo incrementa al entrar a la pestaña Perfil o al volver de Mi Lista.
   final int refreshKey;
+
+  /// Se llama al tocar el círculo del avatar (abre Editar perfil).
+  final VoidCallback? onEditProfile;
 
   final VoidCallback? onMyList;
   final VoidCallback? onAdvertising;
@@ -101,6 +105,7 @@ class _ProfileScreenState extends State<ProfileScreen> {
             userName: widget.userName,
             userEmail: widget.userEmail,
             avatarUrl: widget.avatarUrl,
+            onAvatarTap: widget.onEditProfile,
           ),
           const SizedBox(height: 18),
           ProfileStatsRow(favorites: _favorites, watched: _watched),

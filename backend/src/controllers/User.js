@@ -11,6 +11,13 @@ const generarCodigo = () => {
 // Reglas de validación de nombre y contraseña
 const nameRegex = /^[a-zA-ZáéíóúÁÉÍÓÚñÑ\s]+$/;
 
+// Avatar válido: vacío (quitar), prediseñado ("avatar:3") o URL de Cloudinary
+const esAvatarValido = (v) =>
+  typeof v === 'string' &&
+  (v === '' ||
+    /^avatar:\d{1,2}$/.test(v) ||
+    /^https:\/\/res\.cloudinary\.com\//.test(v));
+
 // Devuelve la lista de requisitos de la contraseña, marcando
 // cuáles cumple y cuáles no, para mostrarlos como checklist.
 const checkPasswordRequirements = (password = '') => {
@@ -137,6 +144,7 @@ const verifyCode = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      avatar: user.avatar,
       token: generateToken(user._id),
     },
   });
@@ -215,6 +223,7 @@ const loginUser = asyncHandler(async (req, res) => {
       name: user.name,
       email: user.email,
       role: user.role,
+      avatar: user.avatar,
       token: generateToken(user._id),
     },
   });
@@ -354,11 +363,50 @@ const updateUserProfile = asyncHandler(async (req, res) => {
 
   user.name = req.body.name || user.name;
   user.email = req.body.email || user.email;
-  user.avatar = req.body.avatar || user.avatar;
+
+  // Avatar: '' lo quita, "avatar:N" es prediseñado, URL de Cloudinary es foto
+  if (req.body.avatar !== undefined) {
+    if (!esAvatarValido(req.body.avatar)) {
+      res.status(400);
+      throw new Error('Avatar inválido');
+    }
+    user.avatar = req.body.avatar;
+  }
+
   if (req.body.password) {
     user.password = req.body.password;
   }
 
+  const updatedUser = await user.save();
+
+  res.json({
+    success: true,
+    data: {
+      _id: updatedUser._id,
+      name: updatedUser.name,
+      email: updatedUser.email,
+      role: updatedUser.role,
+      avatar: updatedUser.avatar,
+    },
+  });
+});
+
+// @desc    Subir foto de perfil (Cloudinary)
+// @route   POST /api/users/profile/photo
+// @access  Private
+const uploadProfilePhoto = asyncHandler(async (req, res) => {
+  if (!req.file) {
+    res.status(400);
+    throw new Error('No se recibió ninguna imagen');
+  }
+
+  const user = await User.findById(req.user._id);
+  if (!user) {
+    res.status(404);
+    throw new Error('Usuario no encontrado');
+  }
+
+  user.avatar = req.file.path; // URL segura de Cloudinary
   const updatedUser = await user.save();
 
   res.json({
@@ -515,6 +563,7 @@ module.exports = {
   resetPassword,
   getUserProfile,
   updateUserProfile,
+  uploadProfilePhoto,
   pingUser,
   setOffline,
   getUsers,

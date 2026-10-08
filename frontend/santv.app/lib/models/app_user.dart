@@ -1,4 +1,9 @@
 /// Modelo del usuario autenticado de SAN TV.
+///
+/// [avatarUrl] puede ser:
+///  - null            -> sin foto (se muestra el ícono de persona)
+///  - "avatar:3"      -> avatar prediseñado
+///  - "https://..."   -> foto subida a Cloudinary
 class AppUser {
   final String id;
   final String name;
@@ -19,12 +24,14 @@ class AppUser {
   bool get isAdmin => role == 'admin';
 
   factory AppUser.fromJson(Map<String, dynamic> json) {
+    // El backend guarda el campo como "avatar"; se acepta también "avatarUrl".
+    final rawAvatar = (json['avatar'] ?? json['avatarUrl'])?.toString();
     return AppUser(
       id: (json['id'] ?? json['_id'] ?? '').toString(),
       name: (json['name'] ?? '').toString(),
       email: (json['email'] ?? '').toString(),
-      avatarUrl: json['avatarUrl']?.toString(),
-      verified: json['verified'] == true,
+      avatarUrl: (rawAvatar == null || rawAvatar.isEmpty) ? null : rawAvatar,
+      verified: json['verified'] == true || json['isVerified'] == true,
       role: (json['role'] ?? 'user').toString(),
     );
   }
