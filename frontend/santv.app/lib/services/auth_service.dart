@@ -1,4 +1,5 @@
 import 'dart:convert';
+import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
@@ -41,6 +42,9 @@ class AuthService {
 
   /// Tiempo máximo para validar la sesión al arrancar la app.
   static const _profileTimeout = Duration(seconds: 8);
+
+  /// Tiempo máximo para subir la foto de perfil (archivo más pesado).
+  static const _uploadTimeout = Duration(seconds: 60);
 
   // ID de cliente tipo "Web application" de Google Cloud Console.
   // Debe ser el MISMO valor que GOOGLE_CLIENT_ID en el .env del backend.
@@ -389,6 +393,9 @@ class AuthService {
     }
   }
 
+  /// Actualiza el perfil. Para el avatar:
+  ///  - avatarUrl: 'avatar:3' -> avatar prediseñado
+  ///  - avatarUrl: ''         -> quitar foto/avatar
   Future<AuthResult> updateProfile({
     String? name,
     String? email,
@@ -437,6 +444,48 @@ class AuthService {
         success: false,
         errorMessage:
             body['message']?.toString() ?? 'No se pudo actualizar el perfil',
+      );
+    } catch (e) {
+      return AuthResult(
+        success: false,
+        errorMessage: 'No se pudo conectar con el servidor: $e',
+      );
+    }
+  }
+
+  /// Sube una foto de perfil (multipart, campo "foto") y devuelve el
+  /// usuario actualizado con la URL de Cloudinary.
+  Future<AuthResult> uploadProfilePhoto(File file) async {
+    try {
+      final token = await getToken();
+      if (token == null) {
+        return const AuthResult(
+          success: false,
+          errorMessage: 'No has iniciado sesión',
+        );
+      }
+
+      final request = http.MultipartRequest('POST', _endpoint('/profile/photo'))
+        ..headers['Authorization'] = 'Bearer $token'
+        ..files.add(await http.MultipartFile.fromPath('foto', file.path));
+
+      final streamed = await request.send().timeout(_uploadTimeout);
+      final response = await http.Response.fromStream(streamed);
+      final body = jsonDecode(response.body) as Map<String, dynamic>;
+
+      if (response.statusCode == 200 && body['success'] == true) {
+        final data = body['data'];
+        return AuthResult(
+          success: true,
+          user: data != null
+              ? AppUser.fromJson(Map<String, dynamic>.from(data))
+              : null,
+        );
+      }
+
+      return AuthResult(
+        success: false,
+        errorMessage: body['message']?.toString() ?? 'No se pudo subir la foto',
       );
     } catch (e) {
       return AuthResult(

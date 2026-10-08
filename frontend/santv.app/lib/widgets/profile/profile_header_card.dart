@@ -1,19 +1,22 @@
 import 'package:flutter/material.dart';
 import '../common/glass_container.dart';
+import 'profile_avatar.dart';
 
 /// Encabezado del perfil: avatar con borde neón, nombre y correo.
-/// (El botón "Editar perfil" se movió a Configuración.)
+/// Si se pasa [onAvatarTap], el círculo se vuelve tocable y muestra un lápiz.
 class ProfileHeaderCard extends StatelessWidget {
   const ProfileHeaderCard({
     super.key,
     required this.userName,
     required this.userEmail,
     this.avatarUrl,
+    this.onAvatarTap,
   });
 
   final String userName;
   final String userEmail;
   final String? avatarUrl;
+  final VoidCallback? onAvatarTap;
 
   static const Color _neonGreen = Color(0xFF39FF14);
 
@@ -35,27 +38,36 @@ class ProfileHeaderCard extends StatelessWidget {
       ],
       child: Column(
         children: [
-          Container(
-            padding: const EdgeInsets.all(3),
-            decoration: BoxDecoration(
-              shape: BoxShape.circle,
-              border: Border.all(color: _neonGreen, width: 2),
-              boxShadow: [
-                BoxShadow(
-                  color: _neonGreen.withValues(alpha: 0.4),
-                  blurRadius: 16,
-                  spreadRadius: 1,
+          GestureDetector(
+            onTap: onAvatarTap,
+            child: Stack(
+              children: [
+                Container(
+                  padding: const EdgeInsets.all(3),
+                  decoration: BoxDecoration(
+                    shape: BoxShape.circle,
+                    border: Border.all(color: _neonGreen, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: _neonGreen.withValues(alpha: 0.4),
+                        blurRadius: 16,
+                        spreadRadius: 1,
+                      ),
+                    ],
+                  ),
+                  child: ProfileAvatar(avatar: avatarUrl, radius: 42),
                 ),
+                if (onAvatarTap != null)
+                  const Positioned(
+                    bottom: 2,
+                    right: 2,
+                    child: CircleAvatar(
+                      radius: 13,
+                      backgroundColor: _neonGreen,
+                      child: Icon(Icons.edit, size: 14, color: Colors.black),
+                    ),
+                  ),
               ],
-            ),
-            child: CircleAvatar(
-              radius: 42,
-              backgroundColor: Colors.white.withValues(alpha: 0.08),
-              backgroundImage:
-                  avatarUrl != null ? NetworkImage(avatarUrl!) : null,
-              child: avatarUrl == null
-                  ? const Icon(Icons.person, size: 42, color: Colors.white70)
-                  : null,
             ),
           ),
           const SizedBox(height: 14),
@@ -70,7 +82,10 @@ class ProfileHeaderCard extends StatelessWidget {
           const SizedBox(height: 4),
           Text(
             userEmail,
-            style: TextStyle(color: Colors.white.withValues(alpha: 0.6), fontSize: 13),
+            style: TextStyle(
+              color: Colors.white.withValues(alpha: 0.6),
+              fontSize: 13,
+            ),
           ),
         ],
       ),
