@@ -13,7 +13,7 @@ import 'services/settings_service.dart'; // NUEVO
 
 /// IP de tu PC en la red WiFi (opcional, para el teléfono sin cable).
 /// Cámbiala si tu IP cambia: ejecuta `ipconfig` y copia la IPv4.
-const String kLanUrl = 'http://192.168.1.X:3000';
+const String kLanUrl = 'http://192.168.1.135:3000';
 
 /// Direcciones que se prueban en orden. La primera que responda se usa.
 const List<String> kCandidateUrls = [
@@ -109,9 +109,9 @@ class SanTvApp extends StatelessWidget {
           valueListenable: SettingsService.textScale,
           builder: (context, scale, _) {
             return MediaQuery(
-              data: MediaQuery.of(context).copyWith(
-                textScaler: TextScaler.linear(scale),
-              ),
+              data: MediaQuery.of(
+                context,
+              ).copyWith(textScaler: TextScaler.linear(scale)),
               child: child!,
             );
           },
@@ -120,27 +120,26 @@ class SanTvApp extends StatelessWidget {
       initialRoute: initialRoute,
       routes: {
         '/login': (context) => AuthScreen(
-              authService: authService,
-              onLoggedIn: () {
-                Navigator.of(context).pushReplacementNamed('/home');
-              },
-              onRegistered: (email) {
-                Navigator.of(context).push(
-                  MaterialPageRoute(
-                    builder: (_) => VerifyCodeScreen(
-                      authService: authService,
-                      email: email,
-                      onVerified: () {
-                        Navigator.of(context).pushNamedAndRemoveUntil(
-                          '/home',
-                          (route) => false,
-                        );
-                      },
-                    ),
-                  ),
-                );
-              },
-            ),
+          authService: authService,
+          onLoggedIn: () {
+            Navigator.of(context).pushReplacementNamed('/home');
+          },
+          onRegistered: (email) {
+            Navigator.of(context).push(
+              MaterialPageRoute(
+                builder: (_) => VerifyCodeScreen(
+                  authService: authService,
+                  email: email,
+                  onVerified: () {
+                    Navigator.of(
+                      context,
+                    ).pushNamedAndRemoveUntil('/home', (route) => false);
+                  },
+                ),
+              ),
+            );
+          },
+        ),
         '/home': (context) => Home(authService: authService),
       },
     );

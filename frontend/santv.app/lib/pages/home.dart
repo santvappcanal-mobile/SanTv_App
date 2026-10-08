@@ -137,7 +137,10 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
   /// Trae los anuncios activos, elige uno al azar y lo muestra en un
   /// modal cerrable. Se llama una vez al entrar al Home (cada sesión).
   Future<void> _mostrarAnuncioAleatorio() async {
-    final ads = await _adService.obtenerAdsActivos();
+    final todos = await _adService.obtenerAdsActivos();
+
+    // NUEVO: los PDF legales (type: 'document') no se muestran en el modal.
+    final ads = todos.where((a) => a.type != 'document').toList();
     if (!mounted || ads.isEmpty) return;
 
     final anuncio = ads[Random().nextInt(ads.length)];

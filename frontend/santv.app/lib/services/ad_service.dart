@@ -30,6 +30,15 @@ class AdService {
   Uri get _uploadDocumentUrl =>
       Uri.parse('${authService.baseUrl}/api/uploads/document');
 
+  // NUEVO
+  Uri get _adsUrl => Uri.parse('${authService.baseUrl}/api/ads');
+
+  // NUEVO
+  Uri get _adImageUrl => Uri.parse('${authService.baseUrl}/api/ads/image');
+
+  // NUEVO
+  Uri _adByIdUrl(String id) => Uri.parse('${authService.baseUrl}/api/ads/$id');
+
   /// Trae todos los anuncios activos vigentes (sin filtrar por tipo).
   /// No requiere sesión activa, es un endpoint público.
   Future<List<AdItem>> obtenerAdsActivos() async {
@@ -142,6 +151,94 @@ class AdService {
 
       return response.statusCode == 200;
     } catch (e) {
+      return false;
+    }
+  }
+
+  // ───────────────────── NUEVO: gestión de anuncios (admin) ─────────────────────
+
+  /// ADMIN: lista todos los anuncios (activos o no).
+  Future<List<Map<String, dynamic>>> listarAdsAdmin() async {
+    final token = await authService.getToken();
+    final response = await http.get(
+      _adsUrl,
+      headers: {'Authorization': 'Bearer $token'},
+    );
+    if (response.statusCode != 200) {
+      throw Exception('No se pudieron cargar los anuncios');
+    }
+    final body = jsonDecode(response.body);
+    final data = body is Map ? body['data'] : body;
+    if (data is List) {
+      return data.map((e) => Map<String, dynamic>.from(e as Map)).toList();
+    }
+    return [];
+  }
+
+  /// ADMIN: sube una imagen y crea el anuncio. Devuelve null si todo
+  /// salió bien, o el mensaje de error.
+  Future<String?> subirAnuncioImagen({
+    required File imagen,
+    required String titulo,
+    String? enlace,
+  }) async {
+    try {
+      final token = await authService.getToken();
+      final request = http.MultipartRequest('POST', _adImageUrl)
+        ..headers['Authorization'] = 'Bearer $token'
+        ..fields['title'] = titulo
+        ..fields['type'] = 'popup'
+        ..files.add(await http.MultipartFile.fromPath('imagen', imagen.path));
+      if (enlace != null && enlace.isNotEmpty) {
+        request.fields['targetUrl'] = enlace;
+      }
+
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return null;
+      }
+
+      try {
+        final body = jsonDecode(response.body);
+        return body['message']?.toString() ?? 'Error al subir el anuncio';
+      } catch (_) {
+        return 'Error al subir el anuncio (${response.statusCode})';
+      }
+    } catch (e) {
+      return 'No se pudo conectar con el servidor: $e';
+    }
+  }
+
+  /// ADMIN: activa o desactiva un anuncio.
+  Future<bool> cambiarEstadoAd(String id, bool activo) async {
+    try {
+      final token = await authService.getToken();
+      final response = await http.put(
+        _adByIdUrl(id),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'isActive': activo}),
+      );
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// ADMIN: elimina un anuncio.
+  Future<bool> eliminarAd(String id) async {
+    try {
+      final token = await authService.getToken();
+      final response = await http.delete(
+        _adByIdUrl(id),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+      return response.statusCode == 200;
+    } catch (_) {
       return false;
     }
   }

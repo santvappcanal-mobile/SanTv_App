@@ -5,6 +5,7 @@ import '../models/admin_stats.dart';
 import 'admin_add_youtube_screen.dart';
 import 'admin_users_screen.dart';
 import 'admin_content_screen.dart'; // NUEVO: pantalla con todos los videos
+import 'admin_ads_screen.dart'; // NUEVO ANUNCIOS: pantalla de anuncios
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key, required this.authService});
@@ -85,10 +86,22 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
     if (mounted) _cargarStats(); // refresca contadores y Top 5 al volver
   }
 
+  // NUEVO ANUNCIOS: abre la pantalla para subir imágenes publicitarias
+  Future<void> _abrirAnuncios() async {
+    await Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (_) => AdminAdsScreen(authService: widget.authService),
+      ),
+    );
+    if (mounted) _cargarStats(); // refresca el contador de anuncios al volver
+  }
+
   Future<void> _editarContenido(TopContentItem item) async {
     final data = await showDialog<Map<String, String>>(
       context: context,
-      builder: (_) => EditContentDialog(item: item), // CAMBIADO: diálogo público
+      builder: (_) =>
+          EditContentDialog(item: item), // CAMBIADO: diálogo público
     );
 
     if (data == null) return;
@@ -139,7 +152,10 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
           ElevatedButton(
             onPressed: () => Navigator.pop(ctx, true),
             style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text('Eliminar', style: TextStyle(color: Colors.white)),
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.white),
+            ),
           ),
         ],
       ),
@@ -285,6 +301,7 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
         '${stats.totalAds}',
         '${stats.activeAds} activos',
         Icons.ondemand_video,
+        onTap: _abrirAnuncios, // NUEVO ANUNCIOS
       ),
       _StatCardData(
         'Eventos en vivo',
