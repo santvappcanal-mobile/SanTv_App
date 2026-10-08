@@ -8,11 +8,29 @@ class ExploreCard extends StatelessWidget {
     required this.accentColor,
     required this.content,
     required this.onTap,
+    this.isSaved = false,
+    this.onToggleSave,
   });
 
   final Color accentColor;
   final ContentItem content;
   final VoidCallback onTap;
+
+  /// Si el contenido está guardado en Mi Lista (pinta el marcador relleno).
+  final bool isSaved;
+
+  /// Si es null, no se muestra el botón de guardar.
+  final VoidCallback? onToggleSave;
+
+  Widget _placeholderIcon() {
+    return Center(
+      child: Icon(
+        Icons.play_circle_outline,
+        size: 40,
+        color: accentColor.withValues(alpha: 0.9),
+      ),
+    );
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -48,32 +66,53 @@ class ExploreCard extends StatelessWidget {
                         topRight: Radius.circular(16),
                       ),
                     ),
-                    child: content.thumbnailUrl.isNotEmpty
-                        ? ClipRRect(
-                            borderRadius: const BorderRadius.only(
-                              topLeft: Radius.circular(16),
-                              topRight: Radius.circular(16),
-                            ),
-                            child: Image.network(
+                    child: ClipRRect(
+                      borderRadius: const BorderRadius.only(
+                        topLeft: Radius.circular(16),
+                        topRight: Radius.circular(16),
+                      ),
+                      child: Stack(
+                        fit: StackFit.expand,
+                        children: [
+                          if (content.thumbnailUrl.isNotEmpty)
+                            Image.network(
                               content.thumbnailUrl,
                               fit: BoxFit.cover,
                               width: double.infinity,
-                              errorBuilder: (_, _, _) => Center(
-                                child: Icon(
-                                  Icons.play_circle_outline,
-                                  size: 40,
-                                  color: accentColor.withValues(alpha: 0.9),
+                              errorBuilder: (_, _, _) => _placeholderIcon(),
+                            )
+                          else
+                            _placeholderIcon(),
+
+                          // Botón de guardar en Mi Lista
+                          if (onToggleSave != null)
+                            Positioned(
+                              top: 6,
+                              right: 6,
+                              child: GestureDetector(
+                                behavior: HitTestBehavior.opaque,
+                                onTap: onToggleSave,
+                                child: Container(
+                                  padding: const EdgeInsets.all(6),
+                                  decoration: BoxDecoration(
+                                    color: Colors.black.withValues(alpha: 0.55),
+                                    shape: BoxShape.circle,
+                                  ),
+                                  child: Icon(
+                                    isSaved
+                                        ? Icons.bookmark
+                                        : Icons.bookmark_border,
+                                    size: 18,
+                                    color: isSaved
+                                        ? accentColor
+                                        : Colors.white,
+                                  ),
                                 ),
                               ),
                             ),
-                          )
-                        : Center(
-                            child: Icon(
-                              Icons.play_circle_outline,
-                              size: 40,
-                              color: accentColor.withValues(alpha: 0.9),
-                            ),
-                          ),
+                        ],
+                      ),
+                    ),
                   ),
                 ),
                 Padding(

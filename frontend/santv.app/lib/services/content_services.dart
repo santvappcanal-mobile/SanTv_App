@@ -369,4 +369,26 @@ class ContentService {
       return [];
     }
   }
+
+  /// Registra una vista (+1) del contenido en el backend.
+  /// Llama a PUT /api/content/:id/view (público, no requiere sesión).
+  /// Devuelve el nuevo total de vistas, o null si falló.
+  Future<int?> registrarVista(String contentId) async {
+    try {
+      final uri = Uri.parse('${authService.baseUrl}/api/content/$contentId/view');
+      final response = await http.put(uri);
+
+      if (response.statusCode != 200) return null;
+
+      final body = jsonDecode(response.body);
+      if (body is Map && body['success'] == true && body['data'] is Map) {
+        final views = body['data']['views'];
+        if (views is int) return views;
+        if (views is num) return views.toInt();
+      }
+      return null;
+    } catch (e) {
+      return null;
+    }
+  }
 }

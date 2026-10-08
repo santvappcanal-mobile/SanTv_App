@@ -1,21 +1,32 @@
 const express = require('express');
 const router = express.Router();
 const {
+  getMyWatchlist,
+  getMyWatchlistIds,
   addToWatchlist,
-  getUserWatchlist,
-  checkInWatchlist,
-  updateProgress,
   removeFromWatchlist,
+  registerViewed,
+  getMyStats,
 } = require('../controllers/Watchlist');
 const { protect } = require('../middleware/auth');
 
-// Toda la watchlist requiere estar autenticado
+// DIAGNÓSTICO (borrar después): muestra toda petición que llega a /api/watchlist
+router.use((req, res, next) => {
+  console.log('WATCHLIST ->', req.method, req.originalUrl);
+  next();
+});
+
+// Todas las rutas requieren sesión
 router.use(protect);
 
-router.post('/', addToWatchlist);
-router.get('/', getUserWatchlist);
-router.get('/check/:contentId', checkInWatchlist);
-router.put('/:id/progress', updateProgress);
-router.delete('/:id', removeFromWatchlist);
+// IMPORTANTE: las rutas fijas (/ids, /stats, /viewed/:contentId)
+// van ANTES de /:contentId, si no Express las confunde con un id.
+router.get('/', getMyWatchlist);
+router.get('/ids', getMyWatchlistIds);
+router.get('/stats', getMyStats);
+router.post('/viewed/:contentId', registerViewed);
+
+router.post('/:contentId', addToWatchlist);
+router.delete('/:contentId', removeFromWatchlist);
 
 module.exports = router;

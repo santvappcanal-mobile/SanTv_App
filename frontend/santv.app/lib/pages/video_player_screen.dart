@@ -2,11 +2,22 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../models/content.dart';
 import '../services/settings_service.dart';
+import '../services/watchlist_service.dart';
+import '../widgets/common/save_to_list_button.dart';
 
 class VideoPlayerScreen extends StatefulWidget {
-  const VideoPlayerScreen({super.key, required this.content});
+  const VideoPlayerScreen({
+    super.key,
+    required this.content,
+    this.watchlistService,
+    this.initialSaved = false,
+  });
 
   final ContentItem content;
+
+  /// Si se pasa, se muestra el botón de guardar en Mi Lista en la barra superior.
+  final WatchlistService? watchlistService;
+  final bool initialSaved;
 
   @override
   State<VideoPlayerScreen> createState() => _VideoPlayerScreenState();
@@ -51,6 +62,14 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
           widget.content.title,
           style: const TextStyle(color: Colors.white),
         ),
+        actions: [
+          if (widget.watchlistService != null)
+            SaveToListButton(
+              contentId: widget.content.id,
+              watchlistService: widget.watchlistService!,
+              initialSaved: widget.initialSaved,
+            ),
+        ],
       ),
       body: Center(
         child: _error
