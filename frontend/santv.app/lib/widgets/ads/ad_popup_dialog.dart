@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 import 'package:url_launcher/url_launcher.dart';
 import 'package:video_player/video_player.dart';
 import '../../models/ad.dart';
@@ -18,6 +19,9 @@ class AdPopupDialog extends StatefulWidget {
     required AdItem ad,
     required AdService adService,
   }) {
+    // NUEVO: los PDF legales no se muestran en el modal ni cuentan vistas.
+    if (ad.type == 'document') return Future.value();
+
     adService.registrarImpresion(ad.id);
     return showDialog(
       context: context,
@@ -137,12 +141,25 @@ class _AdPopupDialogState extends State<AdPopupDialog> {
     return Image.network(
       widget.ad.mediaUrl,
       fit: BoxFit.contain,
-      errorBuilder: (_, __, ___) => const SizedBox(
-        height: 160,
-        child: Center(
-          child: Icon(Icons.broken_image, color: Colors.white38, size: 40),
-        ),
-      ),
+      // NUEVO: muestra un cargando mientras baja la imagen
+      loadingBuilder: (context, child, progress) {
+        if (progress == null) return child;
+        return const SizedBox(
+          height: 220,
+          child: Center(child: CircularProgressIndicator(color: _neonGreen)),
+        );
+      },
+      // NUEVO: imprime la causa del error en la consola de Flutter
+      errorBuilder: (_, error, __) {
+        debugPrint('AD IMAGE ERROR -> url: ${widget.ad.mediaUrl}');
+        debugPrint('AD IMAGE ERROR -> $error');
+        return const SizedBox(
+          height: 160,
+          child: Center(
+            child: Icon(Icons.broken_image, color: Colors.white38, size: 40),
+          ),
+        );
+      },
     );
   }
 }
