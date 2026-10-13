@@ -6,6 +6,7 @@ import 'auth_service.dart';
 // Ocultamos AdDocumentItem de ad.dart e importamos la versión oficial
 import '../models/ad.dart' hide AdDocumentItem;
 import '../models/ad_document_item.dart';
+import '../models/gallery_item.dart';
 
 class AdService {
   AdService({required this.authService});
@@ -30,14 +31,14 @@ class AdService {
   Uri get _uploadDocumentUrl =>
       Uri.parse('${authService.baseUrl}/api/uploads/document');
 
-  // NUEVO
   Uri get _adsUrl => Uri.parse('${authService.baseUrl}/api/ads');
 
-  // NUEVO
   Uri get _adImageUrl => Uri.parse('${authService.baseUrl}/api/ads/image');
 
-  // NUEVO
   Uri _adByIdUrl(String id) => Uri.parse('${authService.baseUrl}/api/ads/$id');
+
+  // NUEVO: galería del portafolio
+  Uri get _galleryUrl => Uri.parse('${authService.baseUrl}/api/ads/gallery');
 
   /// Trae todos los anuncios activos vigentes (sin filtrar por tipo).
   /// No requiere sesión activa, es un endpoint público.
@@ -155,7 +156,7 @@ class AdService {
     }
   }
 
-  // ───────────────────── NUEVO: gestión de anuncios (admin) ─────────────────────
+  // ───────────────────── Gestión de anuncios (admin) ─────────────────────
 
   /// ADMIN: lista todos los anuncios (activos o no).
   Future<List<Map<String, dynamic>>> listarAdsAdmin() async {
@@ -229,7 +230,7 @@ class AdService {
     }
   }
 
-  /// ADMIN: elimina un anuncio.
+  /// ADMIN: elimina un anuncio (también sirve para borrar imágenes de la galería).
   Future<bool> eliminarAd(String id) async {
     try {
       final token = await authService.getToken();
@@ -240,6 +241,57 @@ class AdService {
       return response.statusCode == 200;
     } catch (_) {
       return false;
+    }
+  }
+
+  // ───────────────────── NUEVO: galería del portafolio ─────────────────────
+
+  /// Trae las imágenes de la galería. Público, no requiere sesión.
+  Future<List<GalleryItem>> getGallery() async {
+    final response = await http.get(_galleryUrl);
+
+    if (response.statusCode != 200) {
+      throw Exception('No se pudo cargar la galería');
+    }
+
+    final body = jsonDecode(response.body);
+    if (body is Map && body['success'] == true && body['data'] is List) {
+      return (body['data'] as List)
+          .map((e) => GalleryItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
+  }
+
+  /// ADMIN: sube varias imágenes de una vez. Devuelve null si todo salió
+  /// bien, o el mensaje de error.
+  Future<String?> uploadGalleryImages(List<File> imagenes) async {
+    try {
+      final token = await authService.getToken();
+      final request = http.MultipartRequest('POST', _galleryUrl)
+        ..headers['Authorization'] = 'Bearer $token';
+
+      for (final img in imagenes) {
+        request.files.add(
+          await http.MultipartFile.fromPath('imagenes', img.path),
+        );
+      }
+
+      final streamed = await request.send();
+      final response = await http.Response.fromStream(streamed);
+
+      if (response.statusCode == 200 || response.statusCode == 201) {
+        return null;
+      }
+
+      try {
+        final body = jsonDecode(response.body);
+        return body['message']?.toString() ?? 'Error al subir las imágenes';
+      } catch (_) {
+        return 'Error al subir las imágenes (${response.statusCode})';
+      }
+    } catch (e) {
+      return 'No se pudo conectar con el servidor: $e';
     }
   }
 }

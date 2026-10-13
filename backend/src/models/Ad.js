@@ -9,7 +9,7 @@ const adSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['video', 'banner', 'popup', 'document'],
+      enum: ['video', 'banner', 'popup', 'document', 'gallery'],
       required: true,
     },
     mediaUrl: {
