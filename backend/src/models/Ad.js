@@ -20,6 +20,13 @@ const adSchema = new mongoose.Schema(
       type: String,
       default: '', // ID de Cloudinary del archivo, necesario para poder eliminarlo
     },
+    // Descripción opcional (se usa en las imágenes de la galería del Portafolio)
+    description: {
+      type: String,
+      default: '',
+      trim: true,
+      maxlength: 150,
+    },
     targetUrl: {
       type: String,
     },
