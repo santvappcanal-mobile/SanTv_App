@@ -4,7 +4,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
-import 'edit_profile_screen.dart';
+
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({

@@ -4,6 +4,7 @@ const router = express.Router();
 const {
   getReferences,
   createReference,
+  updateReference,
   deleteReference,
 } = require('../controllers/AdReference');
 const { protect, authorize } = require('../middleware/auth');
@@ -13,6 +14,9 @@ router
   .get(getReferences)
   .post(protect, authorize('admin', 'editor'), createReference);
 
-router.route('/:id').delete(protect, authorize('admin', 'editor'), deleteReference);
+router
+  .route('/:id')
+  .put(protect, authorize('admin', 'editor'), updateReference)
+  .delete(protect, authorize('admin', 'editor'), deleteReference);
 
 module.exports = router;

@@ -2,8 +2,33 @@ const asyncHandler = require('express-async-handler');
 const Groq = require('groq-sdk');
 const Content = require('../models/Content');
 const Ad = require('../models/Ad');
+const AdReference = require('../models/AdReference');
 
 const groq = new Groq({ apiKey: process.env.GROQ_API_KEY });
+
+// ───────────────────── Utilidades para detectar lo que pide el usuario ─────────────────────
+
+// Minúsculas y sin tildes, para comparar sin problemas ("más" -> "mas")
+const normalizar = (texto = '') =>
+  texto
+    .toLowerCase()
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '');
+
+// Solo se usa para NO mostrar tarjetas cuando el mensaje es una grosería
+// (el texto de respuesta lo maneja la REGLA DE RESPETO del prompt)
+const REGEX_OFENSIVO = /malparid|gonorrea|hijueputa|\bhp\b|marica|\bmk\b|pirobo|\bsapo\b/;
+
+const PIDE_MAS_VISTO = /\bmas (visto|vistos|popular|populares)\b|\btendencia/;
+const PIDE_REFERENCIAS = /\breferencias?\b|\bportafolio\b/;
+const PIDE_DOCUMENTO = /\b(documentos?|pauta|brochure|pdf|propuesta|cotizacion|tarifas?)\b/;
+
+// Cloudinary devuelve un fotograma del video si la URL termina en .jpg
+const miniaturaCloudinary = (url = '') => {
+  const punto = url.lastIndexOf('.');
+  if (punto === -1 || punto < url.lastIndexOf('/')) return url;
+  return `${url.substring(0, punto)}.jpg`;
+};
 
 // @desc    Conversar con el asistente virtual de SAN TV
 // @route   POST /api/chat
@@ -34,6 +59,7 @@ const chatearConAsistente = asyncHandler(async (req, res) => {
     : 'No hay contenido publicado por el momento.';
 
   // 2. Video/contenido más visto de la semana
+  // (documento completo, para poder abrirlo en la app desde el chat)
   const haceUnaSemana = new Date();
   haceUnaSemana.setDate(haceUnaSemana.getDate() - 7);
 
@@ -42,14 +68,10 @@ const chatearConAsistente = asyncHandler(async (req, res) => {
     createdAt: { $gte: haceUnaSemana },
   })
     .sort({ views: -1 })
-    .select('title type genres views')
     .lean();
 
   if (!masVistoSemana) {
-    masVistoSemana = await Content.findOne({ isActive: true })
-      .sort({ views: -1 })
-      .select('title type genres views')
-      .lean();
+    masVistoSemana = await Content.findOne({ isActive: true }).sort({ views: -1 }).lean();
   }
 
   const masVistoTexto = masVistoSemana
@@ -71,7 +93,99 @@ const chatearConAsistente = asyncHandler(async (req, res) => {
     ? `Espacios publicitarios actualmente en uso: ${tiposDisponibles.join(', ')}.`
     : 'Actualmente no hay anuncios activos; los espacios publicitarios están disponibles.';
 
-  // 4. Prompt de comportamiento del asistente
+  // 4. Adjuntos: lo que la app mostrará como tarjetas debajo de la respuesta
+  const mensajeNormalizado = normalizar(mensaje);
+  const adjuntos = [];
+  const noDisponibles = [];
+
+  if (!REGEX_OFENSIVO.test(mensajeNormalizado)) {
+    // 4.1 Video más visto
+    if (PIDE_MAS_VISTO.test(mensajeNormalizado)) {
+      if (masVistoSemana) {
+        adjuntos.push({
+          tipo: 'video',
+          titulo: masVistoSemana.title,
+          descripcion: '',
+          url: masVistoSemana.videoUrl || '',
+          miniatura: masVistoSemana.thumbnailUrl || '',
+          contenido: masVistoSemana, // documento completo para abrir el reproductor
+        });
+      } else {
+        noDisponibles.push('el video más visto');
+      }
+    }
+
+    // 4.2 Referencias de publicidad (videos de la pestaña Referencias)
+    if (PIDE_REFERENCIAS.test(mensajeNormalizado)) {
+      const referencias = await AdReference.find({ isActive: true })
+        .sort({ createdAt: -1 })
+        .limit(5)
+        .select('title description mediaUrl')
+        .lean();
+
+      if (referencias.length) {
+        referencias.forEach((r) =>
+          adjuntos.push({
+            tipo: 'referencia',
+            titulo: r.title,
+            descripcion: r.description || '',
+            url: r.mediaUrl,
+            miniatura: miniaturaCloudinary(r.mediaUrl),
+          })
+        );
+      } else {
+        noDisponibles.push('referencias de publicidad');
+      }
+    }
+
+    // 4.3 Documento de la pauta publicitaria (PDF)
+    if (PIDE_DOCUMENTO.test(mensajeNormalizado)) {
+      const documentos = await Ad.find({ isActive: true, type: 'document' })
+        .sort({ createdAt: -1 })
+        .limit(3)
+        .select('title mediaUrl')
+        .lean();
+
+      if (documentos.length) {
+        documentos.forEach((d) =>
+          adjuntos.push({
+            tipo: 'documento',
+            titulo: d.title,
+            descripcion: '',
+            url: d.mediaUrl,
+            miniatura: '',
+          })
+        );
+      } else {
+        noDisponibles.push('documentos de pauta publicitaria');
+      }
+    }
+  }
+
+  // Instrucción extra para el modelo cuando hay tarjetas (o cuando falta lo pedido)
+  const FRASES_TIPO = {
+    video: 'el video más visto de la semana',
+    referencia: 'los videos de referencia de publicidad',
+    documento: 'el documento de la pauta publicitaria',
+  };
+
+  let notaAdjuntos = '';
+  if (adjuntos.length || noDisponibles.length) {
+    notaAdjuntos = `
+===========================================
+INSTRUCCIÓN ESPECÍFICA PARA ESTA RESPUESTA (PRIORIDAD SOBRE LAS PAUTAS ANTERIORES)
+===========================================
+`;
+    if (adjuntos.length) {
+      const mostrados = [...new Set(adjuntos.map((a) => FRASES_TIPO[a.tipo]))].join(' y ');
+      notaAdjuntos += `La app mostrará automáticamente debajo de tu mensaje tarjetas con ${mostrados}, para que el usuario las abra con un toque. Responde con UNA o DOS frases cortas que presenten lo que se muestra (por ejemplo: "Aquí tienes el video más visto de la semana 👇"). NO escribas títulos, listas, enlaces ni URLs en tu respuesta, porque ya se ven en las tarjetas.\n`;
+    }
+    if (noDisponibles.length) {
+      notaAdjuntos += `Por ahora NO hay disponibles: ${noDisponibles.join(', ')}. Díselo amablemente al usuario, en una frase.\n`;
+    }
+  }
+
+  // 5. Prompt de comportamiento del asistente
   const systemPrompt = `
 Eres el asistente virtual oficial de SAN TV, un canal de televisión con app de streaming (noticias, deportes, videos y contenido en vivo). Eres cordial, claro y profesional, con un tono cercano.
 
@@ -129,11 +243,11 @@ PAUTAS DE ATENCIÓN NORMAL (cuando el mensaje SÍ es respetuoso y SÍ está dent
 ===========================================
 1. SALUDOS INICIALES: si el usuario solo saluda, responde con calidez y pregunta en qué puedes ayudar, sin soltar toda la información de golpe.
 2. BÚSQUEDA DE CONTENIDO: si preguntan por noticias, deportes o videos, ayúdales a encontrar algo del catálogo de arriba según su interés.
-3. VIDEO MÁS VISTO: si preguntan cuál es el contenido más visto de la semana, responde con el dato de arriba.
-4. PUBLICIDAD Y COSTOS: si preguntan sobre publicidad o cuánto cuesta anunciarse, explica en términos generales los espacios disponibles, pero deja claro que el valor exacto lo confirma el equipo comercial (no inventes precios).
+3. VIDEO MÁS VISTO: si preguntan cuál es el contenido más visto de la semana, la app mostrará el video como tarjeta debajo de tu mensaje; presenta el video en una frase corta sin repetir su título.
+4. PUBLICIDAD Y COSTOS: si preguntan sobre publicidad o cuánto cuesta anunciarse, explica en términos generales los espacios disponibles, pero deja claro que el valor exacto lo confirma el equipo comercial (no inventes precios). Las referencias de publicidad y el documento de la pauta se muestran como tarjetas cuando el usuario los pide.
 5. SERVICIOS DEL CANAL: si preguntan qué servicios ofrece SAN TV, resume la lista de servicios de arriba.
 6. Sé conciso y no inventes datos que no tengas (precios exactos, cifras que no te di).
-`;
+${notaAdjuntos}`;
 
   const completion = await groq.chat.completions.create({
     model: 'openai/gpt-oss-20b',
@@ -147,7 +261,7 @@ PAUTAS DE ATENCIÓN NORMAL (cuando el mensaje SÍ es respetuoso y SÍ está dent
 
   const respuestaTexto = completion.choices[0]?.message?.content || 'No pude generar una respuesta.';
 
-  res.status(200).json({ success: true, respuesta: respuestaTexto });
+  res.status(200).json({ success: true, respuesta: respuestaTexto, adjuntos });
 });
 
 module.exports = { chatearConAsistente };

@@ -1,8 +1,23 @@
 import 'dart:ui';
 
 import 'package:flutter/material.dart';
+import '../models/chat_reply.dart';
 import '../services/chat_service.dart';
 import '../services/auth_service.dart';
+import 'chat_attachment_card.dart';
+
+/// Mensaje del chat: texto + tarjetas opcionales (solo para el asistente).
+class _Mensaje {
+  const _Mensaje({
+    required this.esUsuario,
+    required this.texto,
+    this.adjuntos = const [],
+  });
+
+  final bool esUsuario;
+  final String texto;
+  final List<ChatAttachment> adjuntos;
+}
 
 class AssistantChatSheet extends StatefulWidget {
   const AssistantChatSheet({super.key, required this.authService});
@@ -21,12 +36,12 @@ class _AssistantChatSheetState extends State<AssistantChatSheet> {
 
   late final ChatService _chatService;
 
-  final List<Map<String, String>> _mensajes = [
-    {
-      'role': 'bot',
-      'text':
+  final List<_Mensaje> _mensajes = [
+    const _Mensaje(
+      esUsuario: false,
+      texto:
           '¡Hola! 👋 Soy el asistente virtual de SAN TV. Pregúntame sobre noticias, deportes, videos, publicidad o los servicios del canal.',
-    }
+    ),
   ];
   bool _cargando = false;
 
@@ -48,11 +63,11 @@ class _AssistantChatSheetState extends State<AssistantChatSheet> {
     final user = await widget.authService.getProfile();
     if (!mounted || user == null || user.name.isEmpty) return;
     setState(() {
-      _mensajes[0] = {
-        'role': 'bot',
-        'text':
+      _mensajes[0] = _Mensaje(
+        esUsuario: false,
+        texto:
             '¡Hola, ${user.name}! 👋 Soy el asistente virtual de SAN TV. Pregúntame sobre noticias, deportes, videos, publicidad o los servicios del canal.',
-      };
+      );
     });
   }
 
@@ -62,7 +77,7 @@ class _AssistantChatSheetState extends State<AssistantChatSheet> {
 
     _controller.clear();
     setState(() {
-      _mensajes.add({'role': 'user', 'text': texto});
+      _mensajes.add(_Mensaje(esUsuario: true, texto: texto));
       _cargando = true;
     });
 
@@ -72,7 +87,13 @@ class _AssistantChatSheetState extends State<AssistantChatSheet> {
 
     if (mounted) {
       setState(() {
-        _mensajes.add({'role': 'bot', 'text': respuesta});
+        _mensajes.add(
+          _Mensaje(
+            esUsuario: false,
+            texto: respuesta.texto,
+            adjuntos: respuesta.adjuntos,
+          ),
+        );
         _cargando = false;
       });
       _scrollHaciaAbajo();
@@ -173,43 +194,60 @@ class _AssistantChatSheetState extends State<AssistantChatSheet> {
                     itemCount: _mensajes.length,
                     itemBuilder: (context, index) {
                       final item = _mensajes[index];
-                      final esUsuario = item['role'] == 'user';
+                      final esUsuario = item.esUsuario;
+                      final maxAncho = MediaQuery.of(context).size.width * 0.78;
 
-                      return Align(
-                        alignment: esUsuario
-                            ? Alignment.centerRight
-                            : Alignment.centerLeft,
-                        child: Container(
-                          margin: const EdgeInsets.only(bottom: 12),
-                          padding: const EdgeInsets.symmetric(
-                              horizontal: 16, vertical: 12),
-                          constraints: BoxConstraints(
-                            maxWidth: MediaQuery.of(context).size.width * 0.78,
-                          ),
-                          decoration: BoxDecoration(
-                            color: esUsuario
-                                ? neonGreen
-                                : Colors.black.withValues(alpha: 0.35),
-                            borderRadius: BorderRadius.only(
-                              topLeft: const Radius.circular(16),
-                              topRight: const Radius.circular(16),
-                              bottomLeft: Radius.circular(esUsuario ? 16 : 4),
-                              bottomRight: Radius.circular(esUsuario ? 4 : 16),
+                      return Column(
+                        crossAxisAlignment: esUsuario
+                            ? CrossAxisAlignment.end
+                            : CrossAxisAlignment.start,
+                        children: [
+                          Container(
+                            margin: EdgeInsets.only(
+                              bottom: item.adjuntos.isEmpty ? 12 : 8,
                             ),
-                            border: esUsuario
-                                ? null
-                                : Border.all(
-                                    color: neonGreen.withValues(alpha: 0.25)),
-                          ),
-                          child: Text(
-                            item['text']!,
-                            style: TextStyle(
-                              color: esUsuario ? Colors.black : Colors.white,
-                              fontSize: 14,
-                              height: 1.35,
+                            padding: const EdgeInsets.symmetric(
+                                horizontal: 16, vertical: 12),
+                            constraints: BoxConstraints(maxWidth: maxAncho),
+                            decoration: BoxDecoration(
+                              color: esUsuario
+                                  ? neonGreen
+                                  : Colors.black.withValues(alpha: 0.35),
+                              borderRadius: BorderRadius.only(
+                                topLeft: const Radius.circular(16),
+                                topRight: const Radius.circular(16),
+                                bottomLeft:
+                                    Radius.circular(esUsuario ? 16 : 4),
+                                bottomRight:
+                                    Radius.circular(esUsuario ? 4 : 16),
+                              ),
+                              border: esUsuario
+                                  ? null
+                                  : Border.all(
+                                      color: neonGreen.withValues(alpha: 0.25)),
+                            ),
+                            child: Text(
+                              item.texto,
+                              style: TextStyle(
+                                color: esUsuario ? Colors.black : Colors.white,
+                                fontSize: 14,
+                                height: 1.35,
+                              ),
                             ),
                           ),
-                        ),
+                          // Tarjetas (video, referencias, documento)
+                          for (final adjunto in item.adjuntos)
+                            Padding(
+                              padding: const EdgeInsets.only(bottom: 12),
+                              child: SizedBox(
+                                width: maxAncho,
+                                child: ChatAttachmentCard(
+                                  attachment: adjunto,
+                                  authService: widget.authService,
+                                ),
+                              ),
+                            ),
+                        ],
                       );
                     },
                   ),

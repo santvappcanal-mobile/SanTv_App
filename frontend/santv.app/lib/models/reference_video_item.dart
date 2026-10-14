@@ -4,12 +4,14 @@ class ReferenceVideoItem {
     required this.id,
     required this.title,
     required this.mediaUrl,
+    this.description = '',
     this.createdAt,
   });
 
   final String id;
   final String title;
   final String mediaUrl;
+  final String description;
   final DateTime? createdAt;
 
   factory ReferenceVideoItem.fromJson(Map<String, dynamic> json) {
@@ -17,6 +19,7 @@ class ReferenceVideoItem {
       id: (json['_id'] ?? json['id'] ?? '').toString(),
       title: (json['title'] ?? '').toString(),
       mediaUrl: (json['mediaUrl'] ?? '').toString(),
+      description: (json['description'] ?? '').toString(),
       createdAt: DateTime.tryParse((json['createdAt'] ?? '').toString()),
     );
   }

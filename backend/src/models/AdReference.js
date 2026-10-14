@@ -7,6 +7,11 @@ const adReferenceSchema = new mongoose.Schema(
       required: true,
       trim: true,
     },
+    description: {
+      type: String,
+      trim: true,
+      default: '',
+    },
     mediaUrl: {
       type: String,
       required: true,

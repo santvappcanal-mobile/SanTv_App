@@ -280,41 +280,80 @@ class _PublicidadScreenState extends State<PublicidadScreen>
                   ),
                 ),
               ),
-              // Título
+              // Título y descripción
               Positioned(
                 left: 14,
                 right: 14,
                 bottom: 12,
-                child: Text(
-                  item.title,
-                  maxLines: 2,
-                  overflow: TextOverflow.ellipsis,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w700,
-                    fontSize: 15,
-                  ),
+                child: Column(
+                  mainAxisSize: MainAxisSize.min,
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    Text(
+                      item.title,
+                      maxLines: 2,
+                      overflow: TextOverflow.ellipsis,
+                      style: const TextStyle(
+                        color: Colors.white,
+                        fontWeight: FontWeight.w700,
+                        fontSize: 15,
+                      ),
+                    ),
+                    if (item.description.isNotEmpty) ...[
+                      const SizedBox(height: 2),
+                      Text(
+                        item.description,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white70,
+                          fontSize: 12.5,
+                        ),
+                      ),
+                    ],
+                  ],
                 ),
               ),
-              // Eliminar (solo admin/editor)
+              // Editar y eliminar (solo admin/editor)
               if (widget.esAdmin)
                 Positioned(
                   top: 8,
                   right: 8,
-                  child: InkWell(
-                    onTap: () => _confirmarEliminarReferencia(item.id),
-                    child: Container(
-                      padding: const EdgeInsets.all(6),
-                      decoration: BoxDecoration(
-                        color: Colors.black.withValues(alpha: 0.55),
-                        shape: BoxShape.circle,
+                  child: Row(
+                    mainAxisSize: MainAxisSize.min,
+                    children: [
+                      InkWell(
+                        onTap: () => _editarReferencia(item),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.edit_outlined,
+                            color: neonGreen,
+                            size: 20,
+                          ),
+                        ),
                       ),
-                      child: const Icon(
-                        Icons.delete_outline,
-                        color: Colors.redAccent,
-                        size: 20,
+                      const SizedBox(width: 8),
+                      InkWell(
+                        onTap: () => _confirmarEliminarReferencia(item.id),
+                        child: Container(
+                          padding: const EdgeInsets.all(6),
+                          decoration: BoxDecoration(
+                            color: Colors.black.withValues(alpha: 0.55),
+                            shape: BoxShape.circle,
+                          ),
+                          child: const Icon(
+                            Icons.delete_outline,
+                            color: Colors.redAccent,
+                            size: 20,
+                          ),
+                        ),
                       ),
-                    ),
+                    ],
                   ),
                 ),
             ],
@@ -391,6 +430,90 @@ class _PublicidadScreenState extends State<PublicidadScreen>
       if (!mounted) return;
       ScaffoldMessenger.of(context).showSnackBar(
         const SnackBar(content: Text('Video subido correctamente')),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  /// Diálogo para corregir el título y la descripción de un video.
+  Future<void> _editarReferencia(ReferenceVideoItem item) async {
+    final tituloCtrl = TextEditingController(text: item.title);
+    final descCtrl = TextEditingController(text: item.description);
+
+    final guardar = await showDialog<bool>(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text(
+          'Editar video',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextField(
+                controller: tituloCtrl,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Título',
+                  labelStyle: TextStyle(color: Colors.white54),
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextField(
+                controller: descCtrl,
+                maxLines: 3,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  labelText: 'Descripción',
+                  labelStyle: TextStyle(color: Colors.white54),
+                ),
+              ),
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(context, true),
+            child: const Text('Guardar', style: TextStyle(color: neonGreen)),
+          ),
+        ],
+      ),
+    );
+
+    final nuevoTitulo = tituloCtrl.text.trim();
+    final nuevaDescripcion = descCtrl.text.trim();
+
+    if (guardar != true || !mounted) return;
+
+    if (nuevoTitulo.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('El título no puede estar vacío')),
+      );
+      return;
+    }
+
+    final error = await widget.adService.updateReference(
+      item.id,
+      title: nuevoTitulo,
+      description: nuevaDescripcion,
+    );
+
+    if (!mounted) return;
+
+    if (error == null) {
+      await _cargarReferencias();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Video actualizado')),
       );
     } else {
       ScaffoldMessenger.of(

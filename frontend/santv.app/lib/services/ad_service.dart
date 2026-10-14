@@ -270,6 +270,38 @@ class AdService {
     }
   }
 
+  /// ADMIN/EDITOR: edita título y descripción de una referencia.
+  /// Devuelve null si todo salió bien, o el mensaje de error.
+  Future<String?> updateReference(
+    String id, {
+    required String title,
+    required String description,
+  }) async {
+    try {
+      final token = await authService.getToken();
+      if (token == null || token.isEmpty) {
+        return 'Sesión no válida, vuelve a iniciar sesión';
+      }
+
+      final response = await http.put(
+        _referenceByIdUrl(id),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'title': title, 'description': description}),
+      );
+
+      if (response.statusCode == 200) return null;
+      return _mensajeDeError(
+        response,
+        'Error al editar la referencia (${response.statusCode})',
+      );
+    } catch (e) {
+      return 'No se pudo conectar con el servidor: $e';
+    }
+  }
+
   String _mensajeDeError(http.Response response, String porDefecto) {
     try {
       final body = jsonDecode(response.body);
