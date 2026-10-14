@@ -12,6 +12,16 @@ const uploadGallery = asyncHandler(async (req, res) => {
 
   const baseTitle = req.body.title?.trim();
 
+  // La app envía `descriptions` como un arreglo JSON, en el mismo orden
+  // que las imágenes. Ej: ["Logo nuevo", "", "Banner de verano"]
+  let descriptions = [];
+  try {
+    const parsed = JSON.parse(req.body.descriptions || '[]');
+    if (Array.isArray(parsed)) descriptions = parsed;
+  } catch (_) {
+    descriptions = [];
+  }
+
   const docs = req.files.map((f, i) => ({
     title: baseTitle
       ? req.files.length > 1
@@ -21,6 +31,7 @@ const uploadGallery = asyncHandler(async (req, res) => {
     type: 'gallery',
     mediaUrl: f.path, // URL de Cloudinary
     mediaPublicId: f.filename, // public_id para poder eliminarla luego
+    description: String(descriptions[i] ?? '').trim().slice(0, 150),
     startDate: new Date(),
   }));
 
@@ -33,7 +44,7 @@ const uploadGallery = asyncHandler(async (req, res) => {
 // @access  Public
 const getGallery = asyncHandler(async (req, res) => {
   const ads = await Ad.find({ isActive: true, type: 'gallery' })
-    .select('title mediaUrl createdAt')
+    .select('title mediaUrl description createdAt')
     .sort({ createdAt: -1 });
 
   res.json({ success: true, count: ads.length, data: ads });
