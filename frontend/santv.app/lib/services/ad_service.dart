@@ -7,6 +7,7 @@ import 'auth_service.dart';
 import '../models/ad.dart' hide AdDocumentItem;
 import '../models/ad_document_item.dart';
 import '../models/gallery_item.dart';
+import '../models/reference_video_item.dart';
 
 class AdService {
   AdService({required this.authService});
@@ -37,8 +38,18 @@ class AdService {
 
   Uri _adByIdUrl(String id) => Uri.parse('${authService.baseUrl}/api/ads/$id');
 
-  // NUEVO: galería del portafolio
+  // Galería del portafolio
   Uri get _galleryUrl => Uri.parse('${authService.baseUrl}/api/ads/gallery');
+
+  // NUEVO: videos de la pestaña Referencias
+  Uri get _referencesUrl =>
+      Uri.parse('${authService.baseUrl}/api/ad-references');
+
+  Uri _referenceByIdUrl(String id) =>
+      Uri.parse('${authService.baseUrl}/api/ad-references/$id');
+
+  Uri get _uploadVideoUrl =>
+      Uri.parse('${authService.baseUrl}/api/uploads/video');
 
   /// Trae todos los anuncios activos vigentes (sin filtrar por tipo).
   /// No requiere sesión activa, es un endpoint público.
@@ -156,6 +167,118 @@ class AdService {
     }
   }
 
+  // ───────────────────── Videos de Referencias ─────────────────────
+
+  /// Trae los videos de Referencias. Público, no requiere sesión.
+  Future<List<ReferenceVideoItem>> getReferences() async {
+    final response = await http.get(_referencesUrl);
+
+    if (response.statusCode != 200) {
+      throw Exception('No se pudieron cargar las referencias');
+    }
+
+    final body = jsonDecode(response.body);
+    if (body is Map && body['success'] == true && body['data'] is List) {
+      return (body['data'] as List)
+          .map((e) => ReferenceVideoItem.fromJson(e as Map<String, dynamic>))
+          .toList();
+    }
+    return [];
+  }
+
+  /// ADMIN/EDITOR: sube un video a Cloudinary y crea el registro en
+  /// Referencias. Devuelve null si todo salió bien, o el mensaje de error.
+  Future<String?> uploadReferenceVideo(File video, String title) async {
+    try {
+      final token = await authService.getToken();
+      if (token == null || token.isEmpty) {
+        return 'Sesión no válida, vuelve a iniciar sesión';
+      }
+
+      // Paso 1: subir el video a Cloudinary (ruta ya existente)
+      final uploadRequest = http.MultipartRequest('POST', _uploadVideoUrl)
+        ..headers['Authorization'] = 'Bearer $token'
+        ..files.add(await http.MultipartFile.fromPath('file', video.path));
+
+      final uploadStreamed = await uploadRequest.send().timeout(
+        const Duration(minutes: 10),
+      );
+      final uploadResponse = await http.Response.fromStream(uploadStreamed);
+
+      if (uploadResponse.statusCode != 200 &&
+          uploadResponse.statusCode != 201) {
+        return _mensajeDeError(
+          uploadResponse,
+          'Error al subir el video (${uploadResponse.statusCode})',
+        );
+      }
+
+      final uploadData = jsonDecode(uploadResponse.body);
+      final nested = uploadData is Map ? uploadData['data'] : null;
+      final mediaUrl =
+          (uploadData['url'] ?? (nested is Map ? nested['url'] : null))
+              ?.toString();
+      final publicId =
+          (uploadData['publicId'] ?? (nested is Map ? nested['publicId'] : null))
+              ?.toString();
+
+      if (mediaUrl == null || mediaUrl.isEmpty) {
+        return 'El servidor no devolvió la URL del video';
+      }
+
+      // Paso 2: crear el registro de la referencia
+      final createResponse = await http.post(
+        _referencesUrl,
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({
+          'title': title,
+          'mediaUrl': mediaUrl,
+          'publicId': publicId,
+        }),
+      );
+
+      if (createResponse.statusCode == 200 ||
+          createResponse.statusCode == 201) {
+        return null;
+      }
+      return _mensajeDeError(
+        createResponse,
+        'Error al guardar la referencia (${createResponse.statusCode})',
+      );
+    } catch (e) {
+      return 'No se pudo conectar con el servidor: $e';
+    }
+  }
+
+  /// ADMIN/EDITOR: elimina una referencia (y su video en Cloudinary).
+  Future<bool> deleteReference(String id) async {
+    try {
+      final token = await authService.getToken();
+      if (token == null || token.isEmpty) return false;
+
+      final response = await http.delete(
+        _referenceByIdUrl(id),
+        headers: {'Authorization': 'Bearer $token'},
+      );
+
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  String _mensajeDeError(http.Response response, String porDefecto) {
+    try {
+      final body = jsonDecode(response.body);
+      return body['message']?.toString() ?? porDefecto;
+    } catch (_) {
+      return porDefecto;
+    }
+  }
+
   // ───────────────────── Gestión de anuncios (admin) ─────────────────────
 
   /// ADMIN: lista todos los anuncios (activos o no).
@@ -244,7 +367,7 @@ class AdService {
     }
   }
 
-  // ───────────────────── NUEVO: galería del portafolio ─────────────────────
+  // ───────────────────── Galería del portafolio ─────────────────────
 
   /// Trae las imágenes de la galería. Público, no requiere sesión.
   Future<List<GalleryItem>> getGallery() async {

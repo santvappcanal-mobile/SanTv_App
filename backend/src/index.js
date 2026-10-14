@@ -29,6 +29,7 @@ app.use('/api/admin', require('./routes/adminRoutes'));
 app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/youtube', require('./routes/youtubeRoutes'));
 app.use('/api/ad-documents', require('./routes/adDocumentRoutes'));
+app.use('/api/ad-references', require('./routes/adReferenceRoutes'));
 
 // Manejo de errores
 app.use(notFound);
