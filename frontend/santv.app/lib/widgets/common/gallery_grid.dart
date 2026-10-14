@@ -8,10 +8,18 @@ import '../../models/gallery_item.dart';
 /// Si [onDelete] no es null (admin), muestra el ícono de eliminar.
 /// Si la imagen tiene descripción, se muestra abajo sobre un degradado.
 class GalleryGrid extends StatelessWidget {
-  const GalleryGrid({super.key, required this.items, this.onDelete});
+  const GalleryGrid({
+    super.key,
+    required this.items,
+    this.onDelete,
+    this.onEdit,
+  });
 
   final List<GalleryItem> items;
   final void Function(GalleryItem item)? onDelete;
+
+  /// Si no es null (admin), muestra el ícono de editar la descripción.
+  final void Function(GalleryItem item)? onEdit;
 
   static const Color neonGreen = Color(0xFF39FF14);
 
@@ -88,25 +96,50 @@ class GalleryGrid extends StatelessWidget {
                       ),
                     ),
                   ),
-                if (onDelete != null)
+                if (onDelete != null || onEdit != null)
                   Positioned(
                     top: 6,
                     right: 6,
-                    child: InkResponse(
-                      onTap: () => onDelete!(item),
-                      radius: 20,
-                      child: Container(
-                        padding: const EdgeInsets.all(5),
-                        decoration: const BoxDecoration(
-                          color: Colors.black54,
-                          shape: BoxShape.circle,
-                        ),
-                        child: const Icon(
-                          Icons.delete,
-                          color: Colors.redAccent,
-                          size: 18,
-                        ),
-                      ),
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (onEdit != null)
+                          InkResponse(
+                            onTap: () => onEdit!(item),
+                            radius: 20,
+                            child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.edit,
+                                color: neonGreen,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                        if (onEdit != null && onDelete != null)
+                          const SizedBox(width: 6),
+                        if (onDelete != null)
+                          InkResponse(
+                            onTap: () => onDelete!(item),
+                            radius: 20,
+                            child: Container(
+                              padding: const EdgeInsets.all(5),
+                              decoration: const BoxDecoration(
+                                color: Colors.black54,
+                                shape: BoxShape.circle,
+                              ),
+                              child: const Icon(
+                                Icons.delete,
+                                color: Colors.redAccent,
+                                size: 18,
+                              ),
+                            ),
+                          ),
+                      ],
                     ),
                   ),
               ],

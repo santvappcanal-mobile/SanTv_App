@@ -866,6 +866,9 @@ class _PublicidadScreenState extends State<PublicidadScreen>
                     onDelete: widget.esAdmin
                         ? (item) => _confirmarEliminarImagen(item.id)
                         : null,
+                    onEdit: widget.esAdmin
+                        ? (item) => _editarDescripcion(item)
+                        : null,
                   ),
           ),
         ],
@@ -1034,6 +1037,101 @@ class _PublicidadScreenState extends State<PublicidadScreen>
         ],
       ),
     );
+  }
+
+  /// Edita la descripción de una imagen ya subida: abre un diálogo con
+  /// la vista previa y el texto actual, y guarda el cambio en el backend.
+  Future<void> _editarDescripcion(GalleryItem item) async {
+    final controller = TextEditingController(text: item.description);
+
+    final nuevo = await showDialog<String>(
+      context: context,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text(
+          'Editar descripción',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.network(
+                    item.mediaUrl,
+                    height: 160,
+                    fit: BoxFit.cover,
+                    errorBuilder: (_, __, ___) => Container(
+                      height: 160,
+                      color: const Color(0xFF0B0B0B),
+                      child: const Icon(
+                        Icons.broken_image,
+                        color: Colors.grey,
+                      ),
+                    ),
+                  ),
+                ),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  maxLength: 150,
+                  maxLines: 3,
+                  minLines: 1,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    hintText: 'Escribe una descripción',
+                    hintStyle: TextStyle(color: Colors.white38),
+                    counterStyle: TextStyle(color: Colors.white38),
+                  ),
+                ),
+              ],
+            ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: const Text('Guardar', style: TextStyle(color: neonGreen)),
+          ),
+        ],
+      ),
+    );
+
+    // null = canceló; si no cambió nada, no hacemos la petición
+    if (nuevo == null || nuevo.trim() == item.description.trim()) return;
+    if (!mounted) return;
+
+    final error = await widget.adService.actualizarDescripcionImagen(
+      item.id,
+      nuevo,
+    );
+
+    if (!mounted) return;
+
+    if (error == null) {
+      await _cargarGaleria();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Descripción actualizada')),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+    }
   }
 
   void _confirmarEliminarImagen(String id) {

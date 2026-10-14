@@ -401,6 +401,34 @@ class AdService {
 
   // ───────────────────── Galería del portafolio ─────────────────────
 
+  /// ADMIN: cambia la descripción de una imagen de la galería.
+  /// Usa PUT /api/ads/:id. Devuelve null si todo salió bien, o el
+  /// mensaje de error.
+  Future<String?> actualizarDescripcionImagen(
+    String id,
+    String descripcion,
+  ) async {
+    try {
+      final token = await authService.getToken();
+      final response = await http.put(
+        _adByIdUrl(id),
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': 'Bearer $token',
+        },
+        body: jsonEncode({'description': descripcion.trim()}),
+      );
+
+      if (response.statusCode == 200) return null;
+      return _mensajeDeError(
+        response,
+        'Error al actualizar la descripción (${response.statusCode})',
+      );
+    } catch (e) {
+      return 'No se pudo conectar con el servidor: $e';
+    }
+  }
+
   /// Trae las imágenes de la galería. Público, no requiere sesión.
   Future<List<GalleryItem>> getGallery() async {
     final response = await http.get(_galleryUrl);
