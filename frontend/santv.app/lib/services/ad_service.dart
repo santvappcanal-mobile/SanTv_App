@@ -41,7 +41,7 @@ class AdService {
   // Galería del portafolio
   Uri get _galleryUrl => Uri.parse('${authService.baseUrl}/api/ads/gallery');
 
-  // NUEVO: videos de la pestaña Referencias
+  // Videos de la pestaña Referencias
   Uri get _referencesUrl =>
       Uri.parse('${authService.baseUrl}/api/ad-references');
 
@@ -420,7 +420,14 @@ class AdService {
 
   /// ADMIN: sube varias imágenes de una vez. Devuelve null si todo salió
   /// bien, o el mensaje de error.
-  Future<String?> uploadGalleryImages(List<File> imagenes) async {
+  ///
+  /// [descripciones] va en el mismo orden que [imagenes] (mismo largo).
+  /// Se envía al backend como un campo `descriptions` con un arreglo
+  /// JSON, ej: ["Logo nuevo", "", "Banner de verano"].
+  Future<String?> uploadGalleryImages(
+    List<File> imagenes, {
+    List<String>? descripciones,
+  }) async {
     try {
       final token = await authService.getToken();
       final request = http.MultipartRequest('POST', _galleryUrl)
@@ -431,6 +438,15 @@ class AdService {
           await http.MultipartFile.fromPath('imagenes', img.path),
         );
       }
+
+      // Descripciones alineadas por posición con las imágenes
+      final descs = List<String>.generate(
+        imagenes.length,
+        (i) => (descripciones != null && i < descripciones.length)
+            ? descripciones[i].trim()
+            : '',
+      );
+      request.fields['descriptions'] = jsonEncode(descs);
 
       final streamed = await request.send();
       final response = await http.Response.fromStream(streamed);

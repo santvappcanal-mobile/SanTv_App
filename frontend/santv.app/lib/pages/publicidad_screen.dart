@@ -5,15 +5,17 @@ import 'package:flutter/material.dart';
 // Ocultamos AdDocumentItem de ad.dart para evitar el conflicto
 import '../models/ad.dart' hide AdDocumentItem;
 import '../models/ad_document_item.dart';
+import '../models/gallery_item.dart';
 import '../models/reference_video_item.dart';
 
 import '../services/ad_service.dart';
+import '../widgets/common/gallery_grid.dart';
 import '../widgets/common/pdf_document_card.dart';
 import 'pdf_viewer_page.dart';
 import 'reference_video_player_page.dart';
 
 /// [esAdmin] controla si se muestran las acciones de administración
-/// (subir/eliminar documentos y videos de referencias).
+/// (subir/eliminar documentos, videos de referencias e imágenes del portafolio).
 /// [adService] es la instancia ya creada con el AuthService del usuario
 /// (mismo patrón que usan las demás pantallas para llamadas autenticadas).
 class PublicidadScreen extends StatefulWidget {
@@ -52,11 +54,17 @@ class _PublicidadScreenState extends State<PublicidadScreen>
   bool _cargandoReferencias = true;
   String? _errorReferencias;
 
+  // Estado de la pestaña Portafolio
+  List<GalleryItem> _galeria = [];
+  bool _cargandoGaleria = true;
+  String? _errorGaleria;
+
   @override
   void initState() {
     super.initState();
     _cargarDocumentos();
     _cargarReferencias();
+    _cargarGaleria();
   }
 
   @override
@@ -103,6 +111,27 @@ class _PublicidadScreenState extends State<PublicidadScreen>
       setState(() {
         _errorReferencias = 'Error al cargar las referencias';
         _cargandoReferencias = false;
+      });
+    }
+  }
+
+  Future<void> _cargarGaleria() async {
+    setState(() {
+      _cargandoGaleria = true;
+      _errorGaleria = null;
+    });
+    try {
+      final items = await widget.adService.getGallery();
+      if (!mounted) return;
+      setState(() {
+        _galeria = items;
+        _cargandoGaleria = false;
+      });
+    } catch (e) {
+      if (!mounted) return;
+      setState(() {
+        _errorGaleria = 'Error al cargar el portafolio';
+        _cargandoGaleria = false;
       });
     }
   }
@@ -781,14 +810,269 @@ class _PublicidadScreenState extends State<PublicidadScreen>
   }
 
   // ---------------------------------------------------------------
-  // Pestaña Portafolio: se conecta a la colección Ad existente (type: video)
+  // Pestaña Portafolio: galería de imágenes (Ad con type: 'gallery')
+  // Solo el admin puede subir/eliminar; todos pueden verlas.
+  // Cada imagen puede llevar una descripción.
   // ---------------------------------------------------------------
   Widget _buildPortafolioTab() {
-    // TODO: conectar con widget.adService.getPortfolio()
-    return const Center(
-      child: Text(
-        'Portafolio de videos publicitarios (próximamente)',
-        style: TextStyle(color: Colors.white54),
+    if (_cargandoGaleria) {
+      return const Center(child: CircularProgressIndicator(color: neonGreen));
+    }
+
+    if (_errorGaleria != null) {
+      return Center(
+        child: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              _errorGaleria!,
+              style: const TextStyle(color: Colors.white54),
+            ),
+            const SizedBox(height: 12),
+            TextButton(
+              onPressed: _cargarGaleria,
+              child: const Text(
+                'Reintentar',
+                style: TextStyle(color: neonGreen),
+              ),
+            ),
+          ],
+        ),
+      );
+    }
+
+    return RefreshIndicator(
+      onRefresh: _cargarGaleria,
+      color: neonGreen,
+      child: Column(
+        children: [
+          if (widget.esAdmin) _buildBotonSubirImagenes(),
+          Expanded(
+            child: _galeria.isEmpty
+                ? ListView(
+                    // ListView para que el RefreshIndicator funcione aun vacío
+                    children: const [
+                      SizedBox(height: 120),
+                      Center(
+                        child: Text(
+                          'No hay imágenes aún',
+                          style: TextStyle(color: Colors.white54),
+                        ),
+                      ),
+                    ],
+                  )
+                : GalleryGrid(
+                    items: _galeria,
+                    onDelete: widget.esAdmin
+                        ? (item) => _confirmarEliminarImagen(item.id)
+                        : null,
+                  ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildBotonSubirImagenes() {
+    return Padding(
+      padding: const EdgeInsets.all(12.0),
+      child: ElevatedButton.icon(
+        style: ElevatedButton.styleFrom(backgroundColor: neonGreen),
+        icon: const Icon(Icons.add_photo_alternate, color: Colors.black),
+        label: const Text(
+          'Subir imágenes',
+          style: TextStyle(color: Colors.black),
+        ),
+        onPressed: _seleccionarYSubirImagenes,
+      ),
+    );
+  }
+
+  /// Flujo: elegir imágenes -> descripción de cada una -> subir con indicador.
+  Future<void> _seleccionarYSubirImagenes() async {
+    // En file_picker 13.x, pickFiles ya permite varias y devuelve
+    // List<PlatformFile> (vacía si cancelas).
+    final picked = await fp.FilePicker.pickFiles(type: fp.FileType.image);
+
+    final archivos = <File>[
+      for (final f in picked)
+        if (f.path != null) File(f.path!),
+    ];
+    if (archivos.isEmpty) return;
+    if (!mounted) return;
+
+    // Pedimos la descripción de cada imagen (en orden)
+    final descripciones = <String>[];
+    for (var i = 0; i < archivos.length; i++) {
+      final desc = await _pedirDescripcion(
+        imagen: archivos[i],
+        numero: i + 1,
+        total: archivos.length,
+      );
+      if (desc == null) return; // canceló: no se sube nada
+      descripciones.add(desc);
+      if (!mounted) return;
+    }
+
+    // Diálogo de "subiendo..." que no se puede cerrar tocando afuera
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (_) => PopScope(
+        canPop: false,
+        child: const AlertDialog(
+          backgroundColor: Color(0xFF1A1A1A),
+          content: Row(
+            children: [
+              CircularProgressIndicator(color: neonGreen),
+              SizedBox(width: 20),
+              Expanded(
+                child: Text(
+                  'Subiendo imágenes...',
+                  style: TextStyle(color: Colors.white),
+                ),
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
+
+    final error = await widget.adService.uploadGalleryImages(
+      archivos,
+      descripciones: descripciones,
+    );
+
+    if (!mounted) return;
+    Navigator.of(context, rootNavigator: true).pop(); // cierra el diálogo
+
+    if (error == null) {
+      await _cargarGaleria();
+      if (!mounted) return;
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('Imágenes subidas correctamente')),
+      );
+    } else {
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(SnackBar(content: Text(error)));
+    }
+  }
+
+  /// Diálogo con la vista previa de la imagen y un campo de descripción.
+  /// Devuelve el texto (puede ir vacío) o null si el admin cancela todo.
+  Future<String?> _pedirDescripcion({
+    required File imagen,
+    required int numero,
+    required int total,
+  }) {
+    final controller = TextEditingController();
+    final esUltima = numero == total;
+
+    return showDialog<String>(
+      context: context,
+      barrierDismissible: false,
+      builder: (dialogContext) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: Text(
+          total > 1 ? 'Descripción ($numero de $total)' : 'Descripción',
+          style: const TextStyle(color: Colors.white),
+        ),
+        content: SizedBox(
+          width: double.maxFinite,
+          child: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.stretch,
+            children: [
+              ClipRRect(
+                borderRadius: BorderRadius.circular(12),
+                child: Image.file(
+                  imagen,
+                  height: 160,
+                  fit: BoxFit.cover,
+                ),
+              ),
+              const SizedBox(height: 14),
+              TextField(
+                controller: controller,
+                autofocus: true,
+                maxLength: 150,
+                maxLines: 3,
+                minLines: 1,
+                textCapitalization: TextCapitalization.sentences,
+                style: const TextStyle(color: Colors.white),
+                decoration: const InputDecoration(
+                  hintText: 'Escribe una descripción (opcional)',
+                  hintStyle: TextStyle(color: Colors.white38),
+                  counterStyle: TextStyle(color: Colors.white38),
+                ),
+              ),
+            ],
+          ),
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext),
+            child: const Text(
+              'Cancelar',
+              style: TextStyle(color: Colors.white54),
+            ),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, ''),
+            child: const Text('Omitir'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(dialogContext, controller.text),
+            child: Text(
+              esUltima ? 'Subir' : 'Siguiente',
+              style: const TextStyle(color: neonGreen),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _confirmarEliminarImagen(String id) {
+    showDialog(
+      context: context,
+      builder: (_) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text(
+          'Eliminar imagen',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: const Text(
+          '¿Seguro que deseas eliminarla?',
+          style: TextStyle(color: Colors.white54),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () async {
+              Navigator.pop(context);
+              final exito = await widget.adService.eliminarAd(id);
+              if (!mounted) return;
+              if (exito) {
+                await _cargarGaleria();
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(content: Text('Error al eliminar la imagen')),
+                );
+              }
+            },
+            child: const Text(
+              'Eliminar',
+              style: TextStyle(color: Colors.redAccent),
+            ),
+          ),
+        ],
       ),
     );
   }
