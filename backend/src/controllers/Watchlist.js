@@ -75,9 +75,9 @@ const removeFromWatchlist = asyncHandler(async (req, res) => {
 });
 
 // @desc    Registrar que el usuario vio un video.
-//          Suma +1 a las vistas públicas en CADA toque y guarda el
-//          video en el historial del usuario (sin repetirlo) para el
-//          contador "Vistos" del perfil.
+//          La vista pública (+1) se suma SOLO la primera vez que ese usuario
+//          ve ese video; si vuelve a entrar, solo se actualiza su historial
+//          (lastViewedAt). El historial alimenta el contador "Vistos" del perfil.
 // @route   POST /api/watchlist/viewed/:contentId
 // @access  Private
 const registerViewed = asyncHandler(async (req, res) => {
@@ -85,30 +85,46 @@ const registerViewed = asyncHandler(async (req, res) => {
   console.log('VISTA recibida:', contentId, 'usuario:', req.user?._id);
   assertValidId(res, contentId);
 
+  // Primero se confirma que el video existe, para no dejar historial huérfano
+  const existente = await Content.findById(contentId).select('title views');
+  if (!existente) {
+    res.status(404);
+    throw new Error('Contenido no encontrado');
+  }
+
   const now = new Date();
 
-  // Historial del usuario: un registro por video, solo se actualiza la fecha
-  await WatchHistory.updateOne(
+  // Historial del usuario: un registro por (usuario, video).
+  // upsertedCount > 0 significa que se creó ahora, o sea, es la primera vez.
+  const resultado = await WatchHistory.updateOne(
     { user: req.user._id, content: contentId },
     { $setOnInsert: { firstViewedAt: now }, $set: { lastViewedAt: now } },
     { upsert: true }
   );
 
-  // Contador público: +1 por cada toque
-  const content = await Content.findByIdAndUpdate(
-    contentId,
-    { $inc: { views: 1 } },
-    { new: true }
-  );
+  const esPrimeraVez = resultado.upsertedCount > 0;
 
-  if (!content) {
-    res.status(404);
-    throw new Error('Contenido no encontrado');
+  let views = existente.views || 0;
+
+  // Contador público: +1 solo si es la primera vez de este usuario con este video
+  if (esPrimeraVez) {
+    const actualizado = await Content.findByIdAndUpdate(
+      contentId,
+      { $inc: { views: 1 } },
+      { new: true }
+    );
+    views = actualizado ? actualizado.views : views + 1;
   }
 
-  console.log('VISTAS ahora:', content.title, '->', content.views);
+  console.log(
+    'VISTAS ahora:',
+    existente.title,
+    '->',
+    views,
+    esPrimeraVez ? '(vista nueva)' : '(ya la había visto, no suma)'
+  );
 
-  res.json({ success: true, data: { views: content.views } });
+  res.json({ success: true, data: { views, counted: esPrimeraVez } });
 });
 
 // @desc    Contadores del perfil: favoritos (Mi Lista) y vistos

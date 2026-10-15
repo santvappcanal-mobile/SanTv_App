@@ -2,6 +2,11 @@ const asyncHandler = require('express-async-handler');
 const Ad = require('../models/Ad');
 const cloudinary = require('../config/cloudinary');
 
+// Tipos que son anuncios "reales" (se muestran como publicidad en la app y se
+// gestionan en la pantalla Anuncios). 'gallery' (Portafolio) y 'document'
+// (PDFs) NO son anuncios: tienen sus propias pestañas en Publicidad.
+const TIPOS_ANUNCIO = ['video', 'banner', 'popup'];
+
 // @desc    Crear anuncio
 // @route   POST /api/ads
 // @access  Private/Admin
@@ -26,19 +31,20 @@ const createAd = asyncHandler(async (req, res) => {
   res.status(201).json({ success: true, data: ad });
 });
 
-// @desc    Obtener todos los anuncios
+// @desc    Obtener todos los anuncios (sin galería ni documentos, salvo que se pida ?type=)
 // @route   GET /api/ads
 // @access  Private/Admin
 const getAds = asyncHandler(async (req, res) => {
   const filter = {};
   if (req.query.isActive !== undefined) filter.isActive = req.query.isActive === 'true';
-  if (req.query.type) filter.type = req.query.type;
+  filter.type = req.query.type ? req.query.type : { $in: TIPOS_ANUNCIO };
 
   const ads = await Ad.find(filter).sort({ createdAt: -1 });
   res.json({ success: true, count: ads.length, data: ads });
 });
 
 // @desc    Obtener anuncios activos vigentes, opcionalmente filtrados por tipo
+//          (sin ?type= solo devuelve video, banner y popup; nunca la galería ni documentos)
 // @route   GET /api/ads/for-content
 // @access  Public
 const getAdsForContent = asyncHandler(async (req, res) => {
@@ -49,7 +55,7 @@ const getAdsForContent = asyncHandler(async (req, res) => {
     // endDate no es obligatorio: un anuncio sin endDate se considera vigente indefinidamente
     $or: [{ endDate: { $exists: false } }, { endDate: null }, { endDate: { $gte: now } }],
   };
-  if (req.query.type) filter.type = req.query.type;
+  filter.type = req.query.type ? req.query.type : { $in: TIPOS_ANUNCIO };
 
   const ads = await Ad.find(filter);
   res.json({ success: true, count: ads.length, data: ads });
