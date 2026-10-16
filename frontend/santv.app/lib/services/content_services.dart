@@ -270,6 +270,7 @@ class ContentService {
   }
 
   /// Crea contenido directamente a partir de un link de YouTube.
+  /// [showInLive] hace que el video también aparezca en la pestaña En vivo.
   Future<ContentUploadResult> crearDesdeYoutube({
     required String videoUrl,
     required String title,
@@ -278,6 +279,7 @@ class ContentService {
     String genres = '',
     int? releaseYear,
     bool isPremium = false,
+    bool showInLive = false,
   }) async {
     try {
       final token = await authService.getToken();
@@ -302,6 +304,7 @@ class ContentService {
           'genres': genres,
           'releaseYear': ?releaseYear,
           'isPremium': isPremium,
+          'showInLive': showInLive,
         }),
       );
 
@@ -354,6 +357,29 @@ class ContentService {
   Future<List<ContentItem>> obtenerContenidoExplorar({int limit = 20}) async {
     try {
       final uri = _contentUrl.replace(queryParameters: {'limit': '$limit'});
+      final response = await http.get(uri);
+
+      if (response.statusCode != 200) return [];
+
+      final body = jsonDecode(response.body);
+      if (body is Map && body['success'] == true && body['data'] is List) {
+        return (body['data'] as List)
+            .map((e) => ContentItem.fromJson(e as Map<String, dynamic>))
+            .toList();
+      }
+      return [];
+    } catch (e) {
+      return [];
+    }
+  }
+
+  /// Trae los videos que el admin marcó para la pestaña En vivo
+  /// (showInLive = true), del más nuevo al más viejo.
+  Future<List<ContentItem>> obtenerContenidoEnVivo({int limit = 20}) async {
+    try {
+      final uri = _contentUrl.replace(
+        queryParameters: {'showInLive': 'true', 'limit': '$limit'},
+      );
       final response = await http.get(uri);
 
       if (response.statusCode != 200) return [];

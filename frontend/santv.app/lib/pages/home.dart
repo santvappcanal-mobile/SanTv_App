@@ -373,6 +373,7 @@ class _HomeState extends State<Home> with WidgetsBindingObserver {
                   LiveTabScreen(
                     isActive: _currentIndex == _liveTabIndex && notCovered,
                     onOpenLive: (liveId) => _openLive(liveId),
+                    authService: widget.authService, // comentarios en vivo
                   ),
                   _loadingUser
                       ? const Center(

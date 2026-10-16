@@ -1,6 +1,8 @@
 import 'dart:async';
 
 import 'package:flutter/material.dart';
+import 'package:santv_app/pages/live_fullscreen_screen.dart';
+import 'package:santv_app/services/auth_service.dart';
 import 'package:santv_app/widgets/live_tab/pulsing_live_dot.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 import 'package:webview_flutter_android/webview_flutter_android.dart';
@@ -14,17 +16,21 @@ import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 /// reproduce, el otro se mantiene pausado.
 /// [onTap], si se pasa, intercepta el toque sobre el video (ej. en el
 /// Home para llevar a la pestaña En vivo).
+/// [authService], si se pasa, habilita los comentarios en vivo al
+/// ampliar el video.
 class LiveChannelPlayer extends StatefulWidget {
   const LiveChannelPlayer({
     super.key,
     required this.isActive,
     this.onTap,
     this.showLiveBadge = true,
+    this.authService,
   });
 
   final bool isActive;
   final VoidCallback? onTap;
   final bool showLiveBadge;
+  final AuthService? authService;
 
   @override
   State<LiveChannelPlayer> createState() => _LiveChannelPlayerState();
@@ -42,6 +48,45 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
   /// Si estuvo pausado más de esto, se recarga la página al reactivarlo
   /// para volver al punto actual del directo.
   static const Duration _reloadAfterPause = Duration(seconds: 10);
+
+  /// Cuando el reproductor web intenta pasar a pantalla completa (su
+  /// botón de ampliar), en vez de abrir el nativo (estirado) avisa a
+  /// Flutter para abrir [LiveFullscreenScreen].
+  static const String _bridgeJs = '''
+    (function () {
+      if (window.__santvFs) return;
+      window.__santvFs = true;
+      function open() {
+        try { SanTvBridge.postMessage('fullscreen'); } catch (e) {}
+        return Promise.resolve();
+      }
+      Element.prototype.requestFullscreen = open;
+      Element.prototype.webkitRequestFullscreen = open;
+      Element.prototype.webkitRequestFullScreen = open;
+      HTMLVideoElement.prototype.webkitEnterFullscreen = open;
+      HTMLVideoElement.prototype.webkitEnterFullScreen = open;
+    })();
+  ''';
+
+
+  /// Oculta el botón de pantalla completa del reproductor web (se usa
+  /// el botón propio de la app). Es idempotente.
+  static const String _hideFsJs = '''
+    (function () {
+      if (document.getElementById('santv-hide-fs')) return;
+      var st = document.createElement('style');
+      st.id = 'santv-hide-fs';
+      st.textContent =
+        'button[class*="fullscreen" i], [role="button"][class*="fullscreen" i],' +
+        'button[aria-label*="ullscreen" i], button[title*="ullscreen" i],' +
+        'button[aria-label*="antalla completa" i], button[title*="antalla completa" i],' +
+        'button[aria-label*="mpliar" i], button[title*="mpliar" i],' +
+        '.vjs-fullscreen-control, .jw-icon-fullscreen, .ytp-fullscreen-button,' +
+        '.mejs__fullscreen-button, [data-plyr="fullscreen"]' +
+        '{ display: none !important; }';
+      (document.head || document.documentElement).appendChild(st);
+    })();
+  ''';
 
   static const String _playJs = '''
     (function () {
@@ -86,6 +131,7 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
   late final WebViewController _controller;
   Timer? _timer;
   bool _loading = true;
+  bool _fullscreenOpen = false;
   DateTime? _pausedAt;
 
   @override
@@ -106,11 +152,23 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
     _controller = WebViewController.fromPlatformCreationParams(params)
       ..setJavaScriptMode(JavaScriptMode.unrestricted)
       ..setBackgroundColor(Colors.black)
+      ..addJavaScriptChannel(
+        'SanTvBridge',
+        onMessageReceived: (message) {
+          if (message.message == 'fullscreen' &&
+              widget.isActive &&
+              widget.onTap == null) {
+            _openFullscreen();
+          }
+        },
+      )
       ..setNavigationDelegate(
         NavigationDelegate(
+          onPageStarted: (_) => _controller.runJavaScript(_bridgeJs),
           onPageFinished: (_) {
             if (!mounted) return;
             setState(() => _loading = false);
+            _controller.runJavaScript(_bridgeJs);
             _applyState();
           },
         ),
@@ -124,12 +182,39 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
     _controller.loadRequest(Uri.parse(_liveUrl));
   }
 
+  /// Abre el en vivo ampliado (con comentarios y rotación). Mientras
+  /// está abierto, este reproductor se pausa para que no suene doble.
+  Future<void> _openFullscreen() async {
+    if (_fullscreenOpen || !mounted) return;
+    _fullscreenOpen = true;
+
+    _timer?.cancel();
+    _controller.runJavaScript(_pauseJs);
+
+    await Navigator.of(context, rootNavigator: true).push(
+      MaterialPageRoute(
+        builder: (_) => LiveFullscreenScreen(
+          streamUrl: _liveUrl,
+          authService: widget.authService,
+        ),
+      ),
+    );
+
+    _fullscreenOpen = false;
+    if (!mounted) return;
+
+    // Al volver se recarga para quedar en el punto actual del directo.
+    setState(() => _loading = true);
+    _controller.reload();
+  }
+
   /// Aplica el estado actual: da play si está activo, pausa si no.
   /// Reintenta un rato porque el <video> puede aparecer tarde.
   void _applyState() {
     _timer?.cancel();
     var attempts = 0;
 
+    _controller.runJavaScript(_hideFsJs);
     _controller.runJavaScript(widget.isActive ? _playJs : _pauseJs);
 
     _timer = Timer.periodic(_retryEvery, (timer) {
@@ -138,6 +223,7 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
         timer.cancel();
         return;
       }
+      _controller.runJavaScript(_hideFsJs);
       _controller.runJavaScript(widget.isActive ? _playJs : _pauseJs);
     });
   }
@@ -146,6 +232,7 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
   void didUpdateWidget(covariant LiveChannelPlayer oldWidget) {
     super.didUpdateWidget(oldWidget);
     if (oldWidget.isActive == widget.isActive) return;
+    if (_fullscreenOpen) return; // el ampliado manda sobre el estado
 
     if (widget.isActive) {
       final pausedAt = _pausedAt;
@@ -226,6 +313,29 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
                           ),
                         ),
                       ],
+                    ),
+                  ),
+                ),
+              ),
+            // Botón propio de ampliar (por si el del reproductor web no
+            // avisa a Flutter). Solo en la pestaña En vivo, no en el Home.
+            if (widget.onTap == null)
+              Positioned(
+                top: 10,
+                right: 10,
+                child: GestureDetector(
+                  onTap: _openFullscreen,
+                  child: Container(
+                    width: 34,
+                    height: 34,
+                    decoration: BoxDecoration(
+                      color: Colors.black.withOpacity(0.6),
+                      shape: BoxShape.circle,
+                    ),
+                    child: const Icon(
+                      Icons.fullscreen_rounded,
+                      color: Colors.white,
+                      size: 22,
                     ),
                   ),
                 ),
