@@ -10,6 +10,8 @@ class CustomTextField extends StatelessWidget {
     this.maxLines = 1,
     this.suffixIcon,
     this.onSubmitted,
+    this.hint,
+    this.keyboardType,
   });
 
   final TextEditingController controller;
@@ -19,18 +21,24 @@ class CustomTextField extends StatelessWidget {
   final int maxLines;
   final Widget? suffixIcon;
   final ValueChanged<String>? onSubmitted;
+  final String? hint;
+  final TextInputType? keyboardType;
 
   @override
   Widget build(BuildContext context) {
     return TextFormField(
       controller: controller,
       maxLines: maxLines,
-      keyboardType: tipoNumerico ? TextInputType.number : TextInputType.text,
+      keyboardType:
+          keyboardType ??
+          (tipoNumerico ? TextInputType.number : TextInputType.text),
       style: const TextStyle(color: Colors.white),
       onFieldSubmitted: onSubmitted,
       decoration: InputDecoration(
         labelText: label,
+        hintText: hint,
         labelStyle: const TextStyle(color: Colors.white54),
+        hintStyle: const TextStyle(color: Colors.white24),
         filled: true,
         fillColor: const Color(0xFF141414),
         suffixIcon: suffixIcon,
