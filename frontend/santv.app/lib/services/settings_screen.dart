@@ -4,7 +4,7 @@ import 'package:flutter_cache_manager/flutter_cache_manager.dart';
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
 import '../services/settings_service.dart';
-
+import '../edit_profile_screen.dart'; // Ajusta esta ruta si está en 'pages/'
 
 class SettingsScreen extends StatefulWidget {
   const SettingsScreen({
@@ -209,8 +209,6 @@ class _SettingsScreenState extends State<SettingsScreen> {
                           divisions: SettingsService.textScaleSteps.length - 1,
                           activeColor: _neonGreen,
                           inactiveColor: Colors.white24,
-                          // Mientras arrastras solo se mueve el control y la
-                          // vista previa; la app se reescala al soltar.
                           onChanged: (v) =>
                               setState(() => _scaleIndex = v.round()),
                           onChangeEnd: (v) =>
@@ -279,4 +277,4 @@ class _SettingsScreenState extends State<SettingsScreen> {
       ),
     );
   }
-}
+}  

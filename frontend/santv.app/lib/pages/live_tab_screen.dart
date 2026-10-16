@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:santv_app/services/auth_service.dart';
 import 'package:santv_app/widgets/live/live_channel_player.dart';
 import 'package:santv_app/widgets/live_tab/live_grid_card.dart';
 import 'package:santv_app/widgets/live_tab/pulsing_live_dot.dart';
@@ -12,6 +13,7 @@ class LiveTabScreen extends StatelessWidget {
     super.key,
     this.onOpenLive,
     this.isActive = true,
+    this.authService,
   });
 
   /// Se llama con el id del live seleccionado, para que Home/el
@@ -22,6 +24,9 @@ class LiveTabScreen extends StatelessWidget {
   /// video se pausa (evita que suene mientras el usuario está en
   /// otra pestaña, ya que el IndexedStack mantiene todo construido).
   final bool isActive;
+
+  /// Necesario para los comentarios en vivo al ampliar el video.
+  final AuthService? authService;
 
   // Datos de ejemplo. Reemplaza por tu lista real (backend/socket) de
   // eventos en vivo puntuales (LiveEvent), aparte del canal 24/7.
@@ -67,7 +72,11 @@ class LiveTabScreen extends StatelessWidget {
           const SizedBox(height: 12),
 
           // Canal permanente de SAN TV, reproduciéndose en autoplay.
-          LiveChannelPlayer(isActive: isActive, showLiveBadge: false),
+          LiveChannelPlayer(
+            isActive: isActive,
+            showLiveBadge: false,
+            authService: authService,
+          ),
 
           const SizedBox(height: 24),
           const Text(

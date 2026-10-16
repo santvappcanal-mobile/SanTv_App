@@ -6,6 +6,7 @@ const { Server } = require('socket.io');
 const connectDB = require('./config/db');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { initLiveSocket } = require('./sockets/liveSocket');
+const { initLiveComments } = require('./sockets/liveCommentsSocket');
 
 const app = express();
 
@@ -45,6 +46,7 @@ const io = new Server(server, {
 app.set('io', io);
 
 initLiveSocket(io);
+initLiveComments(io); // comentarios en vivo (namespace /comments)
 
 // Puerto de ejecución
 const PORT = process.env.PORT || 3000;
