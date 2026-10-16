@@ -182,19 +182,6 @@ cd backend
 npm install
 ```
 
-Crea un archivo `.env` dentro de `backend/` (los nombres son de ejemplo, usa los que tenga tu proyecto):
-
-```env
-PORT=3000
-MONGO_URI=tu_cadena_de_conexion_de_mongodb_atlas
-JWT_SECRET=una_clave_secreta_larga
-GOOGLE_CLIENT_ID=tu_client_id_de_google
-GROQ_API_KEY=tu_api_key_de_groq
-CLOUDINARY_CLOUD_NAME=tu_cloud_name
-CLOUDINARY_API_KEY=tu_api_key
-CLOUDINARY_API_SECRET=tu_api_secret
-# Credenciales del correo que envía los códigos de verificación
-```
 
 Inicia el servidor en modo desarrollo:
 
