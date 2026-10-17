@@ -98,7 +98,21 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
             error: _error,
             onSearch: _buscarPreview,
           ),
-          if (_preview != null)
+          if (_preview != null) ...[
+            SwitchListTile(
+              value: _showInLive,
+              onChanged: (value) => setState(() => _showInLive = value),
+              activeThumbColor: AdminAddYoutubeScreen.neonGreen,
+              title: const Text(
+                'Mostrar en la pestaña En vivo',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: const Text(
+                'Aparece debajo del canal en vivo',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
             YoutubeVideoForm(
               preview: _preview!,
               descriptionController: _descriptionController,
@@ -114,66 +128,6 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
               }),
               onPremiumChanged: (v) => setState(() => _isPremium = v),
               onSubmit: _guardar,
-            ),
-            const SizedBox(height: 18),
-            TextField(
-              controller: _releaseYearController,
-              keyboardType: TextInputType.number,
-              style: const TextStyle(color: Colors.white),
-              decoration: InputDecoration(
-                labelText: 'Año de estreno',
-                labelStyle: const TextStyle(color: Colors.white70),
-                filled: true,
-                fillColor: cardBg,
-                border: OutlineInputBorder(
-                  borderRadius: BorderRadius.circular(10),
-                ),
-              ),
-            ),
-            const SizedBox(height: 8),
-            SwitchListTile(
-              value: _isPremium,
-              onChanged: (value) => setState(() => _isPremium = value),
-              activeThumbColor: neonGreen,
-              title: const Text(
-                'Contenido premium',
-                style: TextStyle(color: Colors.white),
-              ),
-              contentPadding: EdgeInsets.zero,
-            ),
-            SwitchListTile(
-              value: _showInLive,
-              onChanged: (value) => setState(() => _showInLive = value),
-              activeThumbColor: neonGreen,
-              title: const Text(
-                'Mostrar en la pestaña En vivo',
-                style: TextStyle(color: Colors.white),
-              ),
-              subtitle: const Text(
-                'Aparece debajo del canal en vivo',
-                style: TextStyle(color: Colors.white54, fontSize: 12),
-              ),
-              contentPadding: EdgeInsets.zero,
-            ),
-            const SizedBox(height: 24),
-            SizedBox(
-              width: double.infinity,
-              child: ElevatedButton(
-                onPressed: _guardando ? null : _guardar,
-                style: ElevatedButton.styleFrom(
-                  backgroundColor: neonGreen,
-                  padding: const EdgeInsets.symmetric(vertical: 14),
-                ),
-                child: _guardando
-                    ? const CircularProgressIndicator(color: Colors.black)
-                    : const Text(
-                        'Agregar video',
-                        style: TextStyle(
-                          color: Colors.black,
-                          fontWeight: FontWeight.bold,
-                        ),
-                      ),
-              ),
             ),
           ],
         ],
