@@ -1,6 +1,6 @@
 const jwt = require('jsonwebtoken');
 const User = require('../models/User');
-const LiveComment = require('../models/LiveComment');
+const LiveComment = require('../models/liveComment');
 
 const HISTORY_LIMIT = 100;
 const MAX_TEXT = 300;

@@ -6,11 +6,13 @@ class UploadSubmitButton extends StatelessWidget {
     required this.isLoading,
     required this.onPressed,
     required this.backgroundColor,
+    this.label = 'Subir contenido',
   });
 
   final bool isLoading;
   final VoidCallback onPressed;
   final Color backgroundColor;
+  final String label;
 
   @override
   Widget build(BuildContext context) {
@@ -34,9 +36,9 @@ class UploadSubmitButton extends StatelessWidget {
                   color: Colors.black,
                 ),
               )
-            : const Text(
-                'Subir contenido',
-                style: TextStyle(
+            : Text(
+                label,
+                style: const TextStyle(
                   color: Colors.black,
                   fontWeight: FontWeight.bold,
                 ),
