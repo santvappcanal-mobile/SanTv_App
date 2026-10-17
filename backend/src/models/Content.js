@@ -53,6 +53,10 @@ const contentSchema = new mongoose.Schema(
       type: Boolean,
       default: true, // Permite ocultar el contenido sin borrarlo de la base de datos
     },
+    showInLive: {
+      type: Boolean,
+      default: false, // Si es 'true', también aparece en la pestaña "En vivo" de la app
+    },
     views: {
       type: Number,
       default: 0, // Contador de reproducciones

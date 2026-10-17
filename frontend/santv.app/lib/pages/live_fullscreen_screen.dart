@@ -36,6 +36,26 @@ class _LiveFullscreenScreenState extends State<LiveFullscreenScreen> {
 
   // Evita que el reproductor web abra su propio pantalla completa nativo
   // (el que se veía estirado) y fuerza al video a ajustarse sin recortar.
+
+  /// Oculta el botón de pantalla completa del reproductor web (se usa
+  /// el botón propio de la app). Es idempotente.
+  static const String _hideFsJs = '''
+    (function () {
+      if (document.getElementById('santv-hide-fs')) return;
+      var st = document.createElement('style');
+      st.id = 'santv-hide-fs';
+      st.textContent =
+        'button[class*="fullscreen" i], [role="button"][class*="fullscreen" i],' +
+        'button[aria-label*="ullscreen" i], button[title*="ullscreen" i],' +
+        'button[aria-label*="antalla completa" i], button[title*="antalla completa" i],' +
+        'button[aria-label*="mpliar" i], button[title*="mpliar" i],' +
+        '.vjs-fullscreen-control, .jw-icon-fullscreen, .ytp-fullscreen-button,' +
+        '.mejs__fullscreen-button, [data-plyr="fullscreen"]' +
+        '{ display: none !important; }';
+      (document.head || document.documentElement).appendChild(st);
+    })();
+  ''';
+
   static const String _fitJs = '''
     (function () {
       function noop() { return Promise.resolve(); }
@@ -116,6 +136,7 @@ class _LiveFullscreenScreenState extends State<LiveFullscreenScreen> {
   void _startRetries() {
     _timer?.cancel();
     var attempts = 0;
+    _web.runJavaScript(_hideFsJs);
     _web.runJavaScript(_fitJs);
     _timer = Timer.periodic(_retryEvery, (t) {
       attempts++;
@@ -123,6 +144,7 @@ class _LiveFullscreenScreenState extends State<LiveFullscreenScreen> {
         t.cancel();
         return;
       }
+      _web.runJavaScript(_hideFsJs);
       _web.runJavaScript(_fitJs);
     });
   }

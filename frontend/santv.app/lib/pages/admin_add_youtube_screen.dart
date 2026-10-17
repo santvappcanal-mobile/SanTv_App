@@ -25,6 +25,7 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
   String _type = 'movie';
   String? _category; // Deportes / Noticias / Educación
   bool _isPremium = false;
+  bool _showInLive = false; // también aparece en la pestaña "En vivo"
 
   bool _cargandoPreview = false;
   bool _guardando = false;
@@ -94,6 +95,7 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
       genres: _category!,
       releaseYear: int.tryParse(_releaseYearController.text.trim()),
       isPremium: _isPremium,
+      showInLive: _showInLive,
     );
 
     if (!mounted) return;
@@ -283,6 +285,20 @@ class _AdminAddYoutubeScreenState extends State<AdminAddYoutubeScreen> {
               title: const Text(
                 'Contenido premium',
                 style: TextStyle(color: Colors.white),
+              ),
+              contentPadding: EdgeInsets.zero,
+            ),
+            SwitchListTile(
+              value: _showInLive,
+              onChanged: (value) => setState(() => _showInLive = value),
+              activeThumbColor: neonGreen,
+              title: const Text(
+                'Mostrar en la pestaña En vivo',
+                style: TextStyle(color: Colors.white),
+              ),
+              subtitle: const Text(
+                'Aparece debajo del canal en vivo',
+                style: TextStyle(color: Colors.white54, fontSize: 12),
               ),
               contentPadding: EdgeInsets.zero,
             ),

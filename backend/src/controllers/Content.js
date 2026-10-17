@@ -63,7 +63,16 @@ const getYoutubePreview = asyncHandler(async (req, res) => {
 // @route   POST /api/content/from-youtube
 // @access  Private/Editor+
 const createContentFromYoutube = asyncHandler(async (req, res) => {
-  const { videoUrl, title, description, type, genres, releaseYear, isPremium } = req.body;
+  const {
+    videoUrl,
+    title,
+    description,
+    type,
+    genres,
+    releaseYear,
+    isPremium,
+    showInLive,
+  } = req.body;
 
   if (!videoUrl || !title || !type) {
     res.status(400);
@@ -85,6 +94,7 @@ const createContentFromYoutube = asyncHandler(async (req, res) => {
     videoUrl,
     releaseYear,
     isPremium: isPremium ?? false,
+    showInLive: showInLive ?? false,
     isActive: true, // por defecto queda activo/publicado al crearlo
   });
 
@@ -95,7 +105,20 @@ const createContentFromYoutube = asyncHandler(async (req, res) => {
 // @route   POST /api/content
 // @access  Private/Editor+
 const createContent = asyncHandler(async (req, res) => {
-  const { title, description, type, genres, thumbnailUrl, thumbnailPublicId, videoUrl, videoPublicId, duration, releaseYear, isPremium } = req.body;
+  const {
+    title,
+    description,
+    type,
+    genres,
+    thumbnailUrl,
+    thumbnailPublicId,
+    videoUrl,
+    videoPublicId,
+    duration,
+    releaseYear,
+    isPremium,
+    showInLive,
+  } = req.body;
 
   if (!title || !type || !videoUrl) {
     res.status(400);
@@ -114,13 +137,14 @@ const createContent = asyncHandler(async (req, res) => {
     duration,
     releaseYear,
     isPremium,
+    showInLive: showInLive ?? false,
   });
 
   res.status(201).json({ success: true, data: content });
 });
 
 // @desc    Obtener contenido activo/publicado (para usuarios finales)
-// @route   GET /api/content?sort=views&limit=10
+// @route   GET /api/content?sort=views&limit=10&showInLive=true
 // @access  Public
 const getContents = asyncHandler(async (req, res) => {
   const page = parseInt(req.query.page) || 1;
@@ -131,6 +155,7 @@ const getContents = asyncHandler(async (req, res) => {
   if (req.query.type) filter.type = req.query.type;
   if (req.query.genre) filter.genres = req.query.genre;
   if (req.query.search) filter.title = { $regex: req.query.search, $options: 'i' };
+  if (req.query.showInLive === 'true') filter.showInLive = true;
 
   const sortOption = req.query.sort === 'views' ? { views: -1 } : { createdAt: -1 };
 
