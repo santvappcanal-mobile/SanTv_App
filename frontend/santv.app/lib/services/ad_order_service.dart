@@ -1,6 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import '../models/ad_order.dart';
 import 'auth_service.dart';
 
@@ -66,13 +67,62 @@ class AdOrderService {
     }
   }
 
+  /// Detecta el tipo real de la imagen leyendo los primeros bytes del
+  /// archivo. Así no dependemos de que el nombre tenga extensión: las
+  /// imágenes elegidas de la galería a veces llegan sin ella y el
+  /// servidor las rechazaba como "no es una imagen".
+  Future<MediaType> _tipoImagen(File archivo) async {
+    final raf = await archivo.open();
+    try {
+      final h = await raf.read(12);
+      // PNG
+      if (h.length >= 8 &&
+          h[0] == 0x89 &&
+          h[1] == 0x50 &&
+          h[2] == 0x4E &&
+          h[3] == 0x47) {
+        return MediaType('image', 'png');
+      }
+      // JPEG
+      if (h.length >= 3 && h[0] == 0xFF && h[1] == 0xD8 && h[2] == 0xFF) {
+        return MediaType('image', 'jpeg');
+      }
+      // WEBP ("RIFF" .... "WEBP")
+      if (h.length >= 12 &&
+          h[0] == 0x52 &&
+          h[1] == 0x49 &&
+          h[2] == 0x46 &&
+          h[3] == 0x46 &&
+          h[8] == 0x57 &&
+          h[9] == 0x45 &&
+          h[10] == 0x42 &&
+          h[11] == 0x50) {
+        return MediaType('image', 'webp');
+      }
+    } finally {
+      await raf.close();
+    }
+    // Por defecto, las fotos de la galería son JPEG
+    return MediaType('image', 'jpeg');
+  }
+
   /// Sube la captura del pago. Devuelve null si salió bien, o el error.
   Future<String?> subirComprobante(String id, File imagen) async {
     try {
       final headers = await _headers();
+      final tipo = await _tipoImagen(imagen);
+      final extension = tipo.subtype == 'jpeg' ? 'jpg' : tipo.subtype;
+
       final request = http.MultipartRequest('POST', _url('/$id/receipt'))
         ..headers['Authorization'] = headers['Authorization']!
-        ..files.add(await http.MultipartFile.fromPath('comprobante', imagen.path));
+        ..files.add(
+          await http.MultipartFile.fromPath(
+            'comprobante',
+            imagen.path,
+            contentType: tipo,
+            filename: 'comprobante.$extension',
+          ),
+        );
 
       final streamed = await request.send().timeout(const Duration(minutes: 2));
       final r = await http.Response.fromStream(streamed);

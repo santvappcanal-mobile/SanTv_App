@@ -123,6 +123,7 @@ flutter:
     - assets/img/original.png
     - assets/img/inicoapp.png
     - assets/img/splash_background.png
+    - assets/img/qr_pago.png
 
 
   # An image asset can refer to one or more resolution-specific "variants", see

@@ -173,22 +173,20 @@ class _PublicidadScreenState extends State<PublicidadScreen>
           ],
         ),
       ),
-      floatingActionButton: widget.esAdmin
-          ? null
-          : FloatingActionButton.extended(
-              backgroundColor: neonGreen,
-              foregroundColor: Colors.black,
-              icon: const Icon(Icons.campaign_outlined),
-              label: const Text('Quiero pautar'),
-              onPressed: () => Navigator.push(
-                context,
-                MaterialPageRoute(
-                  builder: (_) => AdOrderFormScreen(
-                    authService: widget.adService.authService,
-                  ),
-                ),
-              ),
-            ),
+      // El botón "Quiero pautar" lo ven tanto usuarios como administradores.
+      floatingActionButton: FloatingActionButton.extended(
+        backgroundColor: neonGreen,
+        foregroundColor: Colors.black,
+        icon: const Icon(Icons.campaign_outlined),
+        label: const Text('Quiero pautar'),
+        onPressed: () => Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (_) =>
+                AdOrderFormScreen(authService: widget.adService.authService),
+          ),
+        ),
+      ),
       body: TabBarView(
         controller: _tabController,
         children: [
