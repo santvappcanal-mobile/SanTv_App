@@ -1,11 +1,17 @@
 import 'package:flutter/material.dart';
 import 'package:image_picker/image_picker.dart';
+
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
 import '../widgets/profile/avatar_picker_sheet.dart';
 import '../widgets/profile/edit_profile_widgets.dart';
 import '../widgets/profile/save_profile_button.dart';
 
+/// Pantalla para editar los datos del perfil (por ahora, el nombre).
+/// El correo se muestra pero no se puede cambiar.
+///
+/// [onSaved] se llama con el usuario ya actualizado, para que la pantalla
+/// que la abrió (Configuración / Perfil) refresque sus datos.
 class EditProfileScreen extends StatefulWidget {
   const EditProfileScreen({
     super.key,
@@ -16,15 +22,17 @@ class EditProfileScreen extends StatefulWidget {
 
   final AuthService authService;
   final AppUser user;
-
-  /// Se llama con el usuario ya actualizado, para que Home refresque su estado.
-  final ValueChanged<AppUser> onSaved;
+  final void Function(AppUser updated) onSaved;
 
   @override
   State<EditProfileScreen> createState() => _EditProfileScreenState();
 }
 
 class _EditProfileScreenState extends State<EditProfileScreen> {
+  static const Color neonGreen = Color(0xFF39FF14);
+  static const Color background = Color(0xFF0B0B0B);
+  static const Color surface = Color(0xFF1A1A1A);
+
   final _formKey = GlobalKey<FormState>();
   late final EditProfileController _c;
 
@@ -65,13 +73,16 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
 
   @override
   Widget build(BuildContext context) {
+    final inicial = widget.user.name.trim().isNotEmpty
+        ? widget.user.name.trim()[0].toUpperCase()
+        : '?';
+
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
+      backgroundColor: background,
       appBar: AppBar(
-        backgroundColor: Colors.transparent,
-        elevation: 0,
-        title: const Text('Editar perfil', style: TextStyle(color: Colors.white)),
+        backgroundColor: background,
         iconTheme: const IconThemeData(color: Colors.white),
+        title: const Text('Editar perfil', style: TextStyle(color: Colors.white)),
       ),
       body: ListenableBuilder(
         listenable: _c,
@@ -106,6 +117,36 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
             ),
           ),
         ),
+      ),
+    );
+  }
+
+  InputDecoration _decoracion(String label, IconData icono) {
+    return InputDecoration(
+      labelText: label,
+      labelStyle: const TextStyle(color: Colors.white54),
+      prefixIcon: Icon(icono, color: neonGreen),
+      filled: true,
+      fillColor: surface,
+      border: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
+      ),
+      focusedBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: neonGreen),
+      ),
+      errorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.redAccent),
+      ),
+      focusedErrorBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: const BorderSide(color: Colors.redAccent),
+      ),
+      disabledBorder: OutlineInputBorder(
+        borderRadius: BorderRadius.circular(14),
+        borderSide: BorderSide.none,
       ),
     );
   }

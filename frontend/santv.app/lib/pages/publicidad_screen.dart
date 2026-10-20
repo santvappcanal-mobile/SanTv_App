@@ -11,6 +11,8 @@ import '../models/reference_video_item.dart';
 import '../services/ad_service.dart';
 import '../widgets/common/gallery_grid.dart';
 import '../widgets/common/pdf_document_card.dart';
+import 'ad_order_form_screen.dart';
+import 'ad_orders_screen.dart';
 import 'pdf_viewer_page.dart';
 import 'reference_video_player_page.dart';
 
@@ -144,6 +146,21 @@ class _PublicidadScreenState extends State<PublicidadScreen>
         backgroundColor: const Color(0xFF0B0B0B),
         title: const Text('Publicidad', style: TextStyle(color: Colors.white)),
         iconTheme: const IconThemeData(color: Colors.white),
+        actions: [
+          IconButton(
+            tooltip: widget.esAdmin ? 'Solicitudes de pauta' : 'Mis pautas',
+            icon: const Icon(Icons.receipt_long_outlined, color: neonGreen),
+            onPressed: () => Navigator.push(
+              context,
+              MaterialPageRoute(
+                builder: (_) => AdOrdersScreen(
+                  authService: widget.adService.authService,
+                  esAdmin: widget.esAdmin,
+                ),
+              ),
+            ),
+          ),
+        ],
         bottom: TabBar(
           controller: _tabController,
           indicatorColor: neonGreen,
@@ -156,6 +173,22 @@ class _PublicidadScreenState extends State<PublicidadScreen>
           ],
         ),
       ),
+      floatingActionButton: widget.esAdmin
+          ? null
+          : FloatingActionButton.extended(
+              backgroundColor: neonGreen,
+              foregroundColor: Colors.black,
+              icon: const Icon(Icons.campaign_outlined),
+              label: const Text('Quiero pautar'),
+              onPressed: () => Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (_) => AdOrderFormScreen(
+                    authService: widget.adService.authService,
+                  ),
+                ),
+              ),
+            ),
       body: TabBarView(
         controller: _tabController,
         children: [
@@ -984,35 +1017,35 @@ class _PublicidadScreenState extends State<PublicidadScreen>
         content: SizedBox(
           width: double.maxFinite,
           child: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.stretch,
-            children: [
-              ClipRRect(
-                borderRadius: BorderRadius.circular(12),
-                child: Image.file(
-                  imagen,
-                  height: 160,
-                  fit: BoxFit.cover,
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                ClipRRect(
+                  borderRadius: BorderRadius.circular(12),
+                  child: Image.file(
+                    imagen,
+                    height: 160,
+                    fit: BoxFit.cover,
+                  ),
                 ),
-              ),
-              const SizedBox(height: 14),
-              TextField(
-                controller: controller,
-                autofocus: true,
-                maxLength: 150,
-                maxLines: 3,
-                minLines: 1,
-                textCapitalization: TextCapitalization.sentences,
-                style: const TextStyle(color: Colors.white),
-                decoration: const InputDecoration(
-                  hintText: 'Escribe una descripción (opcional)',
-                  hintStyle: TextStyle(color: Colors.white38),
-                  counterStyle: TextStyle(color: Colors.white38),
+                const SizedBox(height: 14),
+                TextField(
+                  controller: controller,
+                  autofocus: true,
+                  maxLength: 150,
+                  maxLines: 3,
+                  minLines: 1,
+                  textCapitalization: TextCapitalization.sentences,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(
+                    hintText: 'Escribe una descripción (opcional)',
+                    hintStyle: TextStyle(color: Colors.white38),
+                    counterStyle: TextStyle(color: Colors.white38),
+                  ),
                 ),
-              ),
-            ],
-          ),
+              ],
+            ),
           ),
         ),
         actions: [

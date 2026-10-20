@@ -31,6 +31,7 @@ app.use('/api/chat', require('./routes/chatRoutes'));
 app.use('/api/youtube', require('./routes/youtubeRoutes'));
 app.use('/api/ad-documents', require('./routes/adDocumentRoutes'));
 app.use('/api/ad-references', require('./routes/adReferenceRoutes'));
+app.use('/api/ad-orders', require('./routes/adOrderRoutes')); // pagos de pautas
 
 // Manejo de errores
 app.use(notFound);
