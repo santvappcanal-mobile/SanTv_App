@@ -1,12 +1,12 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:santv_app/pages/live_fullscreen_screen.dart';
 import 'package:santv_app/services/auth_service.dart';
-import 'package:santv_app/widgets/live_tab/pulsing_live_dot.dart';
+import 'package:santv_app/widgets/live/live_badge.dart';
+import 'package:santv_app/widgets/live/live_script_runner.dart';
+import 'package:santv_app/widgets/live/live_web_controller.dart';
+import 'package:santv_app/widgets/live/live_web_scripts.dart';
+import 'package:santv_app/widgets/live/round_icon_button.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 /// Reproductor del canal en vivo de SAN TV (WebView con autoplay).
 /// Se usa en el Home y en la pestaña En vivo. Ambos cargan el mismo
@@ -40,96 +40,12 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
   static const String _liveUrl =
       'https://streaminghd.co/user/produccionessantv';
 
-  /// Los reproductores web crean el <video> unos segundos después de
-  /// cargar la página, por eso se reintenta varias veces.
-  static const Duration _retryEvery = Duration(milliseconds: 1500);
-  static const int _maxAttempts = 14;
-
   /// Si estuvo pausado más de esto, se recarga la página al reactivarlo
   /// para volver al punto actual del directo.
   static const Duration _reloadAfterPause = Duration(seconds: 10);
 
-  /// Cuando el reproductor web intenta pasar a pantalla completa (su
-  /// botón de ampliar), en vez de abrir el nativo (estirado) avisa a
-  /// Flutter para abrir [LiveFullscreenScreen].
-  static const String _bridgeJs = '''
-    (function () {
-      if (window.__santvFs) return;
-      window.__santvFs = true;
-      function open() {
-        try { SanTvBridge.postMessage('fullscreen'); } catch (e) {}
-        return Promise.resolve();
-      }
-      Element.prototype.requestFullscreen = open;
-      Element.prototype.webkitRequestFullscreen = open;
-      Element.prototype.webkitRequestFullScreen = open;
-      HTMLVideoElement.prototype.webkitEnterFullscreen = open;
-      HTMLVideoElement.prototype.webkitEnterFullScreen = open;
-    })();
-  ''';
-
-
-  /// Oculta el botón de pantalla completa del reproductor web (se usa
-  /// el botón propio de la app). Es idempotente.
-  static const String _hideFsJs = '''
-    (function () {
-      if (document.getElementById('santv-hide-fs')) return;
-      var st = document.createElement('style');
-      st.id = 'santv-hide-fs';
-      st.textContent =
-        'button[class*="fullscreen" i], [role="button"][class*="fullscreen" i],' +
-        'button[aria-label*="ullscreen" i], button[title*="ullscreen" i],' +
-        'button[aria-label*="antalla completa" i], button[title*="antalla completa" i],' +
-        'button[aria-label*="mpliar" i], button[title*="mpliar" i],' +
-        '.vjs-fullscreen-control, .jw-icon-fullscreen, .ytp-fullscreen-button,' +
-        '.mejs__fullscreen-button, [data-plyr="fullscreen"]' +
-        '{ display: none !important; }';
-      (document.head || document.documentElement).appendChild(st);
-    })();
-  ''';
-
-  static const String _playJs = '''
-    (function () {
-      var videos = document.querySelectorAll('video');
-      videos.forEach(function (v) {
-        v.setAttribute('playsinline', '');
-        if (v.paused) {
-          v.muted = false;
-          var p = v.play();
-          if (p && p.catch) {
-            p.catch(function () { v.muted = true; v.play(); });
-          }
-        }
-      });
-
-      var playing = Array.prototype.some.call(videos, function (v) {
-        return !v.paused;
-      });
-      if (!playing) {
-        [
-          '.vjs-big-play-button',
-          '.jw-icon-display',
-          '.plyr__control--overlaid',
-          '.ytp-large-play-button',
-          '.mejs__overlay-button',
-          '[aria-label="Play"]',
-          '[aria-label="Reproducir"]',
-          '.play-button',
-          '.btn-play',
-          '#play'
-        ].forEach(function (s) {
-          var el = document.querySelector(s);
-          if (el) el.click();
-        });
-      }
-    })();
-  ''';
-
-  static const String _pauseJs =
-      "document.querySelectorAll('video').forEach(function(v){ v.pause(); });";
-
   late final WebViewController _controller;
-  Timer? _timer;
+  late final LiveScriptRunner _scripts;
   bool _loading = true;
   bool _fullscreenOpen = false;
   DateTime? _pausedAt;
@@ -139,19 +55,7 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
     super.initState();
     _pausedAt = widget.isActive ? null : DateTime.now();
 
-    late final PlatformWebViewControllerCreationParams params;
-    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-      params = WebKitWebViewControllerCreationParams(
-        allowsInlineMediaPlayback: true,
-        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
-      );
-    } else {
-      params = const PlatformWebViewControllerCreationParams();
-    }
-
-    _controller = WebViewController.fromPlatformCreationParams(params)
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.black)
+    _controller = createLiveWebController()
       ..addJavaScriptChannel(
         'SanTvBridge',
         onMessageReceived: (message) {
@@ -164,22 +68,19 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
       )
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (_) => _controller.runJavaScript(_bridgeJs),
+          onPageStarted: (_) =>
+              _controller.runJavaScript(LiveWebScripts.fullscreenBridge),
           onPageFinished: (_) {
             if (!mounted) return;
             setState(() => _loading = false);
-            _controller.runJavaScript(_bridgeJs);
+            _controller.runJavaScript(LiveWebScripts.fullscreenBridge);
             _applyState();
           },
         ),
-      );
+      )
+      ..loadRequest(Uri.parse(_liveUrl));
 
-    final platform = _controller.platform;
-    if (platform is AndroidWebViewController) {
-      platform.setMediaPlaybackRequiresUserGesture(false);
-    }
-
-    _controller.loadRequest(Uri.parse(_liveUrl));
+    _scripts = LiveScriptRunner(_controller);
   }
 
   /// Abre el en vivo ampliado (con comentarios y rotación). Mientras
@@ -188,8 +89,8 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
     if (_fullscreenOpen || !mounted) return;
     _fullscreenOpen = true;
 
-    _timer?.cancel();
-    _controller.runJavaScript(_pauseJs);
+    _scripts.cancel();
+    _controller.runJavaScript(LiveWebScripts.pause);
 
     await Navigator.of(context, rootNavigator: true).push(
       MaterialPageRoute(
@@ -211,21 +112,13 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
   /// Aplica el estado actual: da play si está activo, pausa si no.
   /// Reintenta un rato porque el <video> puede aparecer tarde.
   void _applyState() {
-    _timer?.cancel();
-    var attempts = 0;
-
-    _controller.runJavaScript(_hideFsJs);
-    _controller.runJavaScript(widget.isActive ? _playJs : _pauseJs);
-
-    _timer = Timer.periodic(_retryEvery, (timer) {
-      attempts++;
-      if (!mounted || attempts >= _maxAttempts) {
-        timer.cancel();
-        return;
-      }
-      _controller.runJavaScript(_hideFsJs);
-      _controller.runJavaScript(widget.isActive ? _playJs : _pauseJs);
-    });
+    _scripts.run(
+      () => [
+        LiveWebScripts.hideFullscreenButton,
+        widget.isActive ? LiveWebScripts.play : LiveWebScripts.pause,
+      ],
+      isAlive: () => mounted,
+    );
   }
 
   @override
@@ -254,7 +147,7 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
 
   @override
   void dispose() {
-    _timer?.cancel();
+    _scripts.cancel();
     super.dispose();
   }
 
@@ -285,37 +178,10 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
                 ),
               ),
             if (widget.showLiveBadge)
-              Positioned(
+              const Positioned(
                 top: 10,
                 left: 10,
-                child: IgnorePointer(
-                  child: Container(
-                    padding: const EdgeInsets.symmetric(
-                      horizontal: 10,
-                      vertical: 5,
-                    ),
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.65),
-                      borderRadius: BorderRadius.circular(20),
-                    ),
-                    child: const Row(
-                      mainAxisSize: MainAxisSize.min,
-                      children: [
-                        PulsingLiveDot(),
-                        SizedBox(width: 6),
-                        Text(
-                          'EN VIVO',
-                          style: TextStyle(
-                            color: Colors.white,
-                            fontSize: 11,
-                            fontWeight: FontWeight.bold,
-                            letterSpacing: 0.8,
-                          ),
-                        ),
-                      ],
-                    ),
-                  ),
-                ),
+                child: IgnorePointer(child: LiveBadge()),
               ),
             // Botón propio de ampliar (por si el del reproductor web no
             // avisa a Flutter). Solo en la pestaña En vivo, no en el Home.
@@ -323,21 +189,11 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
               Positioned(
                 top: 10,
                 right: 10,
-                child: GestureDetector(
+                child: RoundIconButton(
+                  icon: Icons.fullscreen_rounded,
                   onTap: _openFullscreen,
-                  child: Container(
-                    width: 34,
-                    height: 34,
-                    decoration: BoxDecoration(
-                      color: Colors.black.withOpacity(0.6),
-                      shape: BoxShape.circle,
-                    ),
-                    child: const Icon(
-                      Icons.fullscreen_rounded,
-                      color: Colors.white,
-                      size: 22,
-                    ),
-                  ),
+                  size: 34,
+                  alpha: 0.6,
                 ),
               ),
           ],

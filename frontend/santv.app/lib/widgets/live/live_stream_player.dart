@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
+import 'package:santv_app/widgets/live/live_web_controller.dart';
+import 'package:santv_app/widgets/live/live_web_scripts.dart';
 
 class LiveStreamPlayer extends StatefulWidget {
   /// true = la pestaña En vivo está visible (suena); false = se pausa.
@@ -23,55 +23,30 @@ class _LiveStreamPlayerState extends State<LiveStreamPlayer>
   late final WebViewController _controller;
   bool _loading = true;
 
-  static const _playJs = '''
-    document.querySelectorAll('video').forEach(function(v){
-      v.muted = false; v.play().catch(function(){ v.muted = true; v.play(); });
-    });
-  ''';
-  static const _pauseJs =
-      "document.querySelectorAll('video').forEach(function(v){ v.pause(); });";
-
   @override
   bool get wantKeepAlive => true; // no recarga el stream al cambiar de pestaña
 
   @override
   void initState() {
     super.initState();
-
-    late final PlatformWebViewControllerCreationParams params;
-    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-      params = WebKitWebViewControllerCreationParams(
-        allowsInlineMediaPlayback: true,
-        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
-      );
-    } else {
-      params = const PlatformWebViewControllerCreationParams();
-    }
-
-    _controller = WebViewController.fromPlatformCreationParams(params)
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(const Color(0xFF0B0B0B))
+    _controller = createLiveWebController(background: const Color(0xFF0B0B0B))
       ..setNavigationDelegate(NavigationDelegate(
         onPageFinished: (_) {
           if (!mounted) return;
           setState(() => _loading = false);
-          if (widget.isActive) _controller.runJavaScript(_playJs);
+          if (widget.isActive) _controller.runJavaScript(LiveWebScripts.play);
         },
-      ));
-
-    if (_controller.platform is AndroidWebViewController) {
-      (_controller.platform as AndroidWebViewController)
-          .setMediaPlaybackRequiresUserGesture(false); // autoplay con sonido
-    }
-
-    _controller.loadRequest(Uri.parse(widget.streamUrl));
+      ))
+      ..loadRequest(Uri.parse(widget.streamUrl));
   }
 
   @override
   void didUpdateWidget(covariant LiveStreamPlayer old) {
     super.didUpdateWidget(old);
     if (old.isActive != widget.isActive) {
-      _controller.runJavaScript(widget.isActive ? _playJs : _pauseJs);
+      _controller.runJavaScript(
+        widget.isActive ? LiveWebScripts.play : LiveWebScripts.pause,
+      );
     }
   }
 
