@@ -15,6 +15,8 @@ class NotificationsScreen extends StatefulWidget {
 }
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
+  static const Color _neon = Color(0xFF39FF14);
+
   List<AppNotification> _notifications = [];
   bool _loading = true;
   String? _error;
@@ -62,7 +64,61 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     }
   }
 
+  void _aviso(String texto) {
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(texto)));
+  }
+
+  /// Borra una notificación (deslizando). Devuelve true si el servidor la borró.
+  Future<bool> _deleteOne(AppNotification n) async {
+    final ok = await widget.notificationService.deleteNotification(n.id);
+    if (!mounted) return false;
+    if (!ok) _aviso('No se pudo borrar la notificación');
+    return ok;
+  }
+
+  /// Borra todas las notificaciones ya leídas, con confirmación.
+  Future<void> _deleteRead() async {
+    final confirmar = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text(
+          'Borrar notificaciones leídas',
+          style: TextStyle(color: Colors.white),
+        ),
+        content: Text(
+          'Se borrarán $_readCount notificaciones que ya leíste. '
+          'Esta acción no se puede deshacer.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Borrar', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+    if (confirmar != true || !mounted) return;
+
+    final ok = await widget.notificationService.deleteReadNotifications();
+    if (!mounted) return;
+    if (!ok) {
+      _aviso('No se pudieron borrar las notificaciones');
+      return;
+    }
+    setState(() {
+      _notifications = _notifications.where((n) => !n.isRead).toList();
+    });
+    _aviso('Notificaciones leídas borradas');
+  }
+
   int get _unreadCount => _notifications.where((n) => !n.isRead).length;
+  int get _readCount => _notifications.length - _unreadCount;
 
   @override
   Widget build(BuildContext context) {
@@ -93,7 +149,7 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
   Widget _buildBody() {
     if (_loading) {
       return const Center(
-        child: CircularProgressIndicator(color: Color(0xFF39FF14)),
+        child: CircularProgressIndicator(color: _neon),
       );
     }
     if (_error != null) {
@@ -114,13 +170,44 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
       padding: const EdgeInsets.fromLTRB(16, 4, 16, 16),
       children: [
         ..._notifications.map(
-          (n) => NotificationCard(
-            notification: n,
-            onTap: () => _handleTap(n),
+          (n) => Dismissible(
+            key: ValueKey(n.id),
+            direction: DismissDirection.endToStart,
+            confirmDismiss: (_) => _deleteOne(n),
+            onDismissed: (_) {
+              setState(() => _notifications.removeWhere((e) => e.id == n.id));
+            },
+            background: Container(
+              alignment: Alignment.centerRight,
+              padding: const EdgeInsets.only(right: 24),
+              margin: const EdgeInsets.symmetric(vertical: 4),
+              decoration: BoxDecoration(
+                color: Colors.redAccent.withOpacity(0.85),
+                borderRadius: BorderRadius.circular(16),
+              ),
+              child: const Icon(Icons.delete_outline, color: Colors.white),
+            ),
+            child: NotificationCard(
+              notification: n,
+              onTap: () => _handleTap(n),
+            ),
           ),
         ),
         const SizedBox(height: 12),
         if (_unreadCount > 0) MarkAllReadButton(onPressed: _markAllAsRead),
+        if (_readCount > 0)
+          Padding(
+            padding: const EdgeInsets.only(top: 8),
+            child: TextButton.icon(
+              onPressed: _deleteRead,
+              icon: const Icon(Icons.delete_sweep_outlined,
+                  color: Colors.redAccent),
+              label: Text(
+                'Borrar leídas ($_readCount)',
+                style: const TextStyle(color: Colors.redAccent),
+              ),
+            ),
+          ),
       ],
     );
   }

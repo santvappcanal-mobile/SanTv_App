@@ -79,6 +79,18 @@ const markAllAsRead = asyncHandler(async (req, res) => {
   res.json({ success: true, message: 'Todas las notificaciones marcadas como leídas' });
 });
 
+// @desc    Eliminar todas las notificaciones leídas del usuario
+// @route   DELETE /api/notifications/read
+// @access  Private
+const deleteReadNotifications = asyncHandler(async (req, res) => {
+  const result = await Notification.deleteMany({ user: req.user._id, isRead: true });
+  res.json({
+    success: true,
+    deletedCount: result.deletedCount,
+    message: 'Notificaciones leídas eliminadas',
+  });
+});
+
 // @desc    Eliminar notificación
 // @route   DELETE /api/notifications/:id
 // @access  Private
@@ -100,5 +112,6 @@ module.exports = {
   getUserNotifications,
   markAsRead,
   markAllAsRead,
+  deleteReadNotifications,
   deleteNotification,
 };

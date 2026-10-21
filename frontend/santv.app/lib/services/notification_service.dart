@@ -85,9 +85,25 @@ class NotificationService {
   }
 
   Future<bool> deleteNotification(String id) async {
-    final headers = await _headers();
-    if (headers == null) return false;
-    final response = await http.delete(_endpoint('/$id'), headers: headers);
-    return response.statusCode == 200;
+    try {
+      final headers = await _headers();
+      if (headers == null) return false;
+      final response = await http.delete(_endpoint('/$id'), headers: headers);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
+  }
+
+  /// Borra todas las notificaciones ya leídas del usuario.
+  Future<bool> deleteReadNotifications() async {
+    try {
+      final headers = await _headers();
+      if (headers == null) return false;
+      final response = await http.delete(_endpoint('/read'), headers: headers);
+      return response.statusCode == 200;
+    } catch (_) {
+      return false;
+    }
   }
 }
