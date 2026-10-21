@@ -16,6 +16,21 @@ AppNotificationType _typeFromString(String? raw) {
   }
 }
 
+String _typeKey(AppNotificationType t) {
+  switch (t) {
+    case AppNotificationType.newContent:
+      return 'new_content';
+    case AppNotificationType.liveEvent:
+      return 'live_event';
+    case AppNotificationType.billing:
+      return 'billing';
+    case AppNotificationType.promo:
+      return 'promo';
+    case AppNotificationType.system:
+      return 'system';
+  }
+}
+
 class AppNotification {
   final String id;
   final String title;
@@ -25,6 +40,9 @@ class AppNotification {
   final String actionUrl;
   final DateTime createdAt;
 
+  /// Datos para abrir la pantalla al tocarla (contentId, orderId, forAdmin...).
+  final Map<String, dynamic> data;
+
   const AppNotification({
     required this.id,
     required this.title,
@@ -33,9 +51,11 @@ class AppNotification {
     required this.isRead,
     required this.actionUrl,
     required this.createdAt,
+    this.data = const {},
   });
 
   factory AppNotification.fromJson(Map<String, dynamic> json) {
+    final rawData = json['data'];
     return AppNotification(
       id: json['_id']?.toString() ?? '',
       title: json['title']?.toString() ?? '',
@@ -45,6 +65,7 @@ class AppNotification {
       actionUrl: json['actionUrl']?.toString() ?? '',
       createdAt: DateTime.tryParse(json['createdAt']?.toString() ?? '') ??
           DateTime.now(),
+      data: rawData is Map ? Map<String, dynamic>.from(rawData) : const {},
     );
   }
 
@@ -57,7 +78,22 @@ class AppNotification {
       isRead: isRead ?? this.isRead,
       actionUrl: actionUrl,
       createdAt: createdAt,
+      data: data,
     );
+  }
+
+  /// Mismo formato que el `data` de un push, para reutilizar
+  /// PushActionHandler.routeFor(). También entiende las notificaciones
+  /// antiguas que solo guardaron actionUrl (ej. "/content/123").
+  Map<String, dynamic> get routeData {
+    final map = <String, dynamic>{'type': _typeKey(type), ...data};
+
+    if (type == AppNotificationType.newContent &&
+        (map['contentId']?.toString().isEmpty ?? true) &&
+        actionUrl.startsWith('/content/')) {
+      map['contentId'] = actionUrl.substring('/content/'.length);
+    }
+    return map;
   }
 
   /// "Hace 5 min", "Hace 2 horas", etc.

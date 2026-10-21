@@ -110,6 +110,8 @@ async function sendToAll(payload) {
 
 // Guarda la notificación en la bandeja de cada usuario activo (pantalla
 // "Notificaciones" de la app) Y envía el push a sus dispositivos.
+// "data" (contentId, etc.) se guarda también en la bandeja para que, al tocar
+// la notificación dentro de la app, se pueda abrir la pantalla correcta.
 async function notifyAllUsers({
   title,
   message,
@@ -121,8 +123,16 @@ async function notifyAllUsers({
   try {
     const users = await User.find({ isActive: { $ne: false } }).select('_id').lean();
     if (users.length > 0) {
+      const storedData = toStringMap(data);
       await Notification.insertMany(
-        users.map((u) => ({ user: u._id, title, message, type, actionUrl })),
+        users.map((u) => ({
+          user: u._id,
+          title,
+          message,
+          type,
+          actionUrl,
+          data: storedData,
+        })),
         { ordered: false }
       );
     }

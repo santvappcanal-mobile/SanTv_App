@@ -120,7 +120,8 @@ const validateOrder = asyncHandler(async (req, res) => {
   await notifyUser(
     order.user,
     'Pago validado',
-    `Tu pago del ${order.planName} fue validado. Iniciamos la preparación de tu pauta y nuestro equipo te contactará.`
+    `Tu pago del ${order.planName} fue validado. Iniciamos la preparación de tu pauta y nuestro equipo te contactará.`,
+    { orderId: order._id }
   );
 
   res.json({ success: true, data: order });
@@ -144,7 +145,8 @@ const invalidateOrder = asyncHandler(async (req, res) => {
     order.user,
     'Pago invalidado',
     `No pudimos validar tu pago del ${order.planName} y la solicitud fue cancelada.` +
-      (reason ? ` Motivo: ${reason}` : '')
+      (reason ? ` Motivo: ${reason}` : ''),
+    { orderId: order._id }
   );
 
   res.json({ success: true, data: order });

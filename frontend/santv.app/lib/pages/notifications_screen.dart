@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/app_notification.dart';
 import '../services/notification_service.dart';
+import '../services/push_action_handler.dart';
 import '../widgets/notifications/notifications_header.dart';
 import '../widgets/notifications/notification_card.dart';
 import '../widgets/notifications/mark_all_read_button.dart';
@@ -16,6 +17,11 @@ class NotificationsScreen extends StatefulWidget {
 
 class _NotificationsScreenState extends State<NotificationsScreen> {
   static const Color _neon = Color(0xFF39FF14);
+
+  // Misma lógica que usa el push para decidir a qué pantalla ir.
+  late final PushActionHandler _actions = PushActionHandler(
+    authService: widget.notificationService.authService,
+  );
 
   List<AppNotification> _notifications = [];
   bool _loading = true;
@@ -51,6 +57,8 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
     });
   }
 
+  /// Al tocar: la marca como leída y abre lo que anuncia
+  /// (pedido de pauta, video nuevo o el en vivo).
   Future<void> _handleTap(AppNotification n) async {
     if (!n.isRead) {
       final ok = await widget.notificationService.markAsRead(n.id);
@@ -62,6 +70,27 @@ class _NotificationsScreenState extends State<NotificationsScreen> {
         });
       }
     }
+    if (!mounted) return;
+
+    // En vivo: se cierra la bandeja y Home cambia a la pestaña del live.
+    if (n.type == AppNotificationType.liveEvent) {
+      Navigator.pop(context, 'live');
+      return;
+    }
+
+    // Sin destino (sistema, promo): solo queda marcada como leída.
+    if (n.type == AppNotificationType.system ||
+        n.type == AppNotificationType.promo) {
+      return;
+    }
+
+    final route = await _actions.routeFor(n.routeData);
+    if (!mounted) return;
+    if (route == null) {
+      _aviso('No se pudo abrir esta notificación');
+      return;
+    }
+    await Navigator.push(context, route);
   }
 
   void _aviso(String texto) {

@@ -18,7 +18,7 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['system', 'new_content', 'live_event', 'billing', 'promo'], 
+      enum: ['system', 'new_content', 'live_event', 'billing', 'promo'],
       default: 'system',
     },
     isRead: {
@@ -28,7 +28,12 @@ const notificationSchema = new mongoose.Schema(
     actionUrl: {
       type: String,
       default: '', // URL opcional para redirigir al usuario al hacer clic (ej. '/content/123')
-    }
+    },
+    // Datos para abrir la pantalla correcta al tocarla (contentId, orderId, forAdmin...)
+    data: {
+      type: mongoose.Schema.Types.Mixed,
+      default: {},
+    },
   },
   {
     timestamps: true, // Esto crea 'createdAt', ideal para ordenar de la más nueva a la más antigua

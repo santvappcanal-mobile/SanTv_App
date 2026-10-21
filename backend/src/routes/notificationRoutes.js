@@ -6,6 +6,7 @@ const {
   getUserNotifications,
   markAsRead,
   markAllAsRead,
+  deleteReadNotifications,
   deleteNotification,
 } = require('../controllers/Notification');
 const { protect, authorize } = require('../middleware/auth');
@@ -14,6 +15,9 @@ const { protect, authorize } = require('../middleware/auth');
 router.get('/', protect, getUserNotifications);
 router.put('/read-all', protect, markAllAsRead);
 router.put('/:id/read', protect, markAsRead);
+
+// IMPORTANTE: '/read' debe ir ANTES de '/:id', si no Express toma "read" como un id.
+router.delete('/read', protect, deleteReadNotifications);
 router.delete('/:id', protect, deleteNotification);
 
 // Rutas privadas (solo admin)
