@@ -1,7 +1,7 @@
 const asyncHandler = require('express-async-handler');
 const cloudinary = require('../config/cloudinary');
 const AdOrder = require('../models/AdOrder');
-const { notifyUser } = require('../utils/adOrderNotify');
+const { notifyUser, notifyAdmins } = require('../utils/adOrderNotify');
 
 const PHONE_RE = /^[0-9+\s()-]{7,20}$/;
 const METHODS = ['transferencia', 'efectivo'];
@@ -40,6 +40,13 @@ const createOrder = asyncHandler(async (req, res) => {
     notes: notes || '',
     paymentMethod,
   });
+
+  // Avisa a los administradores que hay una nueva solicitud de pauta
+  notifyAdmins(
+    'Nueva solicitud de pauta',
+    `${order.company} solicitó el ${order.planName}.`,
+    { exceptUserId: req.user._id, orderId: order._id }
+  );
 
   res.status(201).json({ success: true, data: order });
 });

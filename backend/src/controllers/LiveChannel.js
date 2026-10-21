@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const LiveChannelStatus = require('../models/LiveChannelStatus');
 const Notification = require('../models/Notification');
 const User = require('../models/User');
+const { sendToAll } = require('../services/pushService');
 
 const getOrCreateStatus = async () => {
   let status = await LiveChannelStatus.findOne({ key: 'main' });
@@ -53,6 +54,14 @@ const startLive = asyncHandler(async (req, res) => {
   if (docs.length > 0) {
     await Notification.insertMany(docs, { ordered: false });
   }
+
+  // Push de Firebase a los dispositivos (app cerrada o en segundo plano).
+  // No se espera: la respuesta al admin no debe depender del envío.
+  sendToAll({
+    title,
+    body: message,
+    data: { type: 'live_event', actionUrl: '/live' },
+  }).catch((err) => console.error('Error enviando push de en vivo:', err.message));
 
   // Aviso en tiempo real a quienes tienen la app abierta
   const io = req.app.get('io');

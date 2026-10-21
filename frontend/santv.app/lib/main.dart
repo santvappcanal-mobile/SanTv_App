@@ -9,6 +9,7 @@ import 'pages/auth_screen.dart';
 import 'pages/home.dart';
 import 'pages/verify_code_screen.dart';
 import 'services/auth_service.dart';
+import 'services/push_notification_service.dart';
 import 'services/settings_service.dart';
 
 /// IP de tu PC en la red WiFi (opcional, para el teléfono sin cable).
@@ -61,6 +62,10 @@ Future<void> main() async {
 
   // Carga el tamaño de letra guardado antes de dibujar la app.
   await SettingsService.init();
+
+  // Prepara Firebase (notificaciones push) sin retrasar el arranque.
+  // Si Firebase no está configurado, simplemente se omite.
+  unawaited(PushNotificationService.instance.init());
 
   String initialRoute = '/login';
 

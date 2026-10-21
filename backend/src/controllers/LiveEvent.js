@@ -1,5 +1,6 @@
 const asyncHandler = require('express-async-handler');
 const LiveEvent = require('../models/LiveEvent');
+const { notifyAllUsers } = require('../services/pushService');
 
 // @desc    Crear evento en vivo
 // @route   POST /api/live-events
@@ -69,9 +70,22 @@ const startLiveEvent = asyncHandler(async (req, res) => {
     throw new Error('Evento no encontrado');
   }
 
+  const yaEstabaEnVivo = event.status === 'live';
+
   event.status = 'live';
   event.actualStartTime = new Date();
   await event.save();
+
+  // Avisa a todos los usuarios (bandeja + push), solo la primera vez
+  if (!yaEstabaEnVivo) {
+    notifyAllUsers({
+      title: `🔴 ${event.title} está en vivo`,
+      message: event.description || 'Entra ahora y míralo en vivo.',
+      type: 'live_event',
+      actionUrl: '/live',
+      imageUrl: event.thumbnailUrl,
+    }).catch((err) => console.error('Error notificando evento en vivo:', err.message));
+  }
 
   res.json({ success: true, data: event });
 });

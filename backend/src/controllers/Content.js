@@ -1,6 +1,21 @@
 const asyncHandler = require('express-async-handler');
 const Content = require('../models/Content');
 const { extractYoutubeId, getYoutubeThumbnail } = require('../utils/youtube');
+const { notifyAllUsers } = require('../services/pushService');
+
+// Avisa (bandeja + push de Firebase) que hay contenido nuevo.
+// No bloquea la respuesta y nunca rompe la creación del contenido.
+const notifyNewContent = (content) => {
+  if (!content.isActive) return; // el contenido oculto no se anuncia
+  notifyAllUsers({
+    title: '🎬 Nuevo contenido en SAN TV',
+    message: content.title,
+    type: 'new_content',
+    actionUrl: `/content/${content._id}`,
+    data: { contentId: content._id },
+    imageUrl: content.thumbnailUrl,
+  }).catch((err) => console.error('Error notificando contenido nuevo:', err.message));
+};
 
 // @desc    Obtener título, autor y thumbnail de un video de YouTube a partir del link
 // @route   GET /api/content/youtube-preview?url=...
@@ -98,6 +113,8 @@ const createContentFromYoutube = asyncHandler(async (req, res) => {
     isActive: true, // por defecto queda activo/publicado al crearlo
   });
 
+  notifyNewContent(content);
+
   res.status(201).json({ success: true, data: content });
 });
 
@@ -139,6 +156,8 @@ const createContent = asyncHandler(async (req, res) => {
     isPremium,
     showInLive: showInLive ?? false,
   });
+
+  notifyNewContent(content);
 
   res.status(201).json({ success: true, data: content });
 });

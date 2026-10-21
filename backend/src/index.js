@@ -4,6 +4,7 @@ const cors = require('cors');
 const http = require('http');
 const { Server } = require('socket.io');
 const connectDB = require('./config/db');
+const { initFirebase } = require('./config/firebase');
 const { notFound, errorHandler } = require('./middleware/errorHandler');
 const { initLiveSocket } = require('./sockets/liveSocket');
 const { initLiveComments } = require('./sockets/liveCommentsSocket');
@@ -12,6 +13,9 @@ const app = express();
 
 // Conectar a MongoDB
 connectDB();
+
+// Notificaciones push (Firebase). Si no hay credenciales, queda desactivado.
+initFirebase();
 
 // Middlewares
 app.use(cors());
@@ -32,6 +36,7 @@ app.use('/api/youtube', require('./routes/youtubeRoutes'));
 app.use('/api/ad-documents', require('./routes/adDocumentRoutes'));
 app.use('/api/ad-references', require('./routes/adReferenceRoutes'));
 app.use('/api/ad-orders', require('./routes/adOrderRoutes')); // pagos de pautas
+app.use('/api/devices', require('./routes/deviceRoutes')); // tokens de notificaciones push
 
 // Manejo de errores
 app.use(notFound);
