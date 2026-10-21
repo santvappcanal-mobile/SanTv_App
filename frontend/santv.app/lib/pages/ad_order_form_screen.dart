@@ -21,6 +21,12 @@ class AdOrderFormScreen extends StatefulWidget {
 class _AdOrderFormScreenState extends State<AdOrderFormScreen> {
   static const Color neonGreen = Color(0xFF39FF14);
 
+  /// Mínimo de caracteres para empresa/marca y nombre de contacto.
+  static const int _minNombre = 3;
+
+  /// Cantidad exacta de dígitos que debe tener el teléfono.
+  static const int _digitosTelefono = 10;
+
   final _formKey = GlobalKey<FormState>();
   final _companyCtrl = TextEditingController();
   final _contactCtrl = TextEditingController();
@@ -42,12 +48,28 @@ class _AdOrderFormScreenState extends State<AdOrderFormScreen> {
     super.dispose();
   }
 
-  String? _requerido(String? v) =>
-      (v == null || v.trim().isEmpty) ? 'Campo obligatorio' : null;
+  /// Obligatorio y con al menos [_minNombre] caracteres (sin contar espacios
+  /// al inicio o al final).
+  String? _nombre(String? v) {
+    final texto = (v ?? '').trim();
+    if (texto.isEmpty) return 'Campo obligatorio';
+    if (texto.length < _minNombre) {
+      return 'Escribe mínimo $_minNombre caracteres';
+    }
+    return null;
+  }
 
+  /// Obligatorio y exactamente [_digitosTelefono] dígitos, solo números.
   String? _telefono(String? v) {
-    final digits = (v ?? '').replaceAll(RegExp(r'[^0-9]'), '');
-    return digits.length < 7 ? 'Ingresa un teléfono válido' : null;
+    final texto = (v ?? '').trim();
+    if (texto.isEmpty) return 'Campo obligatorio';
+    if (!RegExp(r'^[0-9]+$').hasMatch(texto)) {
+      return 'Escribe solo números, sin espacios ni símbolos';
+    }
+    if (texto.length != _digitosTelefono) {
+      return 'El teléfono debe tener exactamente $_digitosTelefono dígitos';
+    }
+    return null;
   }
 
   Future<void> _continuar() async {
@@ -131,16 +153,16 @@ class _AdOrderFormScreenState extends State<AdOrderFormScreen> {
             PautaTextField(
               controller: _companyCtrl,
               label: 'Empresa o marca',
-              validator: _requerido,
+              validator: _nombre,
             ),
             PautaTextField(
               controller: _contactCtrl,
               label: 'Nombre de contacto',
-              validator: _requerido,
+              validator: _nombre,
             ),
             PautaTextField(
               controller: _phoneCtrl,
-              label: 'Teléfono',
+              label: 'Teléfono (10 dígitos)',
               keyboardType: TextInputType.phone,
               validator: _telefono,
             ),

@@ -9,13 +9,13 @@ import 'pages/auth_screen.dart';
 import 'pages/home.dart';
 import 'pages/verify_code_screen.dart';
 import 'services/auth_service.dart';
-import 'services/settings_service.dart'; // NUEVO
+import 'services/settings_service.dart';
 
 /// IP de tu PC en la red WiFi (opcional, para el teléfono sin cable).
 /// Cámbiala si tu IP cambia: ejecuta `ipconfig` y copia la IPv4.
 const String kLanUrl = 'http://192.168.1.135:3000';
 
-/// Direcciones que se prueban en orden. La primera que responda se usa.
+/// Direcciones que se prueban. Se usa la primera (en este orden) que responda.
 const List<String> kCandidateUrls = [
   'http://localhost:3000', // PC/Chrome, o móvil con `adb reverse`
   'http://10.0.2.2:3000', // emulador de Android sin adb reverse
@@ -23,26 +23,32 @@ const List<String> kCandidateUrls = [
 ];
 
 /// URL que se usa si ninguna responde (por ejemplo, backend apagado).
-/// En Android apunta al localhost de la PC; en el resto, a localhost.
-String defaultBaseUrl() {
-  if (!kIsWeb && defaultTargetPlatform == TargetPlatform.android) {
-    return 'http://10.0.2.2:3000';
+/// Se deja localhost: así, si activas `adb reverse` después de abrir la app,
+/// funciona igual en el teléfono con cable.
+String defaultBaseUrl() => 'http://localhost:3000';
+
+/// Prueba una dirección. Devuelve la URL si el backend responde, o null.
+Future<String?> _probe(String url) async {
+  try {
+    // Cualquier respuesta (200, 401, 404) significa que el servidor existe.
+    await http
+        .get(Uri.parse('$url/api/content'))
+        .timeout(const Duration(seconds: 3));
+    return url;
+  } catch (_) {
+    return null;
   }
-  return 'http://localhost:3000';
 }
 
-/// Prueba cada dirección y devuelve la primera donde el backend responda.
+/// Prueba todas las direcciones a la vez (hasta 2 rondas) y devuelve la
+/// primera que responda, respetando el orden de [kCandidateUrls].
 Future<String> resolveBaseUrl() async {
-  for (final url in kCandidateUrls) {
-    try {
-      // Cualquier respuesta (200, 401, 404) significa que el servidor existe.
-      await http
-          .get(Uri.parse('$url/api/content'))
-          .timeout(const Duration(seconds: 2));
-      return url;
-    } catch (_) {
-      // Sigue con la siguiente.
+  for (var intento = 1; intento <= 2; intento++) {
+    final resultados = await Future.wait(kCandidateUrls.map(_probe));
+    for (final url in resultados) {
+      if (url != null) return url;
     }
+    debugPrint('Backend sin respuesta (intento $intento de 2)');
   }
   return defaultBaseUrl();
 }
@@ -53,7 +59,7 @@ Future<void> main() async {
   // Mantiene el splash nativo hasta saber a qué pantalla ir.
   FlutterNativeSplash.preserve(widgetsBinding: binding);
 
-  // NUEVO: carga el tamaño de letra guardado antes de dibujar la app.
+  // Carga el tamaño de letra guardado antes de dibujar la app.
   await SettingsService.init();
 
   String initialRoute = '/login';
@@ -103,7 +109,7 @@ class SanTvApp extends StatelessWidget {
         colorScheme: const ColorScheme.dark(primary: _neonGreen),
         useMaterial3: true,
       ),
-      // NUEVO: aplica el tamaño de letra elegido a TODA la app.
+      // Aplica el tamaño de letra elegido a TODA la app.
       builder: (context, child) {
         return ValueListenableBuilder<double>(
           valueListenable: SettingsService.textScale,
