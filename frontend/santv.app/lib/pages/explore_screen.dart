@@ -1,9 +1,8 @@
 import 'package:flutter/material.dart';
 import '../models/content.dart';
 import '../services/auth_service.dart';
+import '../widgets/common/open_content_player.dart';
 import '../widgets/explore/explore_widgets.dart';
-import 'video_player_screen.dart';
-import 'youtube_player_screen.dart';
 
 /// Pestaña "Explorar". Se usa embebida dentro de [Home]
 /// (pages/home.dart), como uno de los ítems del IndexedStack.
@@ -47,34 +46,17 @@ class _ExploreScreenState extends State<ExploreScreen> {
     );
   }
 
-  /// Al tocar un video: lo registra como visto (suma la vista pública solo
-  /// la primera vez que este usuario lo ve), abre el reproductor y, al volver,
-  /// refresca la lista para mostrar el contador y los guardados actualizados.
+  /// Al tocar un video: lo registra como visto, abre el reproductor y, al
+  /// volver, refresca la lista para mostrar el contador y los guardados
+  /// actualizados.
   Future<void> _abrirVideo(ContentItem content) async {
-    // Se dispara de inmediato, sin bloquear la apertura del reproductor.
-    final vistoFuture = _c.watchlist.registrarVisto(content.id);
-
-    await Navigator.push(
+    await openContentPlayer(
       context,
-      MaterialPageRoute(
-        builder: (_) => content.isYoutube
-            ? YoutubePlayerScreen(
-                content: content,
-                authService: widget.authService,
-                watchlistService: _c.watchlist,
-                initialSaved: _c.savedIds.contains(content.id),
-              )
-            : VideoPlayerScreen(
-                content: content,
-                authService: widget.authService,
-                watchlistService: _c.watchlist,
-                initialSaved: _c.savedIds.contains(content.id),
-              ),
-      ),
+      content: content,
+      authService: widget.authService,
+      watchlist: _c.watchlist,
+      initialSaved: _c.savedIds.contains(content.id),
     );
-
-    // Nos aseguramos de que el registro ya quedó guardado antes de recargar.
-    await vistoFuture;
     if (!mounted) return;
     await _c.cargar(silencioso: true);
   }
