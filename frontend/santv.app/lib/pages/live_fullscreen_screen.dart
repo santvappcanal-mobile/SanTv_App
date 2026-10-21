@@ -1,13 +1,14 @@
-import 'dart:async';
-
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:santv_app/services/auth_service.dart';
 import 'package:santv_app/services/live_comment_service.dart';
-import 'package:santv_app/widgets/live/live_comments_panel.dart';
+import 'package:santv_app/widgets/live/live_fullscreen_comments.dart';
+import 'package:santv_app/widgets/live/live_fullscreen_video.dart';
+import 'package:santv_app/widgets/live/live_script_runner.dart';
+import 'package:santv_app/widgets/live/live_web_controller.dart';
+import 'package:santv_app/widgets/live/live_web_scripts.dart';
+import 'package:santv_app/widgets/live/round_icon_button.dart';
 import 'package:webview_flutter/webview_flutter.dart';
-import 'package:webview_flutter_android/webview_flutter_android.dart';
-import 'package:webview_flutter_wkwebview/webview_flutter_wkwebview.dart';
 
 /// En vivo ampliado.
 /// - Vertical: video 16:9 arriba (sin deformarse) y comentarios abajo.
@@ -31,61 +32,9 @@ class LiveFullscreenScreen extends StatefulWidget {
 }
 
 class _LiveFullscreenScreenState extends State<LiveFullscreenScreen> {
-  static const Duration _retryEvery = Duration(milliseconds: 1500);
-  static const int _maxAttempts = 14;
-
-  // Evita que el reproductor web abra su propio pantalla completa nativo
-  // (el que se veía estirado) y fuerza al video a ajustarse sin recortar.
-
-  /// Oculta el botón de pantalla completa del reproductor web (se usa
-  /// el botón propio de la app). Es idempotente.
-  static const String _hideFsJs = '''
-    (function () {
-      if (document.getElementById('santv-hide-fs')) return;
-      var st = document.createElement('style');
-      st.id = 'santv-hide-fs';
-      st.textContent =
-        'button[class*="fullscreen" i], [role="button"][class*="fullscreen" i],' +
-        'button[aria-label*="ullscreen" i], button[title*="ullscreen" i],' +
-        'button[aria-label*="antalla completa" i], button[title*="antalla completa" i],' +
-        'button[aria-label*="mpliar" i], button[title*="mpliar" i],' +
-        '.vjs-fullscreen-control, .jw-icon-fullscreen, .ytp-fullscreen-button,' +
-        '.mejs__fullscreen-button, [data-plyr="fullscreen"]' +
-        '{ display: none !important; }';
-      (document.head || document.documentElement).appendChild(st);
-    })();
-  ''';
-
-  static const String _fitJs = '''
-    (function () {
-      function noop() { return Promise.resolve(); }
-      Element.prototype.requestFullscreen = noop;
-      Element.prototype.webkitRequestFullscreen = noop;
-      Element.prototype.webkitRequestFullScreen = noop;
-      HTMLVideoElement.prototype.webkitEnterFullscreen = noop;
-      HTMLVideoElement.prototype.webkitEnterFullScreen = noop;
-
-      document.documentElement.style.background = '#000';
-      document.body.style.background = '#000';
-      document.body.style.margin = '0';
-      document.body.style.overflow = 'hidden';
-
-      document.querySelectorAll('video').forEach(function (v) {
-        v.style.objectFit = 'contain';
-        v.style.background = '#000';
-        v.setAttribute('playsinline', '');
-        if (v.paused) {
-          v.muted = false;
-          var p = v.play();
-          if (p && p.catch) { p.catch(function () { v.muted = true; v.play(); }); }
-        }
-      });
-    })();
-  ''';
-
   late final WebViewController _web;
+  late final LiveScriptRunner _scripts;
   final GlobalKey _webKey = GlobalKey();
-  Timer? _timer;
   bool _loading = true;
   LiveCommentService? _comments;
 
@@ -101,60 +50,33 @@ class _LiveFullscreenScreenState extends State<LiveFullscreenScreen> {
       _comments = LiveCommentService(baseUrl: auth.baseUrl)..connect();
     }
 
-    late final PlatformWebViewControllerCreationParams params;
-    if (WebViewPlatform.instance is WebKitWebViewPlatform) {
-      params = WebKitWebViewControllerCreationParams(
-        allowsInlineMediaPlayback: true,
-        mediaTypesRequiringUserAction: const <PlaybackMediaTypes>{},
-      );
-    } else {
-      params = const PlatformWebViewControllerCreationParams();
-    }
-
-    _web = WebViewController.fromPlatformCreationParams(params)
-      ..setJavaScriptMode(JavaScriptMode.unrestricted)
-      ..setBackgroundColor(Colors.black)
+    _web = createLiveWebController()
       ..setNavigationDelegate(
         NavigationDelegate(
           onPageFinished: (_) {
             if (!mounted) return;
             setState(() => _loading = false);
-            _startRetries();
+            _applyScripts();
           },
         ),
-      );
+      )
+      ..loadRequest(Uri.parse(widget.streamUrl));
 
-    final platform = _web.platform;
-    if (platform is AndroidWebViewController) {
-      platform.setMediaPlaybackRequiresUserGesture(false);
-    }
-
-    _web.loadRequest(Uri.parse(widget.streamUrl));
+    _scripts = LiveScriptRunner(_web);
   }
 
   /// El <video> puede aparecer tarde, por eso se reintenta un rato.
-  void _startRetries() {
-    _timer?.cancel();
-    var attempts = 0;
-    _web.runJavaScript(_hideFsJs);
-    _web.runJavaScript(_fitJs);
-    _timer = Timer.periodic(_retryEvery, (t) {
-      attempts++;
-      if (!mounted || attempts >= _maxAttempts) {
-        t.cancel();
-        return;
-      }
-      _web.runJavaScript(_hideFsJs);
-      _web.runJavaScript(_fitJs);
-    });
+  void _applyScripts() {
+    _scripts.run(
+      () => [LiveWebScripts.hideFullscreenButton, LiveWebScripts.fitVideo],
+      isAlive: () => mounted,
+    );
   }
 
   @override
   void dispose() {
-    _timer?.cancel();
-    _web.runJavaScript(
-      "document.querySelectorAll('video').forEach(function(v){ v.pause(); });",
-    );
+    _scripts.cancel();
+    _web.runJavaScript(LiveWebScripts.pause);
     _comments?.dispose();
     SystemChrome.setPreferredOrientations([DeviceOrientation.portraitUp]);
     SystemChrome.setEnabledSystemUIMode(SystemUiMode.edgeToEdge);
@@ -166,7 +88,6 @@ class _LiveFullscreenScreenState extends State<LiveFullscreenScreen> {
     final media = MediaQuery.of(context);
     final size = media.size;
     final pad = media.padding;
-    final keyboard = media.viewInsets.bottom;
     final landscape = size.width > size.height;
     final comments = _comments;
 
@@ -174,87 +95,32 @@ class _LiveFullscreenScreenState extends State<LiveFullscreenScreen> {
     // así el WebView no se recarga al girar el teléfono.
     final double videoHeight = landscape ? size.height : size.width * 9 / 16;
 
-    final video = Positioned(
-      left: 0,
-      right: 0,
-      top: 0,
-      height: videoHeight,
-      child: ColoredBox(
-        color: Colors.black,
-        child: Stack(
-          fit: StackFit.expand,
-          children: [
-            WebViewWidget(key: _webKey, controller: _web),
-            if (_loading)
-              const ColoredBox(
-                color: Colors.black,
-                child: Center(
-                  child: CircularProgressIndicator(color: Color(0xFF39FF14)),
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-
-    Widget? panel;
-    if (comments != null) {
-      panel = landscape
-          ? Positioned(
-              left: 12 + pad.left,
-              bottom: keyboard + 8,
-              width: size.width * 0.42,
-              height: size.height * 0.6,
-              child: LiveCommentsPanel(service: comments, overlay: true),
-            )
-          : Positioned(
-              left: 0,
-              right: 0,
-              top: videoHeight,
-              bottom: keyboard,
-              child: LiveCommentsPanel(service: comments),
-            );
-    }
-
     return Scaffold(
       backgroundColor: Colors.black,
       resizeToAvoidBottomInset: false,
       body: Stack(
         children: [
-          video,
-          if (panel != null) panel,
+          LiveFullscreenVideo(
+            controller: _web,
+            webKey: _webKey,
+            loading: _loading,
+            height: videoHeight,
+          ),
+          if (comments != null)
+            LiveFullscreenComments(
+              service: comments,
+              landscape: landscape,
+              videoHeight: videoHeight,
+            ),
           Positioned(
             top: 8 + pad.top,
             right: 8 + pad.right,
-            child: _RoundButton(
+            child: RoundIconButton(
               icon: Icons.fullscreen_exit_rounded,
               onTap: () => Navigator.of(context).maybePop(),
             ),
           ),
         ],
-      ),
-    );
-  }
-}
-
-class _RoundButton extends StatelessWidget {
-  const _RoundButton({required this.icon, required this.onTap});
-
-  final IconData icon;
-  final VoidCallback onTap;
-
-  @override
-  Widget build(BuildContext context) {
-    return GestureDetector(
-      onTap: onTap,
-      child: Container(
-        width: 38,
-        height: 38,
-        decoration: BoxDecoration(
-          color: Colors.black.withOpacity(0.55),
-          shape: BoxShape.circle,
-        ),
-        child: Icon(icon, color: Colors.white, size: 22),
       ),
     );
   }

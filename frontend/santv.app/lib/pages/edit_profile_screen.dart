@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 
 import '../models/app_user.dart';
 import '../services/auth_service.dart';
+import '../widgets/profile/avatar_picker_sheet.dart';
+import '../widgets/profile/edit_profile_widgets.dart';
+import '../widgets/profile/save_profile_button.dart';
 
 /// Pantalla para editar los datos del perfil (por ahora, el nombre).
 /// El correo se muestra pero no se puede cambiar.
@@ -30,78 +34,41 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
   static const Color surface = Color(0xFF1A1A1A);
 
   final _formKey = GlobalKey<FormState>();
-  late final TextEditingController _nameController;
-  bool _guardando = false;
+  late final EditProfileController _c;
 
-  // Solo letras (con tildes y ñ) y espacios
-  static final RegExp _soloLetras = RegExp(r'^[A-Za-zÁÉÍÓÚÜÑáéíóúüñ ]+$');
+  static const Color _neonGreen = Color(0xFF39FF14);
 
   @override
   void initState() {
     super.initState();
-    _nameController = TextEditingController(text: widget.user.name);
+    _c = EditProfileController(
+      authService: widget.authService,
+      user: widget.user,
+      onSaved: widget.onSaved,
+    );
   }
 
   @override
   void dispose() {
-    _nameController.dispose();
+    _c.dispose();
     super.dispose();
   }
 
-  String? _validarNombre(String? value) {
-    final texto = (value ?? '').trim();
-    if (texto.isEmpty) return 'Escribe tu nombre';
-    if (texto.length < 2) return 'El nombre es demasiado corto';
-    if (!_soloLetras.hasMatch(texto)) return 'Solo se permiten letras';
-    return null;
+  void _openAvatarOptions() {
+    showAvatarOptions(
+      context,
+      hasAvatar: _c.user.avatarUrl != null,
+      onGallery: () => _c.pickPhoto(ImageSource.gallery),
+      onCamera: () => _c.pickPhoto(ImageSource.camera),
+      onAvatar: _c.chooseAvatar,
+      onRemove: () => _c.chooseAvatar(''),
+    );
   }
 
-  Future<void> _guardar() async {
-    if (!(_formKey.currentState?.validate() ?? false)) return;
-
-    final nuevoNombre = _nameController.text.trim();
-
-    // Sin cambios: solo se cierra la pantalla
-    if (nuevoNombre == widget.user.name) {
-      Navigator.pop(context);
-      return;
-    }
-
-    setState(() => _guardando = true);
-
-    // NOTA: si tu AuthService.updateProfile recibe otros parámetros, ajusta SOLO esta línea.
-    final result = await widget.authService.updateProfile(name: nuevoNombre);
-
-    if (!mounted) return;
-
-    if (!result.success) {
-      setState(() => _guardando = false);
-      ScaffoldMessenger.of(context).showSnackBar(
-        SnackBar(
-          content: Text(result.errorMessage ?? 'No se pudo guardar el perfil'),
-        ),
-      );
-      return;
-    }
-
-    // Si la respuesta no trae el usuario, se vuelve a pedir el perfil
-    final actualizado = result.user ?? await widget.authService.getProfile();
-
-    if (!mounted) return;
-    setState(() => _guardando = false);
-
-    if (actualizado == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('Se guardó, pero no se pudo recargar el perfil')),
-      );
-      return;
-    }
-
-    widget.onSaved(actualizado);
-    Navigator.pop(context);
-    ScaffoldMessenger.of(context).showSnackBar(
-      const SnackBar(content: Text('Perfil actualizado')),
-    );
+  Future<void> _save() async {
+    if (!_formKey.currentState!.validate()) return;
+    final guardado = await _c.save();
+    if (guardado && mounted) Navigator.pop(context);
   }
 
   @override
@@ -117,85 +84,37 @@ class _EditProfileScreenState extends State<EditProfileScreen> {
         iconTheme: const IconThemeData(color: Colors.white),
         title: const Text('Editar perfil', style: TextStyle(color: Colors.white)),
       ),
-      body: SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Form(
-          key: _formKey,
-          child: Column(
-            children: [
-              const SizedBox(height: 8),
-              // Avatar con la inicial del nombre
-              Container(
-                width: 90,
-                height: 90,
-                alignment: Alignment.center,
-                decoration: BoxDecoration(
-                  color: neonGreen.withValues(alpha: 0.15),
-                  shape: BoxShape.circle,
-                  border: Border.all(color: neonGreen, width: 1.5),
+      body: ListenableBuilder(
+        listenable: _c,
+        builder: (context, _) => SingleChildScrollView(
+          padding: const EdgeInsets.all(20),
+          child: Form(
+            key: _formKey,
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.stretch,
+              children: [
+                EditableAvatar(
+                  avatar: _c.user.avatarUrl,
+                  loading: _c.uploadingAvatar,
+                  onTap: _openAvatarOptions,
                 ),
-                child: Text(
-                  inicial,
-                  style: const TextStyle(
-                    color: neonGreen,
-                    fontSize: 36,
-                    fontWeight: FontWeight.bold,
+                const SizedBox(height: 28),
+                EditProfileFields(nameCtrl: _c.nameCtrl, emailCtrl: _c.emailCtrl),
+                if (_c.error != null) ...[
+                  const SizedBox(height: 16),
+                  Text(
+                    _c.error!,
+                    style: const TextStyle(color: Colors.redAccent),
                   ),
+                ],
+                const SizedBox(height: 28),
+                SaveProfileButton(
+                  isLoading: _c.saving,
+                  onPressed: _save,
+                  backgroundColor: _neonGreen,
                 ),
-              ),
-              const SizedBox(height: 28),
-
-              // Nombre (editable)
-              TextFormField(
-                controller: _nameController,
-                enabled: !_guardando,
-                textCapitalization: TextCapitalization.words,
-                style: const TextStyle(color: Colors.white),
-                validator: _validarNombre,
-                decoration: _decoracion('Nombre', Icons.person_outline),
-              ),
-              const SizedBox(height: 16),
-
-              // Correo (solo lectura)
-              TextFormField(
-                initialValue: widget.user.email,
-                enabled: false,
-                style: const TextStyle(color: Colors.white54),
-                decoration: _decoracion('Correo electrónico', Icons.mail_outline),
-              ),
-              const SizedBox(height: 28),
-
-              SizedBox(
-                width: double.infinity,
-                height: 50,
-                child: ElevatedButton(
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: neonGreen,
-                    disabledBackgroundColor: neonGreen.withValues(alpha: 0.4),
-                    shape: RoundedRectangleBorder(
-                      borderRadius: BorderRadius.circular(14),
-                    ),
-                  ),
-                  onPressed: _guardando ? null : _guardar,
-                  child: _guardando
-                      ? const SizedBox(
-                          width: 22,
-                          height: 22,
-                          child: CircularProgressIndicator(
-                            strokeWidth: 2.5,
-                            color: Colors.black,
-                          ),
-                        )
-                      : const Text(
-                          'Guardar cambios',
-                          style: TextStyle(
-                            color: Colors.black,
-                            fontWeight: FontWeight.bold,
-                          ),
-                        ),
-                ),
-              ),
-            ],
+              ],
+            ),
           ),
         ),
       ),

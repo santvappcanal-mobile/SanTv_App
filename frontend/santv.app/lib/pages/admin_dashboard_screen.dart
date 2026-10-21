@@ -2,36 +2,35 @@ import 'package:flutter/material.dart';
 import '../services/auth_service.dart';
 import '../services/admin_service.dart';
 import '../models/admin_stats.dart';
+import '../widgets/admin_dashboard/admin_dashboard_widgets.dart';
 import 'admin_add_youtube_screen.dart';
 import 'admin_users_screen.dart';
-import 'admin_content_screen.dart'; // NUEVO: pantalla con todos los videos
-import 'admin_ads_screen.dart'; // NUEVO ANUNCIOS: pantalla de anuncios
+import 'admin_content_screen.dart';
+import 'admin_ads_screen.dart';
 
 class AdminDashboardScreen extends StatefulWidget {
   const AdminDashboardScreen({super.key, required this.authService});
 
   final AuthService authService;
 
-  static const Color neonGreen = Color(0xFF39FF14);
+  static const Color neonGreen = kNeonGreen;
 
   @override
   State<AdminDashboardScreen> createState() => _AdminDashboardScreenState();
 }
 
 class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
-  late final AdminService _adminService;
-
+  late final AdminService _admin;
   bool _cargando = true;
   String? _error;
   AdminStats? _stats;
 
-  static const Color neonGreen = AdminDashboardScreen.neonGreen;
-  static const Color cardBg = Color(0xFF1A1A1A);
+  AuthService get _auth => widget.authService;
 
   @override
   void initState() {
     super.initState();
-    _adminService = AdminService(authService: widget.authService);
+    _admin = AdminService(authService: _auth);
     _cargarStats();
   }
 
@@ -40,547 +39,80 @@ class _AdminDashboardScreenState extends State<AdminDashboardScreen> {
       _cargando = true;
       _error = null;
     });
-
-    final result = await _adminService.getDashboardStats();
-
+    final r = await _admin.getDashboardStats();
     if (!mounted) return;
-
     setState(() {
       _cargando = false;
-      if (result.success) {
-        _stats = result.stats;
+      if (r.success) {
+        _stats = r.stats;
       } else {
-        _error = result.errorMessage;
+        _error = r.errorMessage;
       }
     });
   }
 
-  Future<void> _abrirAgregarVideo() async {
-    final agregado = await Navigator.push<bool>(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AdminAddYoutubeScreen(authService: widget.authService),
-      ),
-    );
-    if (agregado == true) _cargarStats();
-  }
-
-  Future<void> _abrirUsuarios() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AdminUsersScreen(authService: widget.authService),
-      ),
-    );
+  Future<void> _ir(Widget pantalla) async {
+    await Navigator.push(context, MaterialPageRoute(builder: (_) => pantalla));
     if (mounted) _cargarStats();
   }
 
-  // NUEVO: abre la pantalla con todos los videos
-  Future<void> _abrirContenido() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AdminContentScreen(authService: widget.authService),
-      ),
-    );
-    if (mounted) _cargarStats(); // refresca contadores y Top 5 al volver
-  }
+  void _snack(String msg) =>
+      ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
 
-  // NUEVO ANUNCIOS: abre la pantalla para subir imágenes publicitarias
-  Future<void> _abrirAnuncios() async {
-    await Navigator.push(
-      context,
-      MaterialPageRoute(
-        builder: (_) => AdminAdsScreen(authService: widget.authService),
-      ),
-    );
-    if (mounted) _cargarStats(); // refresca el contador de anuncios al volver
-  }
-
-  Future<void> _editarContenido(TopContentItem item) async {
+  Future<void> _editar(TopContentItem item) async {
     final data = await showDialog<Map<String, String>>(
       context: context,
-      builder: (_) =>
-          EditContentDialog(item: item), // CAMBIADO: diálogo público
+      builder: (_) => EditContentDialog(item: item),
     );
-
     if (data == null) return;
-
-    final result = await _adminService.updateContent(
+    final r = await _admin.updateContent(
       id: item.id,
       title: data['title']!,
       description: data['description']!,
     );
-
     if (!mounted) return;
-
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          result.success
-              ? 'Contenido actualizado'
-              : (result.errorMessage ?? 'Error al actualizar'),
-        ),
-      ),
-    );
-
-    if (result.success) _cargarStats();
+    _snack(r.success ? 'Contenido actualizado' : (r.errorMessage ?? 'Error'));
+    if (r.success) _cargarStats();
   }
 
-  Future<void> _eliminarContenido(TopContentItem item) async {
-    final confirmar = await showDialog<bool>(
-      context: context,
-      builder: (ctx) => AlertDialog(
-        backgroundColor: cardBg,
-        title: const Text(
-          'Eliminar contenido',
-          style: TextStyle(color: Colors.white),
-        ),
-        content: Text(
-          '¿Seguro que quieres eliminar "${item.title}"? '
-          'Esta acción no se puede deshacer.',
-          style: const TextStyle(color: Colors.white70),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(ctx, false),
-            child: const Text(
-              'Cancelar',
-              style: TextStyle(color: Colors.white70),
-            ),
-          ),
-          ElevatedButton(
-            onPressed: () => Navigator.pop(ctx, true),
-            style: ElevatedButton.styleFrom(backgroundColor: Colors.redAccent),
-            child: const Text(
-              'Eliminar',
-              style: TextStyle(color: Colors.white),
-            ),
-          ),
-        ],
-      ),
-    );
-
-    if (confirmar != true) return;
-
-    final result = await _adminService.deleteContent(item.id);
-
+  Future<void> _eliminar(TopContentItem item) async {
+    if (!await confirmarEliminarContenido(context, item.title)) return;
+    final r = await _admin.deleteContent(item.id);
     if (!mounted) return;
+    _snack(r.success ? 'Contenido eliminado' : (r.errorMessage ?? 'Error'));
+    if (r.success) _cargarStats();
+  }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Text(
-          result.success
-              ? 'Contenido eliminado'
-              : (result.errorMessage ?? 'Error al eliminar'),
-        ),
-      ),
+  Widget _body() {
+    if (_cargando) {
+      return const Center(child: CircularProgressIndicator(color: kNeonGreen));
+    }
+    if (_error != null) {
+      return ErrorRetryView(message: _error!, onRetry: _cargarStats);
+    }
+    return DashboardBody(
+      stats: _stats!,
+      onRefresh: _cargarStats,
+      onUsuarios: () => _ir(AdminUsersScreen(authService: _auth)),
+      onContenido: () => _ir(AdminContentScreen(authService: _auth)),
+      onAnuncios: () => _ir(AdminAdsScreen(authService: _auth)),
+      onEdit: _editar,
+      onDelete: _eliminar,
     );
-
-    if (result.success) _cargarStats();
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: const Color(0xFF0B0B0B),
-      appBar: AppBar(
-        backgroundColor: const Color(0xFF0B0B0B),
-        iconTheme: const IconThemeData(color: Colors.white),
-        title: const Text('Dashboard', style: TextStyle(color: Colors.white)),
-        actions: [
-          IconButton(
-            icon: const Icon(Icons.refresh, color: Colors.white),
-            onPressed: _cargando ? null : _cargarStats,
-          ),
-        ],
-      ),
-      body: _buildBody(),
+      backgroundColor: kScreenBg,
+      appBar: DashboardAppBar(onRefresh: _cargando ? null : _cargarStats),
+      body: _body(),
       floatingActionButton: FloatingActionButton.extended(
-        backgroundColor: neonGreen,
+        backgroundColor: kNeonGreen,
         icon: const Icon(Icons.add, color: Colors.black),
-        label: const Text(
-          'Agregar video',
-          style: TextStyle(color: Colors.black),
-        ),
-        onPressed: _abrirAgregarVideo,
+        label: const Text('Agregar video', style: TextStyle(color: Colors.black)),
+        onPressed: () => _ir(AdminAddYoutubeScreen(authService: _auth)),
       ),
-    );
-  }
-
-  Widget _buildBody() {
-    if (_cargando) {
-      return const Center(child: CircularProgressIndicator(color: neonGreen));
-    }
-
-    if (_error != null) {
-      return Center(
-        child: Padding(
-          padding: const EdgeInsets.all(24),
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              const Icon(
-                Icons.error_outline,
-                color: Colors.redAccent,
-                size: 40,
-              ),
-              const SizedBox(height: 12),
-              Text(
-                _error!,
-                textAlign: TextAlign.center,
-                style: const TextStyle(color: Colors.white70),
-              ),
-              const SizedBox(height: 16),
-              ElevatedButton(
-                onPressed: _cargarStats,
-                style: ElevatedButton.styleFrom(backgroundColor: neonGreen),
-                child: const Text(
-                  'Reintentar',
-                  style: TextStyle(color: Colors.black),
-                ),
-              ),
-            ],
-          ),
-        ),
-      );
-    }
-
-    final stats = _stats!;
-
-    return RefreshIndicator(
-      color: neonGreen,
-      onRefresh: _cargarStats,
-      child: ListView(
-        padding: const EdgeInsets.all(16),
-        children: [
-          _buildStatsGrid(stats),
-          const SizedBox(height: 24),
-          _buildSectionTitle('Contenido por tipo'),
-          const SizedBox(height: 12),
-          _buildContentByType(stats.contentByType),
-          const SizedBox(height: 24),
-          _buildSectionTitle('Usuarios por rol'),
-          const SizedBox(height: 12),
-          _buildUsersByRole(stats.usersByRole),
-          const SizedBox(height: 24),
-          _buildSectionTitle('Top 5 contenido más visto'),
-          const SizedBox(height: 12),
-          _buildTopContent(stats.topContent),
-          // La lista "Todos mis videos" ya no va aquí: está en la tarjeta Contenido
-          const SizedBox(height: 80),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildStatsGrid(AdminStats stats) {
-    final cards = [
-      _StatCardData(
-        'Usuarios registrados', // CAMBIADO: antes 'Usuarios'
-        '${stats.totalUsers}',
-        '', // CAMBIADO: sin línea de "activos"
-        Icons.people,
-        onTap: _abrirUsuarios,
-      ),
-      _StatCardData(
-        'Contenido',
-        '${stats.totalContent}',
-        '${stats.activeContent} activo',
-        Icons.movie,
-        onTap: _abrirContenido, // NUEVO
-      ),
-      _StatCardData(
-        'Vistas totales',
-        '${stats.totalViews}',
-        '',
-        Icons.remove_red_eye,
-      ),
-      _StatCardData(
-        'Anuncios',
-        '${stats.totalAds}',
-        '${stats.activeAds} activos',
-        Icons.ondemand_video,
-        onTap: _abrirAnuncios, // NUEVO ANUNCIOS
-      ),
-      _StatCardData(
-        'Eventos en vivo',
-        '${stats.totalLiveEvents}',
-        '${stats.liveNow} en vivo ahora',
-        Icons.live_tv,
-      ),
-    ];
-
-    return GridView.builder(
-      shrinkWrap: true,
-      physics: const NeverScrollableScrollPhysics(),
-      itemCount: cards.length,
-      gridDelegate: const SliverGridDelegateWithFixedCrossAxisCount(
-        crossAxisCount: 2,
-        mainAxisSpacing: 12,
-        crossAxisSpacing: 12,
-        childAspectRatio: 1.4,
-      ),
-      itemBuilder: (context, index) => _StatCard(data: cards[index]),
-    );
-  }
-
-  Widget _buildSectionTitle(String title) {
-    return Text(
-      title,
-      style: const TextStyle(
-        color: Colors.white,
-        fontSize: 16,
-        fontWeight: FontWeight.bold,
-      ),
-    );
-  }
-
-  Widget _buildContentByType(ContentByType byType) {
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.spaceAround,
-        children: [
-          _MiniStat(label: 'Películas', value: byType.movie),
-          _MiniStat(label: 'Series', value: byType.series),
-          _MiniStat(label: 'Documentales', value: byType.documentary),
-        ],
-      ),
-    );
-  }
-
-  Widget _buildUsersByRole(Map<String, int> byRole) {
-    if (byRole.isEmpty) {
-      return const Text('Sin datos', style: TextStyle(color: Colors.white54));
-    }
-
-    return Container(
-      padding: const EdgeInsets.all(16),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(12),
-      ),
-      child: Column(
-        children: byRole.entries.map((entry) {
-          return Padding(
-            padding: const EdgeInsets.symmetric(vertical: 4),
-            child: Row(
-              mainAxisAlignment: MainAxisAlignment.spaceBetween,
-              children: [
-                Text(entry.key, style: const TextStyle(color: Colors.white70)),
-                Text(
-                  '${entry.value}',
-                  style: const TextStyle(
-                    color: neonGreen,
-                    fontWeight: FontWeight.bold,
-                  ),
-                ),
-              ],
-            ),
-          );
-        }).toList(),
-      ),
-    );
-  }
-
-  Widget _buildTopContent(List<TopContentItem> topContent) {
-    if (topContent.isEmpty) {
-      return const Text(
-        'Aún no hay vistas registradas',
-        style: TextStyle(color: Colors.white54),
-      );
-    }
-
-    return Column(children: topContent.map(_buildContentCard).toList());
-  }
-
-  Widget _buildContentCard(TopContentItem item) {
-    return Container(
-      margin: const EdgeInsets.only(bottom: 10),
-      padding: const EdgeInsets.all(12),
-      decoration: BoxDecoration(
-        color: cardBg,
-        borderRadius: BorderRadius.circular(10),
-      ),
-      child: Row(
-        children: [
-          ClipRRect(
-            borderRadius: BorderRadius.circular(6),
-            child: item.thumbnailUrl.isNotEmpty
-                ? Image.network(
-                    item.thumbnailUrl,
-                    width: 50,
-                    height: 50,
-                    fit: BoxFit.cover,
-                    errorBuilder: (_, _, _) => _placeholderThumb(),
-                  )
-                : _placeholderThumb(),
-          ),
-          const SizedBox(width: 12),
-          Expanded(
-            child: Column(
-              crossAxisAlignment: CrossAxisAlignment.start,
-              children: [
-                Text(
-                  item.title,
-                  style: const TextStyle(
-                    color: Colors.white,
-                    fontWeight: FontWeight.w600,
-                  ),
-                  maxLines: 1,
-                  overflow: TextOverflow.ellipsis,
-                ),
-                const SizedBox(height: 2),
-                Text(
-                  item.type,
-                  style: const TextStyle(color: Colors.white54, fontSize: 12),
-                ),
-              ],
-            ),
-          ),
-          Row(
-            children: [
-              const Icon(Icons.remove_red_eye, color: neonGreen, size: 16),
-              const SizedBox(width: 4),
-              Text('${item.views}', style: const TextStyle(color: neonGreen)),
-            ],
-          ),
-          IconButton(
-            icon: const Icon(Icons.edit, color: Colors.white70, size: 20),
-            tooltip: 'Editar',
-            visualDensity: VisualDensity.compact,
-            onPressed: () => _editarContenido(item),
-          ),
-          IconButton(
-            icon: const Icon(
-              Icons.delete_outline,
-              color: Colors.redAccent,
-              size: 20,
-            ),
-            tooltip: 'Eliminar',
-            visualDensity: VisualDensity.compact,
-            onPressed: () => _eliminarContenido(item),
-          ),
-        ],
-      ),
-    );
-  }
-
-  Widget _placeholderThumb() {
-    return Container(
-      width: 50,
-      height: 50,
-      color: Colors.white12,
-      child: const Icon(Icons.movie, color: Colors.white38, size: 20),
-    );
-  }
-}
-
-class _StatCardData {
-  final String label;
-  final String value;
-  final String subtitle;
-  final IconData icon;
-  final VoidCallback? onTap;
-
-  const _StatCardData(
-    this.label,
-    this.value,
-    this.subtitle,
-    this.icon, {
-    this.onTap,
-  });
-}
-
-class _StatCard extends StatelessWidget {
-  const _StatCard({required this.data});
-
-  final _StatCardData data;
-
-  @override
-  Widget build(BuildContext context) {
-    return Material(
-      color: _AdminDashboardScreenState.cardBg,
-      borderRadius: BorderRadius.circular(12),
-      child: InkWell(
-        borderRadius: BorderRadius.circular(12),
-        onTap: data.onTap,
-        child: Padding(
-          padding: const EdgeInsets.all(14),
-          child: Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Row(
-                mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                children: [
-                  Icon(
-                    data.icon,
-                    color: AdminDashboardScreen.neonGreen,
-                    size: 22,
-                  ),
-                  if (data.onTap != null)
-                    const Icon(
-                      Icons.chevron_right,
-                      color: Colors.white38,
-                      size: 20,
-                    ),
-                ],
-              ),
-              const Spacer(),
-              Text(
-                data.value,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 22,
-                  fontWeight: FontWeight.bold,
-                ),
-              ),
-              Text(
-                data.label,
-                style: const TextStyle(color: Colors.white70, fontSize: 12),
-              ),
-              if (data.subtitle.isNotEmpty)
-                Text(
-                  data.subtitle,
-                  style: const TextStyle(color: Colors.white38, fontSize: 11),
-                ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _MiniStat extends StatelessWidget {
-  const _MiniStat({required this.label, required this.value});
-
-  final String label;
-  final int value;
-
-  @override
-  Widget build(BuildContext context) {
-    return Column(
-      children: [
-        Text(
-          '$value',
-          style: const TextStyle(
-            color: AdminDashboardScreen.neonGreen,
-            fontSize: 20,
-            fontWeight: FontWeight.bold,
-          ),
-        ),
-        const SizedBox(height: 4),
-        Text(
-          label,
-          style: const TextStyle(color: Colors.white70, fontSize: 12),
-        ),
-      ],
     );
   }
 }
