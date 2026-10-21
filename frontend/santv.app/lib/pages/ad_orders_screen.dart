@@ -10,15 +10,20 @@ import 'receipt_viewer_page.dart';
 
 /// Historial de pautas. El usuario ve las suyas; el admin ve todas
 /// y puede validar o invalidar los pagos.
+///
+/// Si se abre desde una notificación, [initialOrderId] indica el pedido
+/// que debe aparecer arriba y resaltado.
 class AdOrdersScreen extends StatefulWidget {
   const AdOrdersScreen({
     super.key,
     required this.authService,
     required this.esAdmin,
+    this.initialOrderId,
   });
 
   final AuthService authService;
   final bool esAdmin;
+  final String? initialOrderId;
 
   @override
   State<AdOrdersScreen> createState() => _AdOrdersScreenState();
@@ -33,15 +38,29 @@ class _AdOrdersScreenState extends State<AdOrdersScreen> {
   String? _error;
   String _filtro = 'todos';
 
+  // Pedido que se resalta (viene de la notificación).
+  late String? _resaltado = (widget.initialOrderId?.isNotEmpty ?? false)
+      ? widget.initialOrderId
+      : null;
+  bool _avisoResaltadoMostrado = false;
+
   @override
   void initState() {
     super.initState();
     _cargar();
   }
 
-  List<AdOrder> get _visibles => _filtro == 'todos'
-      ? _orders
-      : _orders.where((o) => o.status == _filtro).toList();
+  /// Lista filtrada, con el pedido resaltado siempre de primero.
+  List<AdOrder> get _visibles {
+    final base = _filtro == 'todos'
+        ? List<AdOrder>.from(_orders)
+        : _orders.where((o) => o.status == _filtro).toList();
+    if (_resaltado != null) {
+      final i = base.indexWhere((o) => o.id == _resaltado);
+      if (i > 0) base.insert(0, base.removeAt(i));
+    }
+    return base;
+  }
 
   Future<void> _cargar() async {
     setState(() {
@@ -57,6 +76,15 @@ class _AdOrdersScreenState extends State<AdOrdersScreen> {
         _orders = lista;
         _cargando = false;
       });
+
+      // Primera carga desde una notificación: si el pedido no está, avisa.
+      if (_resaltado != null && !_avisoResaltadoMostrado) {
+        _avisoResaltadoMostrado = true;
+        if (!lista.any((o) => o.id == _resaltado)) {
+          _aviso('No se encontró la solicitud de la notificación');
+          setState(() => _resaltado = null);
+        }
+      }
     } catch (e) {
       if (!mounted) return;
       setState(() {
@@ -161,13 +189,29 @@ class _AdOrdersScreenState extends State<AdOrdersScreen> {
               separatorBuilder: (_, __) => const SizedBox(height: 12),
               itemBuilder: (_, i) {
                 final o = lista[i];
-                return AdOrderCard(
+                final card = AdOrderCard(
                   order: o,
                   esAdmin: widget.esAdmin,
                   onViewReceipt: () => _verComprobante(o),
                   onUploadReceipt: () => _subirComprobante(o),
                   onValidate: () => _validar(o),
                   onInvalidate: () => _invalidar(o),
+                );
+                if (o.id != _resaltado) return card;
+
+                // Pedido de la notificación: borde neón para que se note.
+                return Container(
+                  decoration: BoxDecoration(
+                    borderRadius: BorderRadius.circular(16),
+                    border: Border.all(color: neonGreen, width: 2),
+                    boxShadow: [
+                      BoxShadow(
+                        color: neonGreen.withOpacity(0.35),
+                        blurRadius: 14,
+                      ),
+                    ],
+                  ),
+                  child: card,
                 );
               },
             ),

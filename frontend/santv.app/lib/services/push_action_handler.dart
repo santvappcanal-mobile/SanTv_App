@@ -29,10 +29,15 @@ class PushActionHandler {
       case 'billing':
         // Si el aviso es para el admin (nueva solicitud) se abre la lista
         // completa; si no, es sobre la pauta del propio usuario.
+        // Con orderId, esa solicitud queda arriba y resaltada.
         final paraAdmin = data['forAdmin']?.toString() == 'true';
+        final orderId = data['orderId']?.toString();
         return MaterialPageRoute(
-          builder: (_) =>
-              AdOrdersScreen(authService: authService, esAdmin: paraAdmin),
+          builder: (_) => AdOrdersScreen(
+            authService: authService,
+            esAdmin: paraAdmin,
+            initialOrderId: (orderId == null || orderId.isEmpty) ? null : orderId,
+          ),
         );
       default:
         return null;
