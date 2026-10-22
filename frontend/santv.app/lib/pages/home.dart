@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import '../widgets/home/presence_mixin.dart';
 import '../widgets/home/home_data_mixin.dart';
 import '../widgets/home/home_navigation_mixin.dart';
+import '../widgets/home/home_push_mixin.dart';
 import '../services/auth_service.dart';
 import '../services/live_status_service.dart';
 import '../widgets/top_bar.dart';
@@ -25,7 +26,7 @@ class Home extends StatefulWidget {
 
 class _HomeState extends State<Home>
     with WidgetsBindingObserver, PresenceMixin<Home>, HomeDataMixin<Home>,
-        HomeNavigationMixin<Home> {
+        HomeNavigationMixin<Home>, HomePushMixin<Home> {
   late final LiveStatusService _liveStatus =
       LiveStatusService(baseUrl: widget.authService.baseUrl);
 
@@ -39,11 +40,15 @@ class _HomeState extends State<Home>
     loadUnreadCount();
     _liveStatus.connect(onLiveStarted: _onLiveStarted);
     mostrarAnuncioAleatorio();
+
+    // Notificaciones push: registra el teléfono y escucha los avisos.
+    initPush();
   }
 
   @override
   void dispose() {
     _liveStatus.dispose();
+    disposePush();
     super.dispose();
   }
 

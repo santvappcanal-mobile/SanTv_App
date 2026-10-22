@@ -6,6 +6,7 @@ import '../../pages/admin_dashboard_screen.dart';
 import '../../pages/settings_screen.dart';
 import '../../pages/edit_profile_screen.dart';
 import '../../pages/my_list_screen.dart';
+import '../../services/push_notification_service.dart';
 import '../assistant_chat_sheet.dart';
 import 'home_data_mixin.dart';
 import 'presence_mixin.dart';
@@ -144,6 +145,8 @@ mixin HomeNavigationMixin<T extends StatefulWidget>
   Future<void> handleLogout() async {
     // Evita que un ping pendiente marque al usuario como activo otra vez.
     cancelPresenceTimer();
+    // Este teléfono deja de recibir las notificaciones de este usuario.
+    await PushNotificationService.instance.unregisterDevice(authService);
     await authService.logout(); // ya llama a setOffline()
     if (!mounted) return;
     Navigator.pushNamedAndRemoveUntil(context, '/login', (route) => false);
