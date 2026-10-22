@@ -99,7 +99,6 @@ class _HomeState extends State<Home>
                     onMyList: openMyList,
                     onAdvertising: openAdvertising,
                     onSettings: openSettings,
-                    onHelp: () {}, // TODO: navega a ayuda y soporte
                     onLogout: handleLogout,
                     onAdminPanel: openAdminPanel,
                   ),

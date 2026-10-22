@@ -21,7 +21,6 @@ class ProfileScreen extends StatefulWidget {
     this.onMyList,
     this.onAdvertising,
     this.onSettings,
-    this.onHelp,
     this.onLogout,
     this.onAdminPanel,
   });
@@ -45,7 +44,6 @@ class ProfileScreen extends StatefulWidget {
   final VoidCallback? onMyList;
   final VoidCallback? onAdvertising;
   final VoidCallback? onSettings;
-  final VoidCallback? onHelp;
   final VoidCallback? onLogout;
   final VoidCallback? onAdminPanel;
 
@@ -135,11 +133,6 @@ class _ProfileScreenState extends State<ProfileScreen> {
                 icon: Icons.settings_outlined,
                 label: 'Configuración',
                 onTap: widget.onSettings,
-              ),
-              ProfileMenuOption(
-                icon: Icons.help_outline,
-                label: 'Ayuda y soporte',
-                onTap: widget.onHelp,
               ),
               if (widget.isAdmin)
                 ProfileMenuOption(
