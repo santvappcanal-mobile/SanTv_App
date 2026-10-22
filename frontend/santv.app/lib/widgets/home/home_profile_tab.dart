@@ -16,7 +16,6 @@ class HomeProfileTab extends StatelessWidget {
     required this.onMyList,
     required this.onAdvertising,
     required this.onSettings,
-    required this.onHelp,
     required this.onLogout,
     required this.onAdminPanel,
   });
@@ -29,7 +28,6 @@ class HomeProfileTab extends StatelessWidget {
   final VoidCallback onMyList;
   final VoidCallback onAdvertising;
   final VoidCallback onSettings;
-  final VoidCallback onHelp;
   final VoidCallback onLogout;
   final VoidCallback onAdminPanel;
 
@@ -52,7 +50,6 @@ class HomeProfileTab extends StatelessWidget {
       onMyList: onMyList,
       onAdvertising: onAdvertising,
       onSettings: onSettings,
-      onHelp: onHelp,
       onLogout: onLogout,
       onAdminPanel: onAdminPanel,
     );
