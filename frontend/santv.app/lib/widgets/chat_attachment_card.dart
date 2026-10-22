@@ -7,9 +7,12 @@ import '../pages/reference_video_player_page.dart';
 import '../pages/video_player_screen.dart';
 import '../pages/youtube_player_screen.dart';
 import '../services/auth_service.dart';
+import '../models/gallery_item.dart';
+import 'common/gallery_grid.dart';
 
 /// Tarjeta tocable que aparece debajo de un mensaje del asistente.
-/// - 'video': abre el reproductor normal de la app (Cloudinary o YouTube).
+/// - 'video' y 'contenido': abren el reproductor normal de la app (Cloudinary o YouTube).
+/// - 'portafolio': abre la imagen ampliada del portafolio.
 /// - 'referencia': abre el reproductor de videos de Referencias.
 /// - 'documento': abre el visor de PDF.
 class ChatAttachmentCard extends StatelessWidget {
@@ -30,6 +33,10 @@ class ChatAttachmentCard extends StatelessWidget {
     switch (attachment.tipo) {
       case 'video':
         return 'Video más visto de la semana';
+      case 'contenido':
+        return 'Te puede interesar';
+      case 'portafolio':
+        return 'Portafolio SAN TV';
       case 'referencia':
         return 'Referencia de publicidad';
       case 'documento':
@@ -46,6 +53,7 @@ class ChatAttachmentCard extends StatelessWidget {
     try {
       switch (attachment.tipo) {
         case 'video':
+        case 'contenido':
           final data = attachment.contenido;
           if (data == null) return;
           final content = ContentItem.fromJson(data);
@@ -72,6 +80,25 @@ class ChatAttachmentCard extends StatelessWidget {
               builder: (_) => ReferenceVideoPlayerPage(
                 url: attachment.url,
                 titulo: attachment.titulo,
+              ),
+            ),
+          );
+          break;
+
+        case 'portafolio':
+          Navigator.push(
+            context,
+            MaterialPageRoute(
+              builder: (_) => GalleryViewerPage(
+                items: [
+                  GalleryItem(
+                    id: '',
+                    title: attachment.titulo,
+                    mediaUrl: attachment.url,
+                    description: attachment.descripcion,
+                  ),
+                ],
+                initialIndex: 0,
               ),
             ),
           );
@@ -190,22 +217,23 @@ class ChatAttachmentCard extends StatelessWidget {
                   ),
                 ),
               ),
-              // Botón de play
-              Center(
-                child: Container(
-                  padding: const EdgeInsets.all(8),
-                  decoration: BoxDecoration(
-                    color: Colors.black.withValues(alpha: 0.5),
-                    shape: BoxShape.circle,
-                    border: Border.all(color: neonGreen, width: 1.5),
-                  ),
-                  child: const Icon(
-                    Icons.play_arrow_rounded,
-                    color: neonGreen,
-                    size: 30,
+              // Botón de play (las imágenes del portafolio no lo llevan)
+              if (attachment.tipo != 'portafolio')
+                Center(
+                  child: Container(
+                    padding: const EdgeInsets.all(8),
+                    decoration: BoxDecoration(
+                      color: Colors.black.withValues(alpha: 0.5),
+                      shape: BoxShape.circle,
+                      border: Border.all(color: neonGreen, width: 1.5),
+                    ),
+                    child: const Icon(
+                      Icons.play_arrow_rounded,
+                      color: neonGreen,
+                      size: 30,
+                    ),
                   ),
                 ),
-              ),
               // Etiqueta + título (+ descripción si hay)
               Positioned(
                 left: 12,

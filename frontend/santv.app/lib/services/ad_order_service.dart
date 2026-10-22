@@ -172,4 +172,16 @@ class AdOrderService {
   /// ADMIN: invalida el pago (cancela la solicitud).
   Future<String?> invalidar(String id, String motivo) =>
       _put('/$id/invalidate', {'reason': motivo}, 'No se pudo invalidar el pago');
+
+  /// ADMIN: elimina la solicitud. Devuelve null si salió bien, o el error.
+  Future<String?> eliminar(String id) async {
+    try {
+      final r = await http.delete(_url('/$id'), headers: await _headers());
+      return r.statusCode == 200
+          ? null
+          : _error(r, 'No se pudo eliminar la solicitud');
+    } catch (_) {
+      return 'No se pudo conectar con el servidor';
+    }
+  }
 }

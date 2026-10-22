@@ -40,7 +40,7 @@ class _AssistantChatSheetState extends State<AssistantChatSheet> {
     const _Mensaje(
       esUsuario: false,
       texto:
-          '¡Hola! 👋 Soy el asistente virtual de SAN TV. Pregúntame sobre noticias, deportes, videos, publicidad o los servicios del canal.',
+          '¡Hola! 👋 Soy el asistente virtual de SAN TV. Pregúntame por noticias, deportes, videos, planes de publicidad, cómo usar la app o dónde queda el canal.',
     ),
   ];
   bool _cargando = false;
@@ -66,7 +66,7 @@ class _AssistantChatSheetState extends State<AssistantChatSheet> {
       _mensajes[0] = _Mensaje(
         esUsuario: false,
         texto:
-            '¡Hola, ${user.name}! 👋 Soy el asistente virtual de SAN TV. Pregúntame sobre noticias, deportes, videos, publicidad o los servicios del canal.',
+            '¡Hola, ${user.name}! 👋 Soy el asistente virtual de SAN TV. Pregúntame por noticias, deportes, videos, planes de publicidad, cómo usar la app o dónde queda el canal.',
       );
     });
   }

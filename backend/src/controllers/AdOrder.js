@@ -120,8 +120,7 @@ const validateOrder = asyncHandler(async (req, res) => {
   await notifyUser(
     order.user,
     'Pago validado',
-    `Tu pago del ${order.planName} fue validado. Iniciamos la preparación de tu pauta y nuestro equipo te contactará.`,
-    { orderId: order._id }
+    `Tu pago del ${order.planName} fue validado. Iniciamos la preparación de tu pauta y nuestro equipo te contactará.`
   );
 
   res.json({ success: true, data: order });
@@ -145,11 +144,25 @@ const invalidateOrder = asyncHandler(async (req, res) => {
     order.user,
     'Pago invalidado',
     `No pudimos validar tu pago del ${order.planName} y la solicitud fue cancelada.` +
-      (reason ? ` Motivo: ${reason}` : ''),
-    { orderId: order._id }
+      (reason ? ` Motivo: ${reason}` : '')
   );
 
   res.json({ success: true, data: order });
+});
+
+// DELETE /api/ad-orders/:id  (admin) — elimina la solicitud (y su comprobante)
+const deleteOrder = asyncHandler(async (req, res) => {
+  const order = await AdOrder.findById(req.params.id);
+  if (!order) fail(res, 404, 'Solicitud no encontrada');
+
+  // Borra la captura del comprobante en Cloudinary para no dejar archivos huérfanos
+  if (order.receiptPublicId) {
+    await cloudinary.uploader.destroy(order.receiptPublicId).catch(() => {});
+  }
+
+  await order.deleteOne();
+
+  res.json({ success: true, message: 'Solicitud eliminada' });
 });
 
 module.exports = {
@@ -159,4 +172,5 @@ module.exports = {
   getAllOrders,
   validateOrder,
   invalidateOrder,
+  deleteOrder,
 };

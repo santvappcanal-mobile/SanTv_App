@@ -144,6 +144,28 @@ class _AdOrdersScreenState extends State<AdOrdersScreen> {
     if (error == null) _cargar();
   }
 
+  Future<void> _eliminar(AdOrder o) async {
+    final ok = await showConfirmDialog(
+      context,
+      title: 'Eliminar solicitud',
+      message: 'Se eliminará la solicitud de ${o.company}'
+          '${o.hasReceipt ? ' junto con su comprobante' : ''}. '
+          'También dejará de verla el cliente y no se puede deshacer.',
+      confirmLabel: 'Eliminar',
+      confirmColor: Colors.redAccent,
+    );
+    if (!ok || !mounted) return;
+    final error = await _service.eliminar(o.id);
+    if (!mounted) return;
+    _aviso(error ?? 'Solicitud eliminada');
+    if (error == null) {
+      setState(() {
+        _orders.removeWhere((x) => x.id == o.id);
+        if (_resaltado == o.id) _resaltado = null;
+      });
+    }
+  }
+
   Widget _cuerpo() {
     if (_cargando) {
       return const Center(child: CircularProgressIndicator(color: neonGreen));
@@ -196,6 +218,7 @@ class _AdOrdersScreenState extends State<AdOrdersScreen> {
                   onUploadReceipt: () => _subirComprobante(o),
                   onValidate: () => _validar(o),
                   onInvalidate: () => _invalidar(o),
+                  onDelete: widget.esAdmin ? () => _eliminar(o) : null,
                 );
                 if (o.id != _resaltado) return card;
 

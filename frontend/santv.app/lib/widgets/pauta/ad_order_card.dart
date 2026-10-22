@@ -13,6 +13,7 @@ class AdOrderCard extends StatelessWidget {
     this.onUploadReceipt,
     this.onValidate,
     this.onInvalidate,
+    this.onDelete,
   });
 
   final AdOrder order;
@@ -21,6 +22,9 @@ class AdOrderCard extends StatelessWidget {
   final VoidCallback? onUploadReceipt;
   final VoidCallback? onValidate;
   final VoidCallback? onInvalidate;
+
+  /// Solo admin: elimina la solicitud del listado.
+  final VoidCallback? onDelete;
 
   static const Color neonGreen = Color(0xFF39FF14);
 
@@ -124,6 +128,19 @@ class AdOrderCard extends StatelessWidget {
                 ),
               ),
               OrderStatusChip(order: order),
+              if (esAdmin && onDelete != null)
+                IconButton(
+                  tooltip: 'Eliminar solicitud',
+                  visualDensity: VisualDensity.compact,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(minWidth: 36, minHeight: 36),
+                  onPressed: onDelete,
+                  icon: const Icon(
+                    Icons.delete_outline,
+                    color: Colors.redAccent,
+                    size: 22,
+                  ),
+                ),
             ],
           ),
           const SizedBox(height: 6),

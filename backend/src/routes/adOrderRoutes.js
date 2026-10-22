@@ -9,6 +9,7 @@ const {
   getAllOrders,
   validateOrder,
   invalidateOrder,
+  deleteOrder,
 } = require('../controllers/AdOrder');
 
 router.post('/', protect, createOrder);
@@ -17,5 +18,6 @@ router.get('/', protect, authorize('admin'), getAllOrders);
 router.post('/:id/receipt', protect, uploadReceiptMw.single('comprobante'), uploadReceipt);
 router.put('/:id/validate', protect, authorize('admin'), validateOrder);
 router.put('/:id/invalidate', protect, authorize('admin'), invalidateOrder);
+router.delete('/:id', protect, authorize('admin'), deleteOrder);
 
 module.exports = router;
