@@ -55,7 +55,7 @@ initLiveSocket(io);
 initLiveComments(io); // comentarios en vivo (namespace /comments)
 
 //rUTA BASIICA 
-app.get('/', (req, res) => {
+app.get("/", (req, res) => {
   res.send("Bienvenido a Nuestro servidor🚀");
 });
 
