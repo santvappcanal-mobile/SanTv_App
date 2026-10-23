@@ -21,6 +21,17 @@ initFirebase();
 app.use(cors());
 app.use(express.json());
 
+
+//rUTA BASIICA 
+app.get("/", (req, res) => {
+  res.send("Bienvenido a Nuestro servidor🚀");
+});
+
+//Montando las Rutas
+app.get('/health', (req, res) => {
+  res.status(200).json({OK});
+});
+
 // Rutas de la API
 app.use('/api/users', require('./routes/users'));
 app.use('/api/content', require('./routes/contentRoutes'));
@@ -53,11 +64,6 @@ app.set('io', io);
 
 initLiveSocket(io);
 initLiveComments(io); // comentarios en vivo (namespace /comments)
-
-//rUTA BASIICA 
-app.get("/", (req, res) => {
-  res.send("Bienvenido a Nuestro servidor🚀");
-});
 
 // Puerto de ejecución
 const PORT = process.env.PORT || 3000;
