@@ -54,6 +54,11 @@ app.set('io', io);
 initLiveSocket(io);
 initLiveComments(io); // comentarios en vivo (namespace /comments)
 
+//rUTA BASIICA 
+app.get('/', (req, res) => {
+  res.send("Bienvenido a Nuestro servidor🚀");
+});
+
 // Puerto de ejecución
 const PORT = process.env.PORT || 3000;
 server.listen(PORT, () => {
