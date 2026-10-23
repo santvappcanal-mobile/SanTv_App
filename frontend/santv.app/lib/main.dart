@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter_native_splash/flutter_native_splash.dart';
 import 'package:http/http.dart' as http;
 
+import 'services/api_config.dart';
 import 'pages/auth_screen.dart';
 import 'pages/home.dart';
 import 'pages/verify_code_screen.dart';
@@ -12,46 +13,20 @@ import 'services/auth_service.dart';
 import 'services/push_notification_service.dart';
 import 'services/settings_service.dart';
 
-/// IP de tu PC en la red WiFi (opcional, para el teléfono sin cable).
-/// Cámbiala si tu IP cambia: ejecuta `ipconfig` y copia la IPv4.
-const String kLanUrl = 'http://192.168.1.135:3000';
+/// Tiempo máximo que se espera a que el backend "despierte".
+/// En el plan gratuito de Render, tras un rato sin uso la primera petición
+/// puede tardar entre 30 y 60 segundos.
+const Duration kWakeUpTimeout = Duration(seconds: 30);
 
-/// Direcciones que se prueban. Se usa la primera (en este orden) que responda.
-const List<String> kCandidateUrls = [
-  'http://localhost:3000', // PC/Chrome, o móvil con `adb reverse`
-  'http://10.0.2.2:3000', // emulador de Android sin adb reverse
-  kLanUrl, // teléfono físico por WiFi
-];
-
-/// URL que se usa si ninguna responde (por ejemplo, backend apagado).
-/// Se deja localhost: así, si activas `adb reverse` después de abrir la app,
-/// funciona igual en el teléfono con cable.
-String defaultBaseUrl() => 'http://localhost:3000';
-
-/// Prueba una dirección. Devuelve la URL si el backend responde, o null.
-Future<String?> _probe(String url) async {
+/// Despierta el backend (Render) antes de validar la sesión.
+/// Cualquier respuesta significa que el servidor ya está activo.
+/// Si falla o se agota el tiempo, la app sigue su arranque normal.
+Future<void> _wakeUpBackend(String baseUrl) async {
   try {
-    // Cualquier respuesta (200, 401, 404) significa que el servidor existe.
-    await http
-        .get(Uri.parse('$url/api/content'))
-        .timeout(const Duration(seconds: 3));
-    return url;
-  } catch (_) {
-    return null;
+    await http.get(Uri.parse('$baseUrl/health')).timeout(kWakeUpTimeout);
+  } catch (e) {
+    debugPrint('El backend no respondió al despertar: $e');
   }
-}
-
-/// Prueba todas las direcciones a la vez (hasta 2 rondas) y devuelve la
-/// primera que responda, respetando el orden de [kCandidateUrls].
-Future<String> resolveBaseUrl() async {
-  for (var intento = 1; intento <= 2; intento++) {
-    final resultados = await Future.wait(kCandidateUrls.map(_probe));
-    for (final url in resultados) {
-      if (url != null) return url;
-    }
-    debugPrint('Backend sin respuesta (intento $intento de 2)');
-  }
-  return defaultBaseUrl();
 }
 
 Future<void> main() async {
@@ -69,13 +44,16 @@ Future<void> main() async {
 
   String initialRoute = '/login';
 
-  final baseUrl = await resolveBaseUrl();
+  final baseUrl = ApiConfig.baseUrl;
   debugPrint('Backend en: $baseUrl');
   final authService = AuthService(baseUrl: baseUrl);
 
   try {
+    // Evita que una sesión válida se pierda solo porque Render estaba dormido.
+    await _wakeUpBackend(baseUrl);
+
     // getProfile() devuelve null si no hay token, si el token ya no es
-    // válido o si el backend no responde en 8 segundos.
+    // válido o si el backend no responde a tiempo.
     final user = await authService.getProfile();
     if (user != null) {
       initialRoute = '/home';
