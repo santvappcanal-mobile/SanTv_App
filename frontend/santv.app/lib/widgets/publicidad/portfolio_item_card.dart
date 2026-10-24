@@ -3,149 +3,187 @@ import 'package:flutter/material.dart';
 
 import '../../models/gallery_item.dart';
 
-/// Tarjeta de una imagen del portafolio: foto, título con detalle verde
-/// y, solo para el admin, los botones de editar y eliminar.
+/// Tarjeta grande de un servicio del portafolio: foto a todo el ancho,
+/// número, título y un botón "Más información". Al tocarla se abre el
+/// detalle del servicio. El admin ve además el lápiz y la caneca.
 class PortfolioItemCard extends StatelessWidget {
   const PortfolioItemCard({
     super.key,
     required this.item,
+    required this.index,
     required this.onTap,
     this.onEdit,
     this.onDelete,
   });
 
   final GalleryItem item;
+
+  /// Posición en la lista (0, 1, 2...), se muestra como "01", "02"...
+  final int index;
   final VoidCallback onTap;
-
-  /// Si no es null (admin), muestra el lápiz.
   final VoidCallback? onEdit;
-
-  /// Si no es null (admin), muestra la caneca.
   final VoidCallback? onDelete;
 
   static const Color neonGreen = Color(0xFF39FF14);
 
   @override
   Widget build(BuildContext context) {
-    final titulo = item.description.trim();
+    final titulo = item.description.trim().isEmpty
+        ? 'Servicio del portafolio'
+        : item.description.trim();
+    final numero = (index + 1).toString().padLeft(2, '0');
 
     return Container(
       decoration: BoxDecoration(
-        borderRadius: BorderRadius.circular(20),
-        border: Border.all(color: Colors.white12),
-        boxShadow: const [
+        borderRadius: BorderRadius.circular(24),
+        border: Border.all(color: neonGreen.withValues(alpha: 0.25)),
+        boxShadow: [
           BoxShadow(
-            color: Colors.black54,
-            blurRadius: 10,
-            offset: Offset(0, 4),
+            color: neonGreen.withValues(alpha: 0.08),
+            blurRadius: 22,
+            offset: const Offset(0, 8),
           ),
         ],
       ),
       child: Material(
         color: const Color(0xFF1A1A1A),
-        borderRadius: BorderRadius.circular(20),
+        borderRadius: BorderRadius.circular(24),
         clipBehavior: Clip.antiAlias,
         child: InkWell(
           onTap: onTap,
-          child: Stack(
-            fit: StackFit.expand,
-            children: [
-              CachedNetworkImage(
-                imageUrl: item.mediaUrl,
-                fit: BoxFit.cover,
-                placeholder: (_, __) => const Center(
-                  child: CircularProgressIndicator(
-                    strokeWidth: 2,
-                    color: neonGreen,
+          child: AspectRatio(
+            aspectRatio: 16 / 11,
+            child: Stack(
+              fit: StackFit.expand,
+              children: [
+                CachedNetworkImage(
+                  imageUrl: item.mediaUrl,
+                  fit: BoxFit.cover,
+                  placeholder: (_, __) => const Center(
+                    child: CircularProgressIndicator(
+                      strokeWidth: 2,
+                      color: neonGreen,
+                    ),
+                  ),
+                  errorWidget: (_, __, ___) => const Center(
+                    child: Icon(Icons.broken_image, color: Colors.grey),
                   ),
                 ),
-                errorWidget: (_, __, ___) => const Center(
-                  child: Icon(Icons.broken_image, color: Colors.grey),
+                DecoratedBox(
+                  decoration: BoxDecoration(
+                    gradient: LinearGradient(
+                      begin: Alignment.topCenter,
+                      end: Alignment.bottomCenter,
+                      stops: const [0.35, 1],
+                      colors: [
+                        Colors.transparent,
+                        Colors.black.withValues(alpha: 0.92),
+                      ],
+                    ),
+                  ),
                 ),
-              ),
-              if (titulo.isNotEmpty) _TituloInferior(texto: titulo),
-              if (onEdit != null || onDelete != null)
                 Positioned(
-                  top: 8,
-                  right: 8,
-                  child: Row(
+                  top: 12,
+                  left: 12,
+                  child: Container(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 11,
+                      vertical: 5,
+                    ),
+                    decoration: BoxDecoration(
+                      color: Colors.black54,
+                      borderRadius: BorderRadius.circular(20),
+                      border: Border.all(
+                        color: neonGreen.withValues(alpha: 0.6),
+                      ),
+                    ),
+                    child: Text(
+                      numero,
+                      style: const TextStyle(
+                        color: neonGreen,
+                        fontSize: 12,
+                        fontWeight: FontWeight.w800,
+                        letterSpacing: 1,
+                      ),
+                    ),
+                  ),
+                ),
+                if (onEdit != null || onDelete != null)
+                  Positioned(
+                    top: 10,
+                    right: 10,
+                    child: Row(
+                      mainAxisSize: MainAxisSize.min,
+                      children: [
+                        if (onEdit != null)
+                          _BotonAdmin(
+                            icon: Icons.edit,
+                            color: neonGreen,
+                            onTap: onEdit!,
+                          ),
+                        if (onEdit != null && onDelete != null)
+                          const SizedBox(width: 6),
+                        if (onDelete != null)
+                          _BotonAdmin(
+                            icon: Icons.delete,
+                            color: Colors.redAccent,
+                            onTap: onDelete!,
+                          ),
+                      ],
+                    ),
+                  ),
+                Positioned(
+                  left: 16,
+                  right: 16,
+                  bottom: 14,
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
                     mainAxisSize: MainAxisSize.min,
                     children: [
-                      if (onEdit != null)
-                        _BotonAdmin(
-                          icon: Icons.edit,
+                      Text(
+                        titulo,
+                        maxLines: 2,
+                        overflow: TextOverflow.ellipsis,
+                        style: const TextStyle(
+                          color: Colors.white,
+                          fontSize: 19,
+                          fontWeight: FontWeight.w800,
+                          height: 1.2,
+                        ),
+                      ),
+                      const SizedBox(height: 10),
+                      Container(
+                        padding: const EdgeInsets.fromLTRB(14, 7, 8, 7),
+                        decoration: BoxDecoration(
                           color: neonGreen,
-                          onTap: onEdit!,
+                          borderRadius: BorderRadius.circular(22),
                         ),
-                      if (onEdit != null && onDelete != null)
-                        const SizedBox(width: 6),
-                      if (onDelete != null)
-                        _BotonAdmin(
-                          icon: Icons.delete,
-                          color: Colors.redAccent,
-                          onTap: onDelete!,
+                        child: const Row(
+                          mainAxisSize: MainAxisSize.min,
+                          children: [
+                            Text(
+                              'Más información',
+                              style: TextStyle(
+                                color: Colors.black,
+                                fontSize: 12.5,
+                                fontWeight: FontWeight.w800,
+                              ),
+                            ),
+                            SizedBox(width: 6),
+                            Icon(
+                              Icons.arrow_forward_rounded,
+                              color: Colors.black,
+                              size: 16,
+                            ),
+                          ],
                         ),
+                      ),
                     ],
                   ),
                 ),
-            ],
-          ),
-        ),
-      ),
-    );
-  }
-}
-
-class _TituloInferior extends StatelessWidget {
-  const _TituloInferior({required this.texto});
-
-  final String texto;
-
-  @override
-  Widget build(BuildContext context) {
-    return Positioned(
-      left: 0,
-      right: 0,
-      bottom: 0,
-      child: Container(
-        padding: const EdgeInsets.fromLTRB(12, 36, 12, 12),
-        decoration: BoxDecoration(
-          gradient: LinearGradient(
-            begin: Alignment.topCenter,
-            end: Alignment.bottomCenter,
-            colors: [
-              Colors.transparent,
-              Colors.black.withValues(alpha: 0.55),
-              Colors.black.withValues(alpha: 0.92),
-            ],
-          ),
-        ),
-        child: Row(
-          crossAxisAlignment: CrossAxisAlignment.end,
-          children: [
-            Container(
-              width: 3,
-              height: 30,
-              decoration: BoxDecoration(
-                color: PortfolioItemCard.neonGreen,
-                borderRadius: BorderRadius.circular(2),
-              ),
+              ],
             ),
-            const SizedBox(width: 8),
-            Expanded(
-              child: Text(
-                texto,
-                maxLines: 2,
-                overflow: TextOverflow.ellipsis,
-                style: const TextStyle(
-                  color: Colors.white,
-                  fontSize: 13,
-                  fontWeight: FontWeight.w600,
-                  height: 1.25,
-                ),
-              ),
-            ),
-          ],
+          ),
         ),
       ),
     );
@@ -169,7 +207,7 @@ class _BotonAdmin extends StatelessWidget {
       onTap: onTap,
       radius: 22,
       child: Container(
-        padding: const EdgeInsets.all(6),
+        padding: const EdgeInsets.all(7),
         decoration: const BoxDecoration(
           color: Colors.black54,
           shape: BoxShape.circle,
