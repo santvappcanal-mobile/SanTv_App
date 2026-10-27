@@ -1,7 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:santv_app/widgets/live/live_channel_player.dart';
 import 'featured_videos_carousel.dart';
-import 'citizen_reporter_card.dart';
+import 'citizen_reporter_strip.dart';
 import '../publicidad_section.dart';
 import '../../services/auth_service.dart';
 
@@ -43,8 +43,8 @@ class HomeTabContent extends StatelessWidget {
             onTap: onOpenLiveTab,
           ),
           const SizedBox(height: 24),
-          // Reportero Ciudadano: reportar, mapa y mis reportes (usuarios y admins)
-          CitizenReporterCard(authService: authService, isAdmin: isAdmin),
+          // Reportero Ciudadano: burbuja para reportar + últimas noticias ciudadanas
+          CitizenReporterStrip(authService: authService, isAdmin: isAdmin),
           const SizedBox(height: 24),
           PublicidadSection(onTap: onOpenAdvertising),
           const SizedBox(height: 24),
