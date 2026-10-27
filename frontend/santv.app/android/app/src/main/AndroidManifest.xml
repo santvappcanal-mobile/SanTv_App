@@ -3,6 +3,9 @@
     <uses-permission android:name="android.permission.INTERNET" />
     <!-- Android 13+: sin este permiso el sistema nunca pide ni muestra notificaciones -->
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
+    <!-- Reportero Ciudadano: ubicación del reporte -->
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
 
     <application
         android:label="SanTv"

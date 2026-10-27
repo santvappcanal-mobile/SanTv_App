@@ -24,7 +24,14 @@ const contentSchema = new mongoose.Schema(
     ],
     videoUrl: {
       type: String,
-      required: [true, 'La URL del video es obligatoria'],
+      // Obligatoria, salvo en las noticias que nacen de un reporte ciudadano (solo foto)
+      required: [
+        function () {
+          return !this.reportId;
+        },
+        'La URL del video es obligatoria',
+      ],
+      default: '',
     },
     videoPublicId: {
       type: String,
@@ -60,6 +67,19 @@ const contentSchema = new mongoose.Schema(
     views: {
       type: Number,
       default: 0, // Contador de reproducciones
+    },
+
+    // --- REPORTERO CIUDADANO ---
+    // Solo se llenan cuando la noticia nació de un reporte aprobado
+    reportId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'Report',
+      default: undefined,
+    },
+    reportedBy: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: 'User',
+      default: undefined,
     },
   },
   {

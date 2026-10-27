@@ -29,7 +29,7 @@ app.get("/", (req, res) => {
 
 //Montando las Rutas
 app.get('/health', (req, res) => {
-  res.status(200).json({OK});
+  res.status(200).json({ status: 'OK' });
 });
 
 // Rutas de la API
@@ -48,6 +48,7 @@ app.use('/api/ad-documents', require('./routes/adDocumentRoutes'));
 app.use('/api/ad-references', require('./routes/adReferenceRoutes'));
 app.use('/api/ad-orders', require('./routes/adOrderRoutes')); // pagos de pautas
 app.use('/api/devices', require('./routes/deviceRoutes')); // tokens de notificaciones push
+app.use('/api/reports', require('./routes/reportRoutes')); // Reportero Ciudadano
 
 // Manejo de errores
 app.use(notFound);

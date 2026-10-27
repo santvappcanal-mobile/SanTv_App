@@ -78,6 +78,20 @@ const userSchema = new mongoose.Schema(
     codigoRecuperacionExpiracion: {
       type: Date,
     },
+
+    // --- REPORTERO CIUDADANO ---
+    reporterPoints: {
+      type: Number,
+      default: 0, // puntos ganados por reportes aprobados
+    },
+    approvedReports: {
+      type: Number,
+      default: 0, // cantidad de reportes publicados
+    },
+    reporterBadge: {
+      type: String,
+      default: '', // Reportero / Reportero verificado / Corresponsal
+    },
   },
   {
     timestamps: true,

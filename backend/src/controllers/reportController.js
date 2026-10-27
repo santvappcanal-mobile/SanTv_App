@@ -25,16 +25,20 @@ function badgeFor(approvedCount) {
 /*  Hooks que debes ajustar a tus modelos/servicios reales             */
 /* ------------------------------------------------------------------ */
 
-// Crea la noticia en Content al aprobar. AJUSTAR a los campos reales de Content.js
+// Crea la noticia en Content al aprobar (reporte ciudadano = solo foto, sin video).
 async function publishAsContent(report, authorName) {
   return Content.create({
     title: report.title,
     description: `${report.description}\n\nReportado por ${authorName}`,
-    type: 'documentary', // enum movie/series/documentary: ajustar si usas otro
-    genres: ['noticias', report.category.toLowerCase()],
+    type: 'documentary',
+    // Explorar filtra comparando genres en minúsculas con la categoría
+    genres: [report.category.toLowerCase()],
     thumbnailUrl: report.imageUrl,
+    thumbnailPublicId: report.imagePublicId || '',
+    releaseYear: new Date().getFullYear(),
     isActive: true,
-    // views, videoUrl, etc.: completar según tu modelo
+    reportId: report._id,
+    reportedBy: report.author,
   });
 }
 
