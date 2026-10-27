@@ -72,6 +72,9 @@ dependencies:
   # Notificaciones push (Firebase Cloud Messaging)
   firebase_core: ^4.12.0
   firebase_messaging: ^16.4.2
+  geolocator: ^14.0.1
+  flutter_map: ^8.3.2
+  latlong2: ^0.10.1
 
 dev_dependencies:
   flutter_test:

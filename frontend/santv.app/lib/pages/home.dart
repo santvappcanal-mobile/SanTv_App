@@ -33,6 +33,20 @@ class _HomeState extends State<Home>
   @override
   AuthService get authService => widget.authService;
 
+  /// true si el usuario logueado es admin o editor.
+  /// Lee el rol sin depender de la forma exacta de currentUser (modelo o Map).
+  bool get _isAdminUser {
+    try {
+      final dynamic user = currentUser;
+      if (user == null) return false;
+      final dynamic role = user is Map ? user['role'] : user.role;
+      final value = role?.toString().toLowerCase();
+      return value == 'admin' || value == 'editor';
+    } catch (_) {
+      return false;
+    }
+  }
+
   @override
   void initState() {
     super.initState();
@@ -80,6 +94,7 @@ class _HomeState extends State<Home>
                     authService: authService,
                     isActive: homeActive,
                     onOpenLiveTab: goToLive,
+                    isAdmin: _isAdminUser,
                   ),
                   ExploreScreen(
                     onOpenAdvertising: openAdvertising,
