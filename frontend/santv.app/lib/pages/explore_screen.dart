@@ -3,6 +3,7 @@ import '../models/content.dart';
 import '../services/auth_service.dart';
 import '../widgets/common/open_content_player.dart';
 import '../widgets/explore/explore_widgets.dart';
+import 'report_detail_screen.dart';
 
 /// Pestaña "Explorar". Se usa embebida dentro de [Home]
 /// (pages/home.dart), como uno de los ítems del IndexedStack.
@@ -48,8 +49,22 @@ class _ExploreScreenState extends State<ExploreScreen> {
 
   /// Al tocar un video: lo registra como visto, abre el reproductor y, al
   /// volver, refresca la lista para mostrar el contador y los guardados
-  /// actualizados.
+  /// actualizados. Las noticias ciudadanas (solo foto) abren su pantalla
+  /// de detalle en lugar del reproductor.
   Future<void> _abrirVideo(ContentItem content) async {
+    if (content.isCitizenReport) {
+      await Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (_) => ReportDetailScreen(
+            report: content.toReport(),
+            authService: widget.authService,
+          ),
+        ),
+      );
+      return;
+    }
+
     await openContentPlayer(
       context,
       content: content,

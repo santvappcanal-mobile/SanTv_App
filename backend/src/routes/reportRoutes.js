@@ -7,6 +7,7 @@ const {
   createReport,
   getMyReports,
   getMapReports,
+  getFeaturedNews,
   getPendingReports,
   approveReport,
   rejectReport,
@@ -16,6 +17,7 @@ const {
 router.post('/', protect, reportUpload.single('image'), createReport);
 router.get('/mine', protect, getMyReports);
 router.get('/map', protect, getMapReports);
+router.get('/featured', protect, getFeaturedNews);
 
 // Admin / editor
 router.get('/pending', protect, authorize('admin', 'editor'), getPendingReports);

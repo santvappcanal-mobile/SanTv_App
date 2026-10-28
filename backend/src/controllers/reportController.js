@@ -153,6 +153,22 @@ const getMapReports = asyncHandler(async (req, res) => {
   res.json({ success: true, count: reports.length, data: reports });
 });
 
+// GET /api/reports/featured   (noticias ciudadanas recientes, para Destacados)
+const getFeaturedNews = asyncHandler(async (req, res) => {
+  const limit = Math.min(parseInt(req.query.limit, 10) || 2, 10);
+  const since = new Date(Date.now() - 14 * 24 * 60 * 60 * 1000);
+
+  const items = await Content.find({
+    reportId: { $exists: true, $ne: null },
+    isActive: true,
+    createdAt: { $gte: since },
+  })
+    .sort({ createdAt: -1 })
+    .limit(limit);
+
+  res.json({ success: true, count: items.length, data: items });
+});
+
 /* ------------------------------------------------------------------ */
 /*  Admin / editor                                                     */
 /* ------------------------------------------------------------------ */
@@ -238,6 +254,7 @@ module.exports = {
   createReport,
   getMyReports,
   getMapReports,
+  getFeaturedNews,
   getPendingReports,
   approveReport,
   rejectReport,

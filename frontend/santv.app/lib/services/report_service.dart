@@ -5,6 +5,7 @@ import 'dart:io';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
 
+import '../models/content.dart';
 import '../models/report.dart';
 import 'auth_service.dart';
 
@@ -142,6 +143,22 @@ class ReportService {
     });
   }
 
+  /// Últimas noticias ciudadanas aprobadas (como contenido), para Destacados.
+  Future<List<ContentItem>> getFeaturedNews({int limit = 2}) {
+    return _guard(() async {
+      final res = await http
+          .get(Uri.parse('$_base/featured?limit=$limit'), headers: await _headers())
+          .timeout(_timeout);
+      final body = _decode(res);
+      final data = body['data'];
+      if (data is! List) return <ContentItem>[];
+      return data
+          .whereType<Map>()
+          .map((e) => ContentItem.fromJson(Map<String, dynamic>.from(e)))
+          .toList();
+    });
+  }
+
   Future<void> approve(String id, {String? title, String? description, String? category}) {
     return _guard(() async {
       final res = await http
@@ -149,9 +166,9 @@ class ReportService {
             Uri.parse('$_base/$id/approve'),
             headers: await _headers(json: true),
             body: jsonEncode({
-              if (title != null) 'title': title,
-              if (description != null) 'description': description,
-              if (category != null) 'category': category,
+              'title': ?title,
+              'description': ?description,
+              'category': ?category,
             }),
           )
           .timeout(_timeout);
