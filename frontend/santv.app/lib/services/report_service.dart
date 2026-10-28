@@ -4,6 +4,7 @@ import 'dart:io';
 
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 
 import '../models/content.dart';
 import '../models/report.dart';
@@ -81,6 +82,30 @@ class ReportService {
         .toList();
   }
 
+  /// Detecta el tipo real de la imagen leyendo sus primeros bytes.
+  /// Las fotos que entrega el selector a veces llegan sin extensión y el
+  /// servidor las rechazaba por no saber que eran imágenes.
+  Future<(MediaType, String)> _imageType(File file) async {
+    final raf = await file.open();
+    try {
+      final b = await raf.read(12);
+      if (b.length >= 3 && b[0] == 0xFF && b[1] == 0xD8 && b[2] == 0xFF) {
+        return (MediaType('image', 'jpeg'), 'jpg');
+      }
+      if (b.length >= 4 && b[0] == 0x89 && b[1] == 0x50 && b[2] == 0x4E && b[3] == 0x47) {
+        return (MediaType('image', 'png'), 'png');
+      }
+      if (b.length >= 12 &&
+          b[0] == 0x52 && b[1] == 0x49 && b[2] == 0x46 && b[3] == 0x46 &&
+          b[8] == 0x57 && b[9] == 0x45 && b[10] == 0x42 && b[11] == 0x50) {
+        return (MediaType('image', 'webp'), 'webp');
+      }
+    } finally {
+      await raf.close();
+    }
+    return (MediaType('image', 'jpeg'), 'jpg');
+  }
+
   /// Enviar un reporte nuevo (multipart con la foto).
   Future<Report> createReport({
     required String title,
@@ -92,6 +117,7 @@ class ReportService {
     String address = '',
   }) {
     return _guard(() async {
+      final (imageType, imageExt) = await _imageType(image);
       final request = http.MultipartRequest('POST', Uri.parse(_base))
         ..headers.addAll(await _headers())
         ..fields['title'] = title
@@ -100,7 +126,12 @@ class ReportService {
         ..fields['latitude'] = latitude.toString()
         ..fields['longitude'] = longitude.toString()
         ..fields['address'] = address
-        ..files.add(await http.MultipartFile.fromPath('image', image.path));
+        ..files.add(await http.MultipartFile.fromPath(
+          'image',
+          image.path,
+          contentType: imageType,
+          filename: 'reporte.$imageExt',
+        ));
 
       final streamed = await request.send().timeout(_timeout);
       final res = await http.Response.fromStream(streamed);
