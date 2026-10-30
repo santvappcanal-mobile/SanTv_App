@@ -24,6 +24,15 @@ class NotificationCard extends StatelessWidget {
         return (icon: Icons.credit_card, color: const Color(0xFF64B5F6));
       case AppNotificationType.system:
         return (icon: Icons.notifications_none, color: const Color(0xFF64B5F6));
+      case AppNotificationType.reportPending:
+        return (icon: Icons.pending_actions, color: const Color(0xFFFFCA28));
+      case AppNotificationType.reportApproved:
+        return (
+          icon: Icons.check_circle_outline,
+          color: const Color(0xFF39FF14)
+        );
+      case AppNotificationType.communityReport:
+        return (icon: Icons.campaign_outlined, color: const Color(0xFFBA68C8));
     }
   }
 

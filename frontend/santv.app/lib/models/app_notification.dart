@@ -1,4 +1,14 @@
-enum AppNotificationType { system, newContent, liveEvent, billing, promo }
+enum AppNotificationType {
+  system,
+  newContent,
+  liveEvent,
+  billing,
+  promo,
+  // Mi comunidad cuenta
+  reportPending, // a los admins: llegó un reporte nuevo por revisar
+  reportApproved, // al autor: su reporte fue aceptado
+  communityReport, // a todos: nuevo reporte publicado
+}
 
 AppNotificationType _typeFromString(String? raw) {
   switch (raw) {
@@ -10,6 +20,12 @@ AppNotificationType _typeFromString(String? raw) {
       return AppNotificationType.billing;
     case 'promo':
       return AppNotificationType.promo;
+    case 'report_pending':
+      return AppNotificationType.reportPending;
+    case 'report_approved':
+      return AppNotificationType.reportApproved;
+    case 'community_report':
+      return AppNotificationType.communityReport;
     case 'system':
     default:
       return AppNotificationType.system;
@@ -26,6 +42,12 @@ String _typeKey(AppNotificationType t) {
       return 'billing';
     case AppNotificationType.promo:
       return 'promo';
+    case AppNotificationType.reportPending:
+      return 'report_pending';
+    case AppNotificationType.reportApproved:
+      return 'report_approved';
+    case AppNotificationType.communityReport:
+      return 'community_report';
     case AppNotificationType.system:
       return 'system';
   }
@@ -40,7 +62,7 @@ class AppNotification {
   final String actionUrl;
   final DateTime createdAt;
 
-  /// Datos para abrir la pantalla al tocarla (contentId, orderId, forAdmin...).
+  /// Datos para abrir la pantalla al tocarla (contentId, orderId, reportId, forAdmin...).
   final Map<String, dynamic> data;
 
   const AppNotification({

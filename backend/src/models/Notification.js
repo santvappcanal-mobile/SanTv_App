@@ -18,7 +18,17 @@ const notificationSchema = new mongoose.Schema(
     },
     type: {
       type: String,
-      enum: ['system', 'new_content', 'live_event', 'billing', 'promo'],
+      enum: [
+        'system',
+        'new_content',
+        'live_event',
+        'billing',
+        'promo',
+        // Mi comunidad cuenta
+        'report_pending', // a los admins: llegó un reporte nuevo por revisar
+        'report_approved', // al autor: su reporte fue aceptado
+        'community_report', // a todos: nuevo reporte publicado
+      ],
       default: 'system',
     },
     isRead: {
@@ -29,7 +39,7 @@ const notificationSchema = new mongoose.Schema(
       type: String,
       default: '', // URL opcional para redirigir al usuario al hacer clic (ej. '/content/123')
     },
-    // Datos para abrir la pantalla correcta al tocarla (contentId, orderId, forAdmin...)
+    // Datos para abrir la pantalla correcta al tocarla (contentId, orderId, reportId, forAdmin...)
     data: {
       type: mongoose.Schema.Types.Mixed,
       default: {},

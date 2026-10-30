@@ -2,6 +2,7 @@ const asyncHandler = require('express-async-handler');
 const Report = require('../models/Report');
 const User = require('../models/User');
 const Content = require('../models/Content');
+const Notification = require('../models/Notification');
 const { analyzeReport } = require('../services/reportAI');
 
 const POINTS_PER_APPROVED = 10;
@@ -15,6 +16,9 @@ const NEARBY_DEGREES = 0.01; // ≈ 1 km
 const NEARBY_WINDOW_MS = 24 * 60 * 60 * 1000;
 
 const userId = (req) => req.user._id || req.user.id;
+const isStaff = (req) => ['admin', 'editor'].includes(req.user.role);
+const isOwner = (report, req) =>
+  String(report.author?._id || report.author) === String(userId(req));
 
 function badgeFor(approvedCount) {
   const found = BADGES.find((b) => approvedCount >= b.min);
@@ -22,7 +26,7 @@ function badgeFor(approvedCount) {
 }
 
 /* ------------------------------------------------------------------ */
-/*  Hooks que debes ajustar a tus modelos/servicios reales             */
+/*  Publicación en Content                                             */
 /* ------------------------------------------------------------------ */
 
 // Crea la noticia en Content al aprobar (reporte ciudadano = solo foto, sin video).
@@ -42,25 +46,86 @@ async function publishAsContent(report, authorName) {
   });
 }
 
-// Envía la push a todos. AJUSTAR al servicio FCM que ya tienes.
-async function notifyNewReport(report, authorName) {
+// Borra la foto de Cloudinary (si falla no se detiene el borrado del reporte).
+async function removeImage(publicId) {
+  if (!publicId) return;
   try {
-    // const { sendToAll } = require('../services/pushService');
-    // await sendToAll({
-    //   title: 'Noticia de tu comunidad',
-    //   body: `${report.title} · Reportado por ${authorName}`,
-    // });
+    const mod = require('../config/cloudinary');
+    const cloud = mod.uploader ? mod : mod.v2 || mod.cloudinary;
+    if (cloud && cloud.uploader) await cloud.uploader.destroy(publicId);
+  } catch (err) {
+    console.error('No se pudo borrar la imagen del reporte:', err.message);
+  }
+}
+
+/* ------------------------------------------------------------------ */
+/*  Notificaciones                                                     */
+/* ------------------------------------------------------------------ */
+
+// PENDIENTE: conectar con el servicio de push (FCM) que ya usas para pagos.
+// Recibe los ids de usuario y {title, body, data}; data debe ir como strings.
+async function sendPush(userIds, { title, body, data }) {
+  // Se completa cuando tengamos a la vista el archivo de push.
+}
+
+// Guarda la notificación en la bandeja de cada usuario y dispara el push.
+async function notifyMany(userIds, { title, message, type, data = {} }) {
+  if (!userIds || userIds.length === 0) return;
+  try {
+    await Notification.insertMany(
+      userIds.map((id) => ({ user: id, title, message, type, data }))
+    );
+    await sendPush(userIds, { title, body: message, data: { type, ...data } });
   } catch (err) {
     console.error('No se pudo enviar la notificación del reporte:', err.message);
   }
 }
 
-async function notifyAuthor(report, text) {
-  try {
-    // Notificación individual al autor (modelo Notification / FCM).
-  } catch (err) {
-    console.error('No se pudo notificar al autor:', err.message);
-  }
+// A los admins/editores: llegó un reporte nuevo por revisar.
+async function notifyAdminsNewReport(report, authorName) {
+  const staff = await User.find({
+    role: { $in: ['admin', 'editor'] },
+    isActive: { $ne: false },
+    _id: { $ne: report.author },
+  }).select('_id');
+
+  await notifyMany(
+    staff.map((u) => u._id),
+    {
+      title: 'Nuevo reporte por revisar',
+      message: `${authorName} envió: "${report.title}"`,
+      type: 'report_pending',
+      data: { reportId: String(report._id), forAdmin: 'true' },
+    }
+  );
+}
+
+// Al autor: su reporte fue aceptado (o rechazado).
+async function notifyAuthor(report, { title, message, type }) {
+  await notifyMany([report.author], {
+    title,
+    message,
+    type,
+    data: { reportId: String(report._id) },
+  });
+}
+
+// A todos los usuarios (menos al autor): hay un reporte nuevo publicado.
+async function notifyCommunity(report, authorName) {
+  const users = await User.find({
+    isActive: { $ne: false },
+    _id: { $ne: report.author },
+  }).select('_id');
+
+  await notifyMany(
+    users.map((u) => u._id),
+    {
+      title: `Nuevo reporte de ${authorName}`,
+      message: `${report.title}. ¡Tú también puedes contribuir!`,
+      type: 'community_report',
+      data: { reportId: String(report._id) },
+    }
+  );
 }
 
 /* ------------------------------------------------------------------ */
@@ -119,6 +184,9 @@ const createReport = asyncHandler(async (req, res) => {
     ai,
   });
 
+  // Aviso a los admins: hay un reporte por revisar
+  await notifyAdminsNewReport(report, req.user.name || 'Un usuario');
+
   res.status(201).json({ success: true, data: report });
 });
 
@@ -167,6 +235,129 @@ const getFeaturedNews = asyncHandler(async (req, res) => {
     .limit(limit);
 
   res.json({ success: true, count: items.length, data: items });
+});
+
+// GET /api/reports/:id   (publicados: cualquiera; pendientes/rechazados: autor o staff)
+// Lo usan las notificaciones para abrir el reporte al tocarlas.
+const getReportById = asyncHandler(async (req, res) => {
+  const report = await Report.findById(req.params.id).populate(
+    'author',
+    'name avatar reporterPoints approvedReports reporterBadge'
+  );
+  if (!report) {
+    res.status(404);
+    throw new Error('Reporte no encontrado');
+  }
+  if (report.status !== 'approved' && !isOwner(report, req) && !isStaff(req)) {
+    res.status(403);
+    throw new Error('No tienes permiso para ver este reporte');
+  }
+
+  res.json({ success: true, data: report });
+});
+
+// PUT /api/reports/:id   (solo el autor; body: title, description, category, address)
+const updateReport = asyncHandler(async (req, res) => {
+  const report = await Report.findById(req.params.id);
+  if (!report) {
+    res.status(404);
+    throw new Error('Reporte no encontrado');
+  }
+  if (!isOwner(report, req)) {
+    res.status(403);
+    throw new Error('Solo puedes editar tus propios reportes');
+  }
+
+  const { title, description, category, address } = req.body || {};
+
+  if (title !== undefined) {
+    const t = String(title).trim();
+    if (t.length < 5 || t.length > 120) {
+      res.status(400);
+      throw new Error('El título debe tener entre 5 y 120 caracteres');
+    }
+    report.title = t;
+  }
+  if (description !== undefined) {
+    const d = String(description).trim();
+    if (d.length < 10 || d.length > 1000) {
+      res.status(400);
+      throw new Error('La descripción debe tener entre 10 y 1000 caracteres');
+    }
+    report.description = d;
+  }
+  if (category !== undefined && Report.CATEGORIES.includes(category)) {
+    report.category = category;
+  }
+  if (address !== undefined) report.address = String(address).trim().slice(0, 200);
+
+  // Si estaba rechazado, al editarlo vuelve a la cola de revisión
+  const wasRejected = report.status === 'rejected';
+  if (wasRejected) {
+    report.status = 'pending';
+    report.rejectionReason = undefined;
+    report.reviewedBy = undefined;
+    report.reviewedAt = undefined;
+  }
+
+  // Mientras está en revisión, la IA vuelve a analizar el texto nuevo
+  if (report.status === 'pending') {
+    try {
+      report.ai = await analyzeReport({
+        title: report.title,
+        description: report.description,
+        category: report.category,
+        address: report.address,
+        nearbyReports: report.nearbyReports,
+      });
+    } catch (err) {
+      console.error('No se pudo re-analizar el reporte:', err.message);
+    }
+  }
+
+  await report.save();
+
+  // Si ya estaba publicado, la noticia en Content se actualiza igual
+  if (report.status === 'approved' && report.publishedContent) {
+    const author = await User.findById(report.author).select('name');
+    await Content.findByIdAndUpdate(report.publishedContent, {
+      title: report.title,
+      description: `${report.description}\n\nReportado por ${author?.name || 'un ciudadano'}`,
+      genres: [report.category.toLowerCase()],
+    });
+  }
+
+  if (wasRejected) {
+    await notifyAdminsNewReport(report, req.user.name || 'Un usuario');
+  }
+
+  res.json({ success: true, data: report });
+});
+
+// DELETE /api/reports/:id   (el autor, o un admin/editor)
+const deleteReport = asyncHandler(async (req, res) => {
+  const report = await Report.findById(req.params.id);
+  if (!report) {
+    res.status(404);
+    throw new Error('Reporte no encontrado');
+  }
+  if (!isOwner(report, req) && !isStaff(req)) {
+    res.status(403);
+    throw new Error('No tienes permiso para eliminar este reporte');
+  }
+
+  // Si estaba publicado, también sale de Noticias/Explorar
+  if (report.publishedContent) {
+    await Content.findByIdAndDelete(report.publishedContent);
+  }
+  await removeImage(report.imagePublicId);
+
+  // Las notificaciones de este reporte ya no tendrían a dónde llevar
+  await Notification.deleteMany({ 'data.reportId': String(report._id) });
+
+  await report.deleteOne();
+
+  res.json({ success: true, message: 'Reporte eliminado correctamente' });
 });
 
 /* ------------------------------------------------------------------ */
@@ -221,8 +412,14 @@ const approveReport = asyncHandler(async (req, res) => {
     });
   }
 
-  await notifyNewReport(report, authorName);
-  await notifyAuthor(report, `¡Tu reporte "${report.title}" fue publicado! +${POINTS_PER_APPROVED} puntos`);
+  // Al autor: tu reporte fue aceptado
+  await notifyAuthor(report, {
+    title: '¡Tu reporte fue aceptado!',
+    message: `"${report.title}" ya está publicado. +${POINTS_PER_APPROVED} puntos`,
+    type: 'report_approved',
+  });
+  // A todos los demás: nuevo reporte de la comunidad
+  await notifyCommunity(report, authorName);
 
   res.json({ success: true, data: report });
 });
@@ -245,7 +442,11 @@ const rejectReport = asyncHandler(async (req, res) => {
   report.reviewedAt = new Date();
   await report.save();
 
-  await notifyAuthor(report, `Tu reporte "${report.title}" no fue publicado: ${report.rejectionReason}`);
+  await notifyAuthor(report, {
+    title: 'Tu reporte no fue publicado',
+    message: `"${report.title}": ${report.rejectionReason}`,
+    type: 'system',
+  });
 
   res.json({ success: true, data: report });
 });
@@ -255,6 +456,9 @@ module.exports = {
   getMyReports,
   getMapReports,
   getFeaturedNews,
+  getReportById,
+  updateReport,
+  deleteReport,
   getPendingReports,
   approveReport,
   rejectReport,
