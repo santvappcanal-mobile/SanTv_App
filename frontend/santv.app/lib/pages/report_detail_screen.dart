@@ -3,21 +3,37 @@ import 'package:flutter/material.dart';
 
 import '../models/report.dart';
 import '../services/auth_service.dart';
+import '../services/report_service.dart';
 import 'news_map_screen.dart';
+import 'report_create_screen.dart';
 
 /// Detalle de una noticia ciudadana: foto, texto, autor y acceso al mapa.
-/// Se usa desde la franja del Home y, más adelante, desde Explorar y Destacados.
-class ReportDetailScreen extends StatelessWidget {
+/// Se usa desde la franja del Home, Mis reportes y las notificaciones.
+///
+/// Con [canManage] (el reporte es del usuario) aparece el menú para editarlo
+/// o eliminarlo. Si cambia algo, la pantalla se cierra devolviendo `true`
+/// para que la lista que la abrió se recargue.
+class ReportDetailScreen extends StatefulWidget {
   const ReportDetailScreen({
     super.key,
     required this.report,
     required this.authService,
+    this.canManage = false,
   });
 
   final Report report;
   final AuthService authService;
+  final bool canManage;
 
+  @override
+  State<ReportDetailScreen> createState() => _ReportDetailScreenState();
+}
+
+class _ReportDetailScreenState extends State<ReportDetailScreen> {
   static const _neon = Color(0xFF39FF14);
+
+  late final ReportService _service = ReportService(widget.authService);
+  bool _busy = false;
 
   String _formatDate(DateTime? date) {
     if (date == null) return '';
@@ -28,8 +44,67 @@ class ReportDetailScreen extends StatelessWidget {
     return '${date.day} ${months[date.month - 1]} ${date.year}';
   }
 
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _edit() async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReportCreateScreen(
+          authService: widget.authService,
+          report: widget.report,
+        ),
+      ),
+    );
+    if (saved == true && mounted) Navigator.pop(context, true);
+  }
+
+  Future<void> _delete() async {
+    final report = widget.report;
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('Eliminar reporte', style: TextStyle(color: Colors.white)),
+        content: Text(
+          report.isApproved
+              ? 'Este reporte está publicado en Noticias. Si lo eliminas, también '
+                  'desaparecerá de allí. Esta acción no se puede deshacer.'
+              : 'Esta acción no se puede deshacer.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    setState(() => _busy = true);
+    try {
+      await _service.delete(report.id);
+      _snack('Reporte eliminado');
+      if (mounted) Navigator.pop(context, true);
+    } on ReportException catch (e) {
+      _snack(e.message);
+    } finally {
+      if (mounted) setState(() => _busy = false);
+    }
+  }
+
   @override
   Widget build(BuildContext context) {
+    final report = widget.report;
     final author = report.authorName.isEmpty ? 'un ciudadano' : report.authorName;
     final date = _formatDate(report.createdAt);
 
@@ -42,6 +117,43 @@ class ReportDetailScreen extends StatelessWidget {
             expandedHeight: 320,
             backgroundColor: const Color(0xFF0B0B0B),
             foregroundColor: Colors.white,
+            actions: [
+              if (widget.canManage)
+                _busy
+                    ? const Padding(
+                        padding: EdgeInsets.all(16),
+                        child: SizedBox(
+                          width: 20,
+                          height: 20,
+                          child: CircularProgressIndicator(strokeWidth: 2, color: _neon),
+                        ),
+                      )
+                    : PopupMenuButton<String>(
+                        icon: const Icon(Icons.more_vert),
+                        color: const Color(0xFF1A1A1A),
+                        onSelected: (value) {
+                          if (value == 'edit') {
+                            _edit();
+                          } else {
+                            _delete();
+                          }
+                        },
+                        itemBuilder: (_) => [
+                          PopupMenuItem(
+                            value: 'edit',
+                            child: Text(
+                              report.isRejected ? 'Editar y reenviar' : 'Editar',
+                              style: const TextStyle(color: Colors.white),
+                            ),
+                          ),
+                          const PopupMenuItem(
+                            value: 'delete',
+                            child: Text('Eliminar',
+                                style: TextStyle(color: Colors.redAccent)),
+                          ),
+                        ],
+                      ),
+            ],
             flexibleSpace: FlexibleSpaceBar(
               background: Stack(
                 fit: StackFit.expand,
@@ -143,7 +255,7 @@ class ReportDetailScreen extends StatelessWidget {
                       onPressed: () => Navigator.push(
                         context,
                         MaterialPageRoute(
-                          builder: (_) => NewsMapScreen(authService: authService),
+                          builder: (_) => NewsMapScreen(authService: widget.authService),
                         ),
                       ),
                       icon: const Icon(Icons.map_outlined),

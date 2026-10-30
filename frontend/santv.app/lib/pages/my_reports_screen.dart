@@ -5,6 +5,7 @@ import '../models/report.dart';
 import '../services/auth_service.dart';
 import '../services/report_service.dart';
 import 'report_create_screen.dart';
+import 'report_detail_screen.dart';
 
 class MyReportsScreen extends StatefulWidget {
   const MyReportsScreen({super.key, required this.authService});
@@ -55,6 +56,159 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
     if (r.isApproved) return ('Publicado', _neon);
     if (r.isRejected) return ('Rechazado', Colors.redAccent);
     return ('En revisión', Colors.orangeAccent);
+  }
+
+  void _snack(String msg) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(SnackBar(content: Text(msg)));
+  }
+
+  Future<void> _open(Report r) async {
+    final changed = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReportDetailScreen(
+          report: r,
+          authService: widget.authService,
+          canManage: true,
+        ),
+      ),
+    );
+    if (changed == true) _load();
+  }
+
+  Future<void> _edit(Report r) async {
+    final saved = await Navigator.push<bool>(
+      context,
+      MaterialPageRoute(
+        builder: (_) => ReportCreateScreen(authService: widget.authService, report: r),
+      ),
+    );
+    if (saved == true) _load();
+  }
+
+  Future<void> _delete(Report r) async {
+    final confirm = await showDialog<bool>(
+      context: context,
+      builder: (ctx) => AlertDialog(
+        backgroundColor: const Color(0xFF1A1A1A),
+        title: const Text('Eliminar reporte', style: TextStyle(color: Colors.white)),
+        content: Text(
+          r.isApproved
+              ? 'Este reporte está publicado en Noticias. Si lo eliminas, también '
+                  'desaparecerá de allí. Esta acción no se puede deshacer.'
+              : 'Esta acción no se puede deshacer.',
+          style: const TextStyle(color: Colors.white70),
+        ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, false),
+            child: const Text('Cancelar'),
+          ),
+          TextButton(
+            onPressed: () => Navigator.pop(ctx, true),
+            child: const Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
+          ),
+        ],
+      ),
+    );
+    if (confirm != true) return;
+
+    try {
+      await _service.delete(r.id);
+      if (!mounted) return;
+      setState(() => _reports.removeWhere((x) => x.id == r.id));
+      _snack('Reporte eliminado');
+    } on ReportException catch (e) {
+      _snack(e.message);
+    }
+  }
+
+  Widget _reportCard(Report r) {
+    final (label, color) = _statusInfo(r);
+    return Container(
+      margin: const EdgeInsets.only(bottom: 12),
+      decoration: BoxDecoration(
+        color: const Color(0xFF1A1A1A),
+        borderRadius: BorderRadius.circular(14),
+      ),
+      child: Material(
+        color: Colors.transparent,
+        child: InkWell(
+          borderRadius: BorderRadius.circular(14),
+          onTap: () => _open(r),
+          child: Row(
+            children: [
+              ClipRRect(
+                borderRadius: const BorderRadius.horizontal(left: Radius.circular(14)),
+                child: CachedNetworkImage(
+                  imageUrl: r.imageUrl,
+                  width: 96,
+                  height: 96,
+                  fit: BoxFit.cover,
+                  errorWidget: (_, __, ___) => Container(
+                    width: 96,
+                    height: 96,
+                    color: Colors.black26,
+                    child: const Icon(Icons.broken_image, color: Colors.white38),
+                  ),
+                ),
+              ),
+              Expanded(
+                child: Padding(
+                  padding: const EdgeInsets.symmetric(vertical: 12, horizontal: 12),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      Text(r.title,
+                          maxLines: 2,
+                          overflow: TextOverflow.ellipsis,
+                          style: const TextStyle(
+                              color: Colors.white, fontWeight: FontWeight.bold)),
+                      const SizedBox(height: 6),
+                      Text(label,
+                          style: TextStyle(color: color, fontWeight: FontWeight.w600)),
+                      if (r.isRejected && r.rejectionReason.isNotEmpty)
+                        Padding(
+                          padding: const EdgeInsets.only(top: 4),
+                          child: Text(r.rejectionReason,
+                              maxLines: 2,
+                              overflow: TextOverflow.ellipsis,
+                              style: const TextStyle(color: Colors.white54, fontSize: 12)),
+                        ),
+                    ],
+                  ),
+                ),
+              ),
+              PopupMenuButton<String>(
+                icon: const Icon(Icons.more_vert, color: Colors.white54),
+                color: const Color(0xFF1A1A1A),
+                onSelected: (value) {
+                  if (value == 'edit') {
+                    _edit(r);
+                  } else {
+                    _delete(r);
+                  }
+                },
+                itemBuilder: (_) => [
+                  PopupMenuItem(
+                    value: 'edit',
+                    child: Text(
+                      r.isRejected ? 'Editar y reenviar' : 'Editar',
+                      style: const TextStyle(color: Colors.white),
+                    ),
+                  ),
+                  const PopupMenuItem(
+                    value: 'delete',
+                    child: Text('Eliminar', style: TextStyle(color: Colors.redAccent)),
+                  ),
+                ],
+              ),
+            ],
+          ),
+        ),
+      ),
+    );
   }
 
   @override
@@ -119,66 +273,7 @@ class _MyReportsScreenState extends State<MyReportsScreen> {
                           ),
                         )
                       else
-                        ..._reports.map((r) {
-                          final (label, color) = _statusInfo(r);
-                          return Container(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            decoration: BoxDecoration(
-                              color: const Color(0xFF1A1A1A),
-                              borderRadius: BorderRadius.circular(14),
-                            ),
-                            child: Row(
-                              children: [
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.horizontal(
-                                      left: Radius.circular(14)),
-                                  child: CachedNetworkImage(
-                                    imageUrl: r.imageUrl,
-                                    width: 96,
-                                    height: 96,
-                                    fit: BoxFit.cover,
-                                    errorWidget: (_, __, ___) => Container(
-                                      width: 96,
-                                      height: 96,
-                                      color: Colors.black26,
-                                      child: const Icon(Icons.broken_image,
-                                          color: Colors.white38),
-                                    ),
-                                  ),
-                                ),
-                                Expanded(
-                                  child: Padding(
-                                    padding: const EdgeInsets.all(12),
-                                    child: Column(
-                                      crossAxisAlignment: CrossAxisAlignment.start,
-                                      children: [
-                                        Text(r.title,
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                            style: const TextStyle(
-                                                color: Colors.white,
-                                                fontWeight: FontWeight.bold)),
-                                        const SizedBox(height: 6),
-                                        Text(label,
-                                            style: TextStyle(
-                                                color: color, fontWeight: FontWeight.w600)),
-                                        if (r.isRejected && r.rejectionReason.isNotEmpty)
-                                          Padding(
-                                            padding: const EdgeInsets.only(top: 4),
-                                            child: Text(r.rejectionReason,
-                                                maxLines: 2,
-                                                overflow: TextOverflow.ellipsis,
-                                                style: const TextStyle(
-                                                    color: Colors.white54, fontSize: 12)),
-                                          ),
-                                      ],
-                                    ),
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        }),
+                        ..._reports.map(_reportCard),
                     ],
                   ),
                 ),

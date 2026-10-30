@@ -1,16 +1,22 @@
 import 'dart:io';
 
+import 'package:cached_network_image/cached_network_image.dart';
 import 'package:flutter/material.dart';
 import 'package:geolocator/geolocator.dart';
 import 'package:image_picker/image_picker.dart';
 
+import '../models/report.dart';
 import '../services/auth_service.dart';
 import '../services/report_service.dart';
 
+/// Crear un reporte nuevo o, si recibe [report], editar uno propio.
 class ReportCreateScreen extends StatefulWidget {
-  const ReportCreateScreen({super.key, required this.authService});
+  const ReportCreateScreen({super.key, required this.authService, this.report});
 
   final AuthService authService;
+
+  /// Si viene, la pantalla funciona en modo edición.
+  final Report? report;
 
   @override
   State<ReportCreateScreen> createState() => _ReportCreateScreenState();
@@ -34,10 +40,20 @@ class _ReportCreateScreenState extends State<ReportCreateScreen> {
   bool _locating = false;
   bool _sending = false;
 
+  bool get _isEdit => widget.report != null;
+
   @override
   void initState() {
     super.initState();
-    _getLocation();
+    final r = widget.report;
+    if (r != null) {
+      _titleCtrl.text = r.title;
+      _descCtrl.text = r.description;
+      _addressCtrl.text = r.address;
+      _category = _categories.contains(r.category) ? r.category : 'Noticias';
+    } else {
+      _getLocation();
+    }
   }
 
   @override
@@ -123,6 +139,32 @@ class _ReportCreateScreenState extends State<ReportCreateScreen> {
 
   Future<void> _submit() async {
     if (!_formKey.currentState!.validate()) return;
+
+    // Modo edición: solo se guardan los textos y la categoría.
+    if (_isEdit) {
+      final report = widget.report!;
+      setState(() => _sending = true);
+      try {
+        await _service.update(
+          report.id,
+          title: _titleCtrl.text.trim(),
+          description: _descCtrl.text.trim(),
+          category: _category,
+          address: _addressCtrl.text.trim(),
+        );
+        if (!mounted) return;
+        _snack(report.isRejected
+            ? 'Reporte actualizado y enviado de nuevo a revisión'
+            : 'Reporte actualizado');
+        Navigator.pop(context, true);
+      } on ReportException catch (e) {
+        _snack(e.message);
+      } finally {
+        if (mounted) setState(() => _sending = false);
+      }
+      return;
+    }
+
     if (_image == null) {
       _snack('Agrega una foto del suceso.');
       return;
@@ -191,46 +233,114 @@ class _ReportCreateScreenState extends State<ReportCreateScreen> {
         ),
       );
 
+  /// Aviso del modo edición según el estado del reporte.
+  String? get _editNotice {
+    final r = widget.report;
+    if (r == null) return null;
+    if (r.isApproved) {
+      return 'Este reporte ya está publicado: los cambios también se verán en Noticias.';
+    }
+    if (r.isRejected) {
+      return 'Al guardar, tu reporte volverá a revisión del equipo.';
+    }
+    return null;
+  }
+
+  Widget _buildPhoto() {
+    if (_isEdit) {
+      return Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          ClipRRect(
+            borderRadius: BorderRadius.circular(16),
+            child: CachedNetworkImage(
+              imageUrl: widget.report!.imageUrl,
+              height: 200,
+              width: double.infinity,
+              fit: BoxFit.cover,
+              errorWidget: (_, __, ___) => Container(
+                height: 200,
+                color: Colors.black26,
+                child: const Icon(Icons.broken_image, color: Colors.white38),
+              ),
+            ),
+          ),
+          const SizedBox(height: 6),
+          const Text(
+            'La foto y la ubicación no se pueden cambiar.',
+            style: TextStyle(color: Colors.white38, fontSize: 12),
+          ),
+        ],
+      );
+    }
+
+    return GestureDetector(
+      onTap: _sending ? null : _showImageOptions,
+      child: Container(
+        height: 200,
+        decoration: BoxDecoration(
+          color: const Color(0xFF141414),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: Colors.white12),
+        ),
+        clipBehavior: Clip.antiAlias,
+        child: _image == null
+            ? const Column(
+                mainAxisAlignment: MainAxisAlignment.center,
+                children: [
+                  Icon(Icons.add_a_photo, color: _neon, size: 40),
+                  SizedBox(height: 8),
+                  Text('Agregar foto', style: TextStyle(color: Colors.white70)),
+                ],
+              )
+            : Image.file(_image!, fit: BoxFit.cover, width: double.infinity),
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
+    final notice = _editNotice;
+
     return Scaffold(
       backgroundColor: const Color(0xFF0B0B0B),
       appBar: AppBar(
         backgroundColor: const Color(0xFF0B0B0B),
         foregroundColor: Colors.white,
-        title: const Text('Reportar una noticia'),
+        title: Text(_isEdit ? 'Editar reporte' : 'Reportar una noticia'),
       ),
       body: SafeArea(
         child: ListView(
           padding: const EdgeInsets.all(16),
           children: [
-            const Text(
-              'Cuéntanos qué está pasando en tu comunidad.',
-              style: TextStyle(color: Colors.white70, fontSize: 15),
+            Text(
+              _isEdit
+                  ? 'Corrige los datos de tu reporte.'
+                  : 'Cuéntanos qué está pasando en tu comunidad.',
+              style: const TextStyle(color: Colors.white70, fontSize: 15),
             ),
-            const SizedBox(height: 16),
-            GestureDetector(
-              onTap: _sending ? null : _showImageOptions,
-              child: Container(
-                height: 200,
+            if (notice != null) ...[
+              const SizedBox(height: 10),
+              Container(
+                padding: const EdgeInsets.all(12),
                 decoration: BoxDecoration(
-                  color: const Color(0xFF141414),
-                  borderRadius: BorderRadius.circular(16),
-                  border: Border.all(color: Colors.white12),
+                  color: _neon.withValues(alpha: 0.1),
+                  borderRadius: BorderRadius.circular(12),
                 ),
-                clipBehavior: Clip.antiAlias,
-                child: _image == null
-                    ? const Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        children: [
-                          Icon(Icons.add_a_photo, color: _neon, size: 40),
-                          SizedBox(height: 8),
-                          Text('Agregar foto', style: TextStyle(color: Colors.white70)),
-                        ],
-                      )
-                    : Image.file(_image!, fit: BoxFit.cover, width: double.infinity),
+                child: Row(
+                  children: [
+                    const Icon(Icons.info_outline, color: _neon, size: 18),
+                    const SizedBox(width: 8),
+                    Expanded(
+                      child: Text(notice,
+                          style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                    ),
+                  ],
+                ),
               ),
-            ),
+            ],
+            const SizedBox(height: 16),
+            _buildPhoto(),
             const SizedBox(height: 16),
             Form(
               key: _formKey,
@@ -283,13 +393,15 @@ class _ReportCreateScreenState extends State<ReportCreateScreen> {
                 );
               }).toList(),
             ),
-            const SizedBox(height: 16),
-            _LocationCard(
-              locating: _locating,
-              position: _position,
-              error: _locationError,
-              onRetry: _getLocation,
-            ),
+            if (!_isEdit) ...[
+              const SizedBox(height: 16),
+              _LocationCard(
+                locating: _locating,
+                position: _position,
+                error: _locationError,
+                onRetry: _getLocation,
+              ),
+            ],
             const SizedBox(height: 24),
             SizedBox(
               height: 52,
@@ -306,8 +418,8 @@ class _ReportCreateScreenState extends State<ReportCreateScreen> {
                         height: 22,
                         child: CircularProgressIndicator(strokeWidth: 2.5, color: Colors.black),
                       )
-                    : const Text('Enviar reporte',
-                        style: TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
+                    : Text(_isEdit ? 'Guardar cambios' : 'Enviar reporte',
+                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 16)),
               ),
             ),
           ],

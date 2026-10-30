@@ -140,6 +140,53 @@ class ReportService {
     });
   }
 
+  /// Un reporte por id (lo usan las notificaciones para abrirlo).
+  Future<Report> getById(String id) {
+    return _guard(() async {
+      final res = await http
+          .get(Uri.parse('$_base/$id'), headers: await _headers())
+          .timeout(_timeout);
+      final body = _decode(res);
+      return Report.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+    });
+  }
+
+  /// Editar un reporte propio (título, descripción, categoría y referencia).
+  Future<Report> update(
+    String id, {
+    required String title,
+    required String description,
+    required String category,
+    String address = '',
+  }) {
+    return _guard(() async {
+      final res = await http
+          .put(
+            Uri.parse('$_base/$id'),
+            headers: await _headers(json: true),
+            body: jsonEncode({
+              'title': title,
+              'description': description,
+              'category': category,
+              'address': address,
+            }),
+          )
+          .timeout(_timeout);
+      final body = _decode(res);
+      return Report.fromJson(Map<String, dynamic>.from(body['data'] as Map));
+    });
+  }
+
+  /// Eliminar un reporte propio.
+  Future<void> delete(String id) {
+    return _guard(() async {
+      final res = await http
+          .delete(Uri.parse('$_base/$id'), headers: await _headers())
+          .timeout(_timeout);
+      _decode(res);
+    });
+  }
+
   /// Mis reportes + mis puntos e insignia.
   Future<MyReportsResult> getMine() {
     return _guard(() async {

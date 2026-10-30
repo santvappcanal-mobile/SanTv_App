@@ -5,9 +5,12 @@ import 'package:http/http.dart' as http;
 
 import '../models/content.dart';
 import '../pages/ad_orders_screen.dart';
+import '../pages/admin_reports_screen.dart';
+import '../pages/report_detail_screen.dart';
 import '../pages/video_player_screen.dart';
 import '../pages/youtube_player_screen.dart';
 import 'auth_service.dart';
+import 'report_service.dart';
 import 'watchlist_service.dart';
 
 /// Decide a qué pantalla llevar al usuario cuando toca una notificación push.
@@ -21,6 +24,8 @@ class PushActionHandler {
   late final WatchlistService _watchlistService = WatchlistService(
     authService: authService,
   );
+
+  late final ReportService _reportService = ReportService(authService);
 
   Future<Route<dynamic>?> routeFor(Map<String, dynamic> data) async {
     switch (data['type']?.toString()) {
@@ -39,8 +44,37 @@ class PushActionHandler {
             initialOrderId: (orderId == null || orderId.isEmpty) ? null : orderId,
           ),
         );
+      case 'report_pending':
+        // A los admins: un reporte nuevo espera revisión.
+        return MaterialPageRoute(
+          builder: (_) => AdminReportsScreen(authService: authService),
+        );
+      case 'report_approved':
+        // Al autor: su reporte fue aceptado; lo abre con opción de editar/eliminar.
+        return _reportRoute(data['reportId']?.toString(), canManage: true);
+      case 'community_report':
+        // A todos: nuevo reporte publicado en la comunidad.
+        return _reportRoute(data['reportId']?.toString());
       default:
         return null;
+    }
+  }
+
+  Future<Route<dynamic>?> _reportRoute(String? id, {bool canManage = false}) async {
+    if (id == null || id.isEmpty) return null;
+
+    try {
+      final report = await _reportService.getById(id);
+      return MaterialPageRoute(
+        builder: (_) => ReportDetailScreen(
+          report: report,
+          authService: authService,
+          canManage: canManage,
+        ),
+      );
+    } catch (_) {
+      // Reporte eliminado o sin permiso: no hay nada que abrir.
+      return null;
     }
   }
 

@@ -347,8 +347,10 @@ const deleteReport = asyncHandler(async (req, res) => {
   }
 
   // Si estaba publicado, también sale de Noticias/Explorar
+  // (deleteOne del documento, así el hook de Content también borra sus comentarios)
   if (report.publishedContent) {
-    await Content.findByIdAndDelete(report.publishedContent);
+    const content = await Content.findById(report.publishedContent);
+    if (content) await content.deleteOne();
   }
   await removeImage(report.imagePublicId);
 
