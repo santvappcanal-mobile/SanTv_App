@@ -4,6 +4,7 @@ const User = require('../models/User');
 const Content = require('../models/Content');
 const Notification = require('../models/Notification');
 const { analyzeReport } = require('../services/reportAI');
+const { sendToUsers } = require('../services/pushService');
 
 const POINTS_PER_APPROVED = 10;
 const BADGES = [
@@ -62,10 +63,10 @@ async function removeImage(publicId) {
 /*  Notificaciones                                                     */
 /* ------------------------------------------------------------------ */
 
-// PENDIENTE: conectar con el servicio de push (FCM) que ya usas para pagos.
-// Recibe los ids de usuario y {title, body, data}; data debe ir como strings.
+// Push FCM a todos los dispositivos de esos usuarios.
+// pushService nunca lanza errores y convierte "data" a texto por su cuenta.
 async function sendPush(userIds, { title, body, data }) {
-  // Se completa cuando tengamos a la vista el archivo de push.
+  await sendToUsers(userIds, { title, body, data });
 }
 
 // Guarda la notificación en la bandeja de cada usuario y dispara el push.
