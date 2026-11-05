@@ -314,7 +314,8 @@ Proyecto desarrollado como parte del proceso de formación de los aprendices.
 
 # 📌 Estado del Proyecto
 
-🚧 **En desarrollo**, en la recta final antes de la entrega del 16 de octubre.
+En este código QR puedes descargar la apk de la app que actualmente sigue en desarrollo de despliegue pero ya puedes disfrutar de nuestros servicios actualmente 
+<img width="2048" height="2560" alt="xyRizj (1)" src="https://github.com/user-attachments/assets/5e5c1728-cc62-4f26-94b3-76f8a5120c68" />
 
 # 📄 Licencia
 
