@@ -16,7 +16,14 @@ const upload = multer({
   storage,
   limits: { fileSize: 5 * 1024 * 1024 }, // 5 MB
   fileFilter: (req, file, cb) => {
-    if (file.mimetype.startsWith('image/')) cb(null, true);
+    const esImagen = file.mimetype.startsWith('image/');
+
+    // Algunos teléfonos mandan la foto sin tipo (application/octet-stream).
+    // En ese caso se deja pasar: Cloudinary revisa el formato real del
+    // archivo con allowed_formats y rechaza lo que no sea jpg, png o webp.
+    const sinTipo = file.mimetype === 'application/octet-stream';
+
+    if (esImagen || sinTipo) cb(null, true);
     else cb(new Error('Solo se permiten imágenes'));
   },
 });
