@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:youtube_player_iframe/youtube_player_iframe.dart';
 import '../models/content.dart';
 import '../services/auth_service.dart';
+import '../services/playback_coordinator.dart';
 import '../services/watchlist_service.dart';
 import '../widgets/common/comments_section.dart';
 import '../widgets/common/save_to_list_button.dart';
@@ -36,6 +37,9 @@ class _YoutubePlayerScreenState extends State<YoutubePlayerScreen> {
   void initState() {
     super.initState();
 
+    // Avisa que hay un video abierto: el en vivo se pausa mientras tanto.
+    PlaybackCoordinator.instance.videoOpened();
+
     final videoId = YoutubePlayerController.convertUrlToId(
       widget.content.videoUrl,
     );
@@ -60,6 +64,8 @@ class _YoutubePlayerScreenState extends State<YoutubePlayerScreen> {
   @override
   void dispose() {
     _controller.close();
+    // El video se cerró: el en vivo puede volver a sonar.
+    PlaybackCoordinator.instance.videoClosed();
     super.dispose();
   }
 
