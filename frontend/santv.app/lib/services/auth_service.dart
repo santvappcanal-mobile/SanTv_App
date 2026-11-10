@@ -2,6 +2,7 @@ import 'dart:convert';
 import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:http/http.dart' as http;
+import 'package:http_parser/http_parser.dart';
 import 'package:flutter_secure_storage/flutter_secure_storage.dart';
 import 'package:google_sign_in/google_sign_in.dart';
 import '../models/app_user.dart';
@@ -453,6 +454,44 @@ class AuthService {
     }
   }
 
+  /// Detecta el tipo real de la imagen leyendo sus primeros bytes.
+  /// Hay teléfonos que guardan la foto sin extensión (o con una rara) y
+  /// entonces se enviaba como "application/octet-stream" y el backend la
+  /// rechazaba con "Solo se permiten imágenes". Si no se reconoce, se
+  /// asume JPEG (es lo que genera image_picker al comprimir).
+  static Future<MediaType> _imageType(File file) async {
+    try {
+      final raf = await file.open();
+      final head = await raf.read(12);
+      await raf.close();
+
+      // PNG: 89 50 4E 47
+      if (head.length >= 4 &&
+          head[0] == 0x89 &&
+          head[1] == 0x50 &&
+          head[2] == 0x4E &&
+          head[3] == 0x47) {
+        return MediaType('image', 'png');
+      }
+
+      // WEBP: "RIFF" .... "WEBP"
+      if (head.length >= 12 &&
+          head[0] == 0x52 &&
+          head[1] == 0x49 &&
+          head[2] == 0x46 &&
+          head[3] == 0x46 &&
+          head[8] == 0x57 &&
+          head[9] == 0x45 &&
+          head[10] == 0x42 &&
+          head[11] == 0x50) {
+        return MediaType('image', 'webp');
+      }
+    } catch (_) {
+      // Si no se puede leer, se usa el valor por defecto de abajo.
+    }
+    return MediaType('image', 'jpeg');
+  }
+
   /// Sube una foto de perfil (multipart, campo "foto") y devuelve el
   /// usuario actualizado con la URL de Cloudinary.
   Future<AuthResult> uploadProfilePhoto(File file) async {
@@ -465,9 +504,21 @@ class AuthService {
         );
       }
 
+      // Se indica el tipo de archivo para que el backend lo reconozca
+      // como imagen sin importar cómo se llame el archivo en el teléfono.
+      final tipo = await _imageType(file);
+      final ext = tipo.subtype == 'jpeg' ? 'jpg' : tipo.subtype;
+
       final request = http.MultipartRequest('POST', _endpoint('/profile/photo'))
         ..headers['Authorization'] = 'Bearer $token'
-        ..files.add(await http.MultipartFile.fromPath('foto', file.path));
+        ..files.add(
+          await http.MultipartFile.fromPath(
+            'foto',
+            file.path,
+            contentType: tipo,
+            filename: 'foto.$ext',
+          ),
+        );
 
       final streamed = await request.send().timeout(_uploadTimeout);
       final response = await http.Response.fromStream(streamed);
