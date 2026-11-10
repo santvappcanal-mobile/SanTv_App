@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:video_player/video_player.dart';
 import '../models/content.dart';
 import '../services/auth_service.dart';
+import '../services/playback_coordinator.dart';
 import '../services/settings_service.dart';
 import '../services/watchlist_service.dart';
 import '../widgets/common/comments_section.dart';
@@ -38,6 +39,10 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   void initState() {
     super.initState();
+
+    // Avisa que hay un video abierto: el en vivo se pausa mientras tanto.
+    PlaybackCoordinator.instance.videoOpened();
+
     _controller =
         VideoPlayerController.networkUrl(Uri.parse(widget.content.videoUrl))
           ..initialize()
@@ -56,6 +61,8 @@ class _VideoPlayerScreenState extends State<VideoPlayerScreen> {
   @override
   void dispose() {
     _controller.dispose();
+    // El video se cerró: el en vivo puede volver a sonar.
+    PlaybackCoordinator.instance.videoClosed();
     super.dispose();
   }
 
