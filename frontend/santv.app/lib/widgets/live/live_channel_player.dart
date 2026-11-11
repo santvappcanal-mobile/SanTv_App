@@ -1,6 +1,9 @@
+import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:santv_app/pages/live_fullscreen_screen.dart';
 import 'package:santv_app/services/auth_service.dart';
+import 'package:santv_app/services/playback_coordinator.dart';
 import 'package:santv_app/widgets/live/live_badge.dart';
 import 'package:santv_app/widgets/live/live_script_runner.dart';
 import 'package:santv_app/widgets/live/live_web_controller.dart';
@@ -18,6 +21,11 @@ import 'package:webview_flutter/webview_flutter.dart';
 /// Home para llevar a la pestaña En vivo).
 /// [authService], si se pasa, habilita los comentarios en vivo al
 /// ampliar el video.
+///
+/// Cuando se abre cualquier video (ver [PlaybackCoordinator]) el en vivo
+/// se APAGA por completo (se descarga la página) y al cerrar el video se
+/// vuelve a cargar solo. Pausar con JavaScript no alcanza si el
+/// reproductor va dentro de un iframe, por eso se descarga la página.
 class LiveChannelPlayer extends StatefulWidget {
   const LiveChannelPlayer({
     super.key,
@@ -40,14 +48,22 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
   static const String _liveUrl =
       'https://streaminghd.co/user/produccionessantv';
 
+  static const String _blankUrl = 'about:blank';
+
   /// Si estuvo pausado más de esto, se recarga la página al reactivarlo
   /// para volver al punto actual del directo.
   static const Duration _reloadAfterPause = Duration(seconds: 10);
+
+  final PlaybackCoordinator _coordinator = PlaybackCoordinator.instance;
 
   late final WebViewController _controller;
   late final LiveScriptRunner _scripts;
   bool _loading = true;
   bool _fullscreenOpen = false;
+
+  /// true cuando el en vivo está apagado (WebView en about:blank)
+  /// porque hay un video abierto encima.
+  bool _stopped = false;
   DateTime? _pausedAt;
 
   @override
@@ -68,10 +84,12 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
       )
       ..setNavigationDelegate(
         NavigationDelegate(
-          onPageStarted: (_) =>
-              _controller.runJavaScript(LiveWebScripts.fullscreenBridge),
-          onPageFinished: (_) {
-            if (!mounted) return;
+          onPageStarted: (url) {
+            if (_stopped || url.startsWith(_blankUrl)) return;
+            _controller.runJavaScript(LiveWebScripts.fullscreenBridge);
+          },
+          onPageFinished: (url) {
+            if (!mounted || _stopped || url.startsWith(_blankUrl)) return;
             setState(() => _loading = false);
             _controller.runJavaScript(LiveWebScripts.fullscreenBridge);
             _applyState();
@@ -81,12 +99,47 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
       ..loadRequest(Uri.parse(_liveUrl));
 
     _scripts = LiveScriptRunner(_controller);
+
+    _coordinator.addListener(_onCoordinatorChanged);
+  }
+
+  /// Se abrió o se cerró un video. Se difiere con un microtask porque
+  /// el aviso llega desde initState/dispose de otra pantalla, es decir,
+  /// en medio de la construcción del árbol de widgets.
+  void _onCoordinatorChanged() {
+    scheduleMicrotask(() {
+      if (!mounted) return;
+      if (_coordinator.hasVideoOpen) {
+        _stopHard();
+      } else if (widget.isActive && !_fullscreenOpen) {
+        _resume();
+      }
+    });
+  }
+
+  /// Apaga el en vivo: pausa y descarga la página para que no suene nada.
+  void _stopHard() {
+    if (_stopped) return;
+    _stopped = true;
+    _pausedAt = DateTime.now();
+    _scripts.cancel();
+    _controller.runJavaScript(LiveWebScripts.pause);
+    _controller.loadRequest(Uri.parse(_blankUrl));
+  }
+
+  /// Vuelve a cargar el directo si estaba apagado.
+  void _resume() {
+    if (!_stopped) return;
+    _stopped = false;
+    _pausedAt = null;
+    setState(() => _loading = true);
+    _controller.loadRequest(Uri.parse(_liveUrl)); // onPageFinished da el play
   }
 
   /// Abre el en vivo ampliado (con comentarios y rotación). Mientras
   /// está abierto, este reproductor se pausa para que no suene doble.
   Future<void> _openFullscreen() async {
-    if (_fullscreenOpen || !mounted) return;
+    if (_fullscreenOpen || _stopped || !mounted) return;
     _fullscreenOpen = true;
 
     _scripts.cancel();
@@ -112,12 +165,13 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
   /// Aplica el estado actual: da play si está activo, pausa si no.
   /// Reintenta un rato porque el <video> puede aparecer tarde.
   void _applyState() {
+    if (_stopped) return;
     _scripts.run(
       () => [
         LiveWebScripts.hideFullscreenButton,
         widget.isActive ? LiveWebScripts.play : LiveWebScripts.pause,
       ],
-      isAlive: () => mounted,
+      isAlive: () => mounted && !_stopped,
     );
   }
 
@@ -128,6 +182,15 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
     if (_fullscreenOpen) return; // el ampliado manda sobre el estado
 
     if (widget.isActive) {
+      // Hay un video encima: sigue apagado. Se reanuda al cerrarlo.
+      if (_coordinator.hasVideoOpen) return;
+
+      // Estaba apagado por un video: se vuelve a cargar el directo.
+      if (_stopped) {
+        _resume();
+        return;
+      }
+
       final pausedAt = _pausedAt;
       _pausedAt = null;
       final pausedLong = pausedAt != null &&
@@ -140,6 +203,7 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
         _applyState();
       }
     } else {
+      if (_stopped) return; // ya está apagado
       _pausedAt = DateTime.now();
       _applyState(); // pausa
     }
@@ -147,6 +211,7 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
 
   @override
   void dispose() {
+    _coordinator.removeListener(_onCoordinatorChanged);
     _scripts.cancel();
     super.dispose();
   }

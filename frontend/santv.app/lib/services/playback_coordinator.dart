@@ -1,35 +1,34 @@
-import 'dart:async';
 import 'package:flutter/foundation.dart';
 
-/// Coordina el sonido entre el en vivo y los videos para que nunca
-/// suenen al mismo tiempo.
+/// Coordina el audio entre el en vivo y los videos.
 ///
-/// - Las pantallas de video (normal y YouTube) llaman a [videoOpened]
-///   al abrirse y a [videoClosed] al cerrarse.
-/// - Los reproductores del en vivo escuchan este objeto: mientras
-///   [videoOpen] sea true se mantienen pausados, y al cerrarse el
-///   video vuelven a sonar (si su pestaña sigue visible).
+/// Las pantallas de video (`VideoPlayerScreen` y `YoutubePlayerScreen`)
+/// llaman a [videoOpened] al abrirse y a [videoClosed] al cerrarse.
+/// Los reproductores del en vivo (`LiveChannelPlayer` y
+/// `LiveStreamPlayer`) escuchan este objeto y se apagan o se reanudan.
+///
+/// Usa un contador para que funcione bien aunque se abran varios videos
+/// seguidos: el en vivo solo vuelve cuando se cierra el último.
 class PlaybackCoordinator extends ChangeNotifier {
   PlaybackCoordinator._();
 
   static final PlaybackCoordinator instance = PlaybackCoordinator._();
 
-  int _open = 0;
+  int _openVideos = 0;
 
-  /// true mientras haya al menos una pantalla de video abierta.
-  bool get videoOpen => _open > 0;
+  /// true mientras haya al menos un video abierto.
+  bool get hasVideoOpen => _openVideos > 0;
 
+  /// Se llama al abrir una pantalla de video.
   void videoOpened() {
-    _open++;
-    _notifyLater();
+    _openVideos++;
+    if (_openVideos == 1) notifyListeners();
   }
 
+  /// Se llama al cerrar una pantalla de video.
   void videoClosed() {
-    if (_open > 0) _open--;
-    _notifyLater();
+    if (_openVideos == 0) return;
+    _openVideos--;
+    if (_openVideos == 0) notifyListeners();
   }
-
-  /// Se avisa en un microtask para no llamar a setState de otros
-  /// widgets mientras Flutter está construyendo o destruyendo pantallas.
-  void _notifyLater() => scheduleMicrotask(notifyListeners);
 }
