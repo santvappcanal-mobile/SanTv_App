@@ -43,6 +43,10 @@ class LiveWebScripts {
 
   /// Evita que el reproductor web abra su propio pantalla completa
   /// nativo (el que se veía estirado) y ajusta el video sin recortar.
+  ///
+  /// Solo da play mientras el video NO haya arrancado todavía
+  /// (`window.__santvPlayed`); así, si el usuario lo pausa con el botón
+  /// del reproductor, los reintentos no lo vuelven a reproducir.
   static const String fitVideo = '''
     (function () {
       function noop() { return Promise.resolve(); }
@@ -61,7 +65,16 @@ class LiveWebScripts {
         v.style.objectFit = 'contain';
         v.style.background = '#000';
         v.setAttribute('playsinline', '');
-        if (v.paused) {
+
+        if (!v.__santvListener) {
+          v.__santvListener = true;
+          v.addEventListener('playing', function () {
+            window.__santvPlayed = true;
+          });
+        }
+        if (!v.paused) { window.__santvPlayed = true; }
+
+        if (v.paused && !window.__santvPlayed) {
           v.muted = false;
           var p = v.play();
           if (p && p.catch) { p.catch(function () { v.muted = true; v.play(); }); }
@@ -70,44 +83,75 @@ class LiveWebScripts {
     })();
   ''';
 
-  /// Da play al video (con sonido; si el navegador lo bloquea, en mute)
-  /// y, si sigue sin sonar, toca los botones de play más comunes.
-  static const String play = '''
-    (function () {
-      var videos = document.querySelectorAll('video');
-      videos.forEach(function (v) {
-        v.setAttribute('playsinline', '');
-        if (v.paused) {
-          v.muted = false;
-          var p = v.play();
-          if (p && p.catch) {
-            p.catch(function () { v.muted = true; v.play(); });
-          }
-        }
-      });
+  /// Cuerpo común de [play] y [autoplay].
+  ///
+  /// - Si el video ya está sonando, solo marca `window.__santvPlayed`.
+  /// - Si `force` es false y el video ya arrancó una vez, no hace nada:
+  ///   así el botón de pausa del reproductor web funciona y los
+  ///   reintentos no lo vuelven a reproducir.
+  /// - Si `force` es true, reinicia esa marca y da play igual.
+  static const String _playBody = '''
+    if (force) { window.__santvPlayed = false; }
 
-      var playing = Array.prototype.some.call(videos, function (v) {
-        return !v.paused;
+    var videos = document.querySelectorAll('video');
+
+    videos.forEach(function (v) {
+      if (v.__santvListener) return;
+      v.__santvListener = true;
+      v.addEventListener('playing', function () {
+        window.__santvPlayed = true;
       });
-      if (!playing) {
-        [
-          '.vjs-big-play-button',
-          '.jw-icon-display',
-          '.plyr__control--overlaid',
-          '.ytp-large-play-button',
-          '.mejs__overlay-button',
-          '[aria-label="Play"]',
-          '[aria-label="Reproducir"]',
-          '.play-button',
-          '.btn-play',
-          '#play'
-        ].forEach(function (s) {
-          var el = document.querySelector(s);
-          if (el) el.click();
-        });
+    });
+
+    var already = Array.prototype.some.call(videos, function (v) {
+      return !v.paused;
+    });
+    if (already) { window.__santvPlayed = true; return; }
+    if (window.__santvPlayed) { return; }
+
+    videos.forEach(function (v) {
+      v.setAttribute('playsinline', '');
+      if (v.paused) {
+        v.muted = false;
+        var p = v.play();
+        if (p && p.catch) {
+          p.catch(function () { v.muted = true; v.play(); });
+        }
       }
-    })();
+    });
+
+    var playing = Array.prototype.some.call(videos, function (v) {
+      return !v.paused;
+    });
+    if (!playing) {
+      [
+        '.vjs-big-play-button',
+        '.jw-icon-display',
+        '.plyr__control--overlaid',
+        '.ytp-large-play-button',
+        '.mejs__overlay-button',
+        '[aria-label="Play"]',
+        '[aria-label="Reproducir"]',
+        '[class*="big-play" i]',
+        '[class*="play-button" i]',
+        '[class*="playbutton" i]',
+        '.play-button',
+        '.btn-play',
+        '#play'
+      ].forEach(function (s) {
+        var el = document.querySelector(s);
+        if (el) el.click();
+      });
+    }
   ''';
+
+  /// Da play de forma FORZADA (con sonido; si el navegador lo bloquea,
+  /// en mute). Se usa al volver a una pestaña o pantalla.
+  static const String play = '(function (force) {$_playBody})(true);';
+
+  /// Da play solo si el video todavía no arrancó. Es el que se usa en
+  /// los reintentos tras cargar la página.
+  static const String autoplay = '(function (force) {$_playBody})(false);';
 
   static const String pause =
       "document.querySelectorAll('video').forEach(function(v){ v.pause(); });";

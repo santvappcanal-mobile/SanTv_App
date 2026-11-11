@@ -164,13 +164,25 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
 
   /// Aplica el estado actual: da play si está activo, pausa si no.
   /// Reintenta un rato porque el <video> puede aparecer tarde.
-  void _applyState() {
+  ///
+  /// Los reintentos usan `autoplay`, que NO vuelve a reproducir un video
+  /// que ya arrancó; así, si el usuario lo pausa con el botón del
+  /// reproductor, se queda pausado. Con [force] el primer intento es un
+  /// play forzado (al volver a la pestaña).
+  void _applyState({bool force = false}) {
     if (_stopped) return;
+    var firstRun = true;
     _scripts.run(
-      () => [
-        LiveWebScripts.hideFullscreenButton,
-        widget.isActive ? LiveWebScripts.play : LiveWebScripts.pause,
-      ],
+      () {
+        final play = (force && firstRun)
+            ? LiveWebScripts.play
+            : LiveWebScripts.autoplay;
+        firstRun = false;
+        return [
+          LiveWebScripts.hideFullscreenButton,
+          widget.isActive ? play : LiveWebScripts.pause,
+        ];
+      },
       isAlive: () => mounted && !_stopped,
     );
   }
@@ -200,7 +212,7 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
         setState(() => _loading = true);
         _controller.reload();
       } else {
-        _applyState();
+        _applyState(force: true);
       }
     } else {
       if (_stopped) return; // ya está apagado
