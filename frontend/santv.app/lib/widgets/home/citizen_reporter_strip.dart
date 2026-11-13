@@ -5,6 +5,7 @@ import '../../models/report.dart';
 import '../../pages/admin_reports_screen.dart';
 import '../../pages/my_reports_screen.dart';
 import '../../pages/news_map_screen.dart';
+import '../../pages/published_reports_screen.dart';
 import '../../pages/report_create_screen.dart';
 import '../../pages/report_detail_screen.dart';
 import '../../services/auth_service.dart';
@@ -127,13 +128,17 @@ class _CitizenReporterStripState extends State<CitizenReporterStrip>
           decoration: const BoxDecoration(color: _neon, shape: BoxShape.circle),
         ),
         const SizedBox(width: 8),
-        const Text(
-          'TU COMUNIDAD CUENTA',
-          style: TextStyle(
-            color: Colors.white70,
-            fontSize: 12,
-            fontWeight: FontWeight.w700,
-            letterSpacing: 1.6,
+        const Flexible(
+          child: Text(
+            'TU COMUNIDAD CUENTA',
+            maxLines: 1,
+            overflow: TextOverflow.ellipsis,
+            style: TextStyle(
+              color: Colors.white70,
+              fontSize: 12,
+              fontWeight: FontWeight.w700,
+              letterSpacing: 1.6,
+            ),
           ),
         ),
         const Spacer(),
@@ -146,6 +151,16 @@ class _CitizenReporterStripState extends State<CitizenReporterStrip>
           icon: Icons.history,
           tooltip: 'Mis reportes',
           onTap: () => _open(MyReportsScreen(authService: widget.authService)),
+        ),
+        _HeaderIcon(
+          icon: Icons.collections_outlined,
+          tooltip: 'Publicados',
+          onTap: () => _open(
+            PublishedReportsScreen(
+              authService: widget.authService,
+              isAdmin: widget.isAdmin,
+            ),
+          ),
         ),
         if (widget.isAdmin)
           _HeaderIcon(

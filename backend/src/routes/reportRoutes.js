@@ -15,19 +15,21 @@ const {
   approveReport,
   rejectReport,
 } = require('../controllers/reportController');
+const { getPublishedReports } = require('../controllers/reportPublishedController');
 
 // Usuario
 router.post('/', protect, reportUpload.single('image'), createReport);
 router.get('/mine', protect, getMyReports);
 router.get('/map', protect, getMapReports);
 router.get('/featured', protect, getFeaturedNews);
+router.get('/published', protect, getPublishedReports);
 
 // Admin / editor
 router.get('/pending', protect, authorize('admin', 'editor'), getPendingReports);
 router.put('/:id/approve', protect, authorize('admin', 'editor'), approveReport);
 router.put('/:id/reject', protect, authorize('admin', 'editor'), rejectReport);
 
-// Por id (siempre al final, para que no tape a /mine, /map, /featured ni /pending)
+// Por id (siempre al final, para que no tape a /mine, /map, /featured, /published ni /pending)
 router.get('/:id', protect, getReportById);
 router.put('/:id', protect, updateReport); // solo el autor (se valida en el controller)
 router.delete('/:id', protect, deleteReport); // el autor o un admin/editor

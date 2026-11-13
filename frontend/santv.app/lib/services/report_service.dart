@@ -177,7 +177,7 @@ class ReportService {
     });
   }
 
-  /// Eliminar un reporte propio.
+  /// Eliminar un reporte (el autor, o un admin/editor).
   Future<void> delete(String id) {
     return _guard(() async {
       final res = await http
@@ -206,6 +206,17 @@ class ReportService {
     return _guard(() async {
       final res = await http
           .get(Uri.parse('$_base/map'), headers: await _headers())
+          .timeout(_timeout);
+      return _parseList(_decode(res));
+    });
+  }
+
+  /// Todos los reportes publicados (aprobados), sin el límite de 30 días
+  /// del mapa. Lo usa la pantalla "Publicados".
+  Future<List<Report>> getPublished() {
+    return _guard(() async {
+      final res = await http
+          .get(Uri.parse('$_base/published'), headers: await _headers())
           .timeout(_timeout);
       return _parseList(_decode(res));
     });

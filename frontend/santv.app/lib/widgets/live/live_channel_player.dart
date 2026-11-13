@@ -11,6 +11,14 @@ import 'package:santv_app/widgets/live/live_web_scripts.dart';
 import 'package:santv_app/widgets/live/round_icon_button.dart';
 import 'package:webview_flutter/webview_flutter.dart';
 
+/// Estado de pausa y silencio elegido por el usuario. Es compartido por
+/// todos los reproductores del canal (Home y pestaña En vivo), así que
+/// si pausa o silencia en uno, el otro queda igual.
+class _SharedPlayerState {
+  static final ValueNotifier<bool> paused = ValueNotifier<bool>(false);
+  static final ValueNotifier<bool> muted = ValueNotifier<bool>(false);
+}
+
 /// Reproductor del canal en vivo de SAN TV (WebView con autoplay).
 /// Se usa en el Home y en la pestaña En vivo. Ambos cargan el mismo
 /// directo, así que siempre están sincronizados.
@@ -18,7 +26,8 @@ import 'package:webview_flutter/webview_flutter.dart';
 /// [isActive] controla si debe sonar: solo el reproductor visible
 /// reproduce, el otro se mantiene pausado.
 /// [onTap], si se pasa, intercepta el toque sobre el video (ej. en el
-/// Home para llevar a la pestaña En vivo).
+/// Home para llevar a la pestaña En vivo). Los botones de pausa y
+/// silencio van POR ENCIMA de ese toque, así que funcionan sin navegar.
 /// [authService], si se pasa, habilita los comentarios en vivo al
 /// ampliar el video.
 ///
@@ -101,6 +110,48 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
     _scripts = LiveScriptRunner(_controller);
 
     _coordinator.addListener(_onCoordinatorChanged);
+    _SharedPlayerState.paused.addListener(_onUserPrefsChanged);
+    _SharedPlayerState.muted.addListener(_onUserPrefsChanged);
+  }
+
+  /// Script que silencia o activa el sonido de todos los <video>/<audio>
+  /// de la página (y de los iframes del mismo dominio).
+  String _muteScript(bool muted) => '''
+(function () {
+  var MUTED = $muted;
+  function apply(doc) {
+    try {
+      var els = doc.querySelectorAll('video,audio');
+      for (var i = 0; i < els.length; i++) {
+        els[i].muted = MUTED;
+        if (!MUTED && els[i].volume === 0) els[i].volume = 1;
+      }
+    } catch (e) {}
+  }
+  apply(document);
+  try {
+    var frames = document.querySelectorAll('iframe');
+    for (var j = 0; j < frames.length; j++) {
+      try { apply(frames[j].contentDocument); } catch (e) {}
+    }
+  } catch (e) {}
+})();
+''';
+
+  /// El usuario tocó pausa/play o silencio (en este reproductor o en el
+  /// otro). Se vuelve a aplicar el estado.
+  void _onUserPrefsChanged() {
+    if (!mounted || _stopped || _fullscreenOpen) return;
+    // force: si ahora NO está pausado, el primer intento es un play real.
+    _applyState(force: !_SharedPlayerState.paused.value);
+  }
+
+  void _togglePause() {
+    _SharedPlayerState.paused.value = !_SharedPlayerState.paused.value;
+  }
+
+  void _toggleMute() {
+    _SharedPlayerState.muted.value = !_SharedPlayerState.muted.value;
   }
 
   /// Se abrió o se cerró un video. Se difiere con un microtask porque
@@ -162,25 +213,30 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
     _controller.reload();
   }
 
-  /// Aplica el estado actual: da play si está activo, pausa si no.
+  /// Aplica el estado actual: da play si está activo (y el usuario no lo
+  /// pausó), pausa si no, y aplica el silencio elegido.
   /// Reintenta un rato porque el <video> puede aparecer tarde.
   ///
   /// Los reintentos usan `autoplay`, que NO vuelve a reproducir un video
-  /// que ya arrancó; así, si el usuario lo pausa con el botón del
-  /// reproductor, se queda pausado. Con [force] el primer intento es un
-  /// play forzado (al volver a la pestaña).
+  /// que ya arrancó; así, si el usuario lo pausa, se queda pausado. Con
+  /// [force] el primer intento es un play forzado (al volver a la
+  /// pestaña o cuando el usuario toca play).
   void _applyState({bool force = false}) {
     if (_stopped) return;
     var firstRun = true;
     _scripts.run(
       () {
+        final userPaused = _SharedPlayerState.paused.value;
+        final muted = _SharedPlayerState.muted.value;
         final play = (force && firstRun)
             ? LiveWebScripts.play
             : LiveWebScripts.autoplay;
         firstRun = false;
         return [
           LiveWebScripts.hideFullscreenButton,
-          widget.isActive ? play : LiveWebScripts.pause,
+          LiveWebScripts.hideWebControls,
+          widget.isActive && !userPaused ? play : LiveWebScripts.pause,
+          _muteScript(muted),
         ];
       },
       isAlive: () => mounted && !_stopped,
@@ -224,6 +280,8 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
   @override
   void dispose() {
     _coordinator.removeListener(_onCoordinatorChanged);
+    _SharedPlayerState.paused.removeListener(_onUserPrefsChanged);
+    _SharedPlayerState.muted.removeListener(_onUserPrefsChanged);
     _scripts.cancel();
     super.dispose();
   }
@@ -260,19 +318,50 @@ class _LiveChannelPlayerState extends State<LiveChannelPlayer> {
                 left: 10,
                 child: IgnorePointer(child: LiveBadge()),
               ),
-            // Botón propio de ampliar (por si el del reproductor web no
-            // avisa a Flutter). Solo en la pestaña En vivo, no en el Home.
-            if (widget.onTap == null)
-              Positioned(
-                top: 10,
-                right: 10,
-                child: RoundIconButton(
-                  icon: Icons.fullscreen_rounded,
-                  onTap: _openFullscreen,
-                  size: 34,
-                  alpha: 0.6,
-                ),
+            // Controles propios: pausa/play, silencio y (solo en la
+            // pestaña En vivo) ampliar. Van después del GestureDetector
+            // del Home, por eso reciben el toque y NO navegan.
+            Positioned(
+              top: 10,
+              right: 10,
+              child: Row(
+                mainAxisSize: MainAxisSize.min,
+                children: [
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _SharedPlayerState.paused,
+                    builder: (_, paused, __) => RoundIconButton(
+                      icon: paused
+                          ? Icons.play_arrow_rounded
+                          : Icons.pause_rounded,
+                      onTap: _togglePause,
+                      size: 34,
+                      alpha: 0.6,
+                    ),
+                  ),
+                  const SizedBox(width: 8),
+                  ValueListenableBuilder<bool>(
+                    valueListenable: _SharedPlayerState.muted,
+                    builder: (_, muted, __) => RoundIconButton(
+                      icon: muted
+                          ? Icons.volume_off_rounded
+                          : Icons.volume_up_rounded,
+                      onTap: _toggleMute,
+                      size: 34,
+                      alpha: 0.6,
+                    ),
+                  ),
+                  if (widget.onTap == null) ...[
+                    const SizedBox(width: 8),
+                    RoundIconButton(
+                      icon: Icons.fullscreen_rounded,
+                      onTap: _openFullscreen,
+                      size: 34,
+                      alpha: 0.6,
+                    ),
+                  ],
+                ],
               ),
+            ),
           ],
         ),
       ),

@@ -41,6 +41,40 @@ class LiveWebScripts {
     })();
   ''';
 
+  /// Oculta TODOS los controles del reproductor web (pausa, volumen,
+  /// barra de controles, controles nativos del <video>). La app usa sus
+  /// propios botones de Flutter, que comparten estado entre el Home y la
+  /// pestaña En vivo. Nunca oculta un elemento que contenga el <video>.
+  /// Los elementos ocultos siguen aceptando `.click()` por código, así que
+  /// el arranque automático no se ve afectado. Es idempotente y se vuelve
+  /// a aplicar en los reintentos por si la página los crea tarde.
+  static const String hideWebControls = '''
+    (function () {
+      var sel = 'button, [role="button"], [class*="control" i],' +
+        '[class*="volume" i], [class*="mute" i], [class*="btn" i]';
+      try {
+        document.querySelectorAll(sel).forEach(function (el) {
+          if (el.tagName === 'VIDEO' || el.querySelector('video')) return;
+          el.style.setProperty('display', 'none', 'important');
+        });
+      } catch (e) {}
+      if (!document.getElementById('santv-hide-controls')) {
+        var st = document.createElement('style');
+        st.id = 'santv-hide-controls';
+        st.textContent =
+          'video::-webkit-media-controls,' +
+          'video::-webkit-media-controls-enclosure,' +
+          'video::-webkit-media-controls-panel' +
+          '{ display: none !important; -webkit-appearance: none; }';
+        (document.head || document.documentElement).appendChild(st);
+      }
+      document.querySelectorAll('video').forEach(function (v) {
+        v.controls = false;
+        v.removeAttribute('controls');
+      });
+    })();
+  ''';
+
   /// Evita que el reproductor web abra su propio pantalla completa
   /// nativo (el que se veía estirado) y ajusta el video sin recortar.
   ///
