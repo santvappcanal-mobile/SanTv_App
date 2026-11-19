@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>Manual de Instalación · {{app}}</title>
+<link rel="stylesheet" href="css/estilos.css">
+<script src="js/config.js" defer></script>
+<script src="js/app.js" defer></script>
+</head>
+<body>
+<header class="top">
+  <a class="marca" href="index.html"><i></i>{{app}}</a>
+  <span>Documentos oficiales</span>
+</header>
+<main>
+  <h1>Manual de Instalación</h1>
+  <p class="sub">Instala y actualiza la app</p>
+  <a class="volver" href="index.html">← Todos los documentos</a>
+<p class="meta">Versión de la app {{version_app}} · Actualizado: {{fecha}}</p>
+<p>Cómo instalar, actualizar y desinstalar {{app}} en tu teléfono Android.</p>
+
+<h2>Requisitos</h2>
+<ul>
+<li>Teléfono Android actualizado (recomendado Android 8.0 o superior).</li>
+<li>Conexión a internet (datos móviles o Wi-Fi).</li>
+<li>Espacio libre suficiente para la app y sus actualizaciones.</li>
+</ul>
+
+<h2>Instalar con el archivo APK</h2>
+<ul>
+<li>Descarga el archivo .apk solo desde el enlace o código QR oficial del canal: <a href="{{url_apk}}">sección Releases</a>.</li>
+<li>Ábrelo desde Descargas. Si el teléfono lo pide, permite Instalar apps de fuentes desconocidas solo para ese navegador o administrador de archivos.</li>
+<li>Toca Instalar. Si Google Play Protect muestra una advertencia, elige Instalar de todos modos (solo si descargaste el archivo del enlace oficial).</li>
+<li>Al terminar, vuelve a desactivar el permiso de fuentes desconocidas y abre {{app}}.</li>
+</ul>
+
+<h2>Primer uso y permisos</h2>
+<ul>
+<li>Crea tu cuenta o entra con Google (ver Manual de Usuario).</li>
+<li>Notificaciones: acepta el permiso para recibir avisos del canal.</li>
+<li>Cámara y ubicación: solo si vas a enviar un reporte en Mi comunidad cuenta.</li>
+<li>Fotos y archivos: el selector del teléfono te pedirá acceso cuando elijas una foto o un comprobante.</li>
+</ul>
+<p class="aviso">La primera vez que abres la app después de un rato sin usarla, el servidor puede tardar hasta un minuto en responder. Espera un momento y vuelve a intentar.</p>
+
+<h2>Actualizar la app</h2>
+<p>Descarga la versión nueva desde el mismo enlace oficial e instálala encima, sin desinstalar. Tus datos están en tu cuenta, no en el teléfono.</p>
+
+<h2>Solución de problemas</h2>
+<ul>
+<li>No se instala: libera espacio, reinicia el teléfono y vuelve a intentar.</li>
+<li>No carga el contenido: revisa tu internet y espera unos segundos; el servidor puede estar despertando.</li>
+<li>No llegan notificaciones: permítelas en los ajustes del teléfono y desactiva el ahorro de batería para {{app}}.</li>
+<li>No entra con Google: verifica que haya una cuenta de Google en el teléfono y actualiza Google Play Services.</li>
+<li>No puedo enviar un reporte: activa los permisos de cámara y ubicación de la app.</li>
+<li>Cualquier otro problema: escríbenos por WhatsApp al {{whatsapp}}.</li>
+</ul>
+
+<h2>Desinstalar</h2>
+<p>Mantén presionado el ícono de la app y elige Desinstalar, o ve a Ajustes > Aplicaciones > {{app}} > Desinstalar. Desinstalar la app no borra tu cuenta; para eliminarla sigue el documento Eliminar mi cuenta y mis datos.</p>
+</main>
+<footer>© 2026 {{empresa}} · {{ciudad}} · <a href="mailto:{{correo}}">{{correo}}</a></footer>
+</body>
+</html>
