@@ -7,5 +7,6 @@ window.SANTV = {
   whatsapp: "+57 310 336 8882",
   version_app: "1.0.0",
   version_docs: "2026-11-18",
+  fecha: "18 de noviembre de 2026",
   url_apk: "https://github.com/santvappcanal-mobile/SanTv_App/releases"
 };
